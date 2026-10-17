@@ -95,7 +95,7 @@ If a new worktree does not contain `.venv`, create it before running backend cod
 ```bash
 python -m venv .venv
 .venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r requirements.txt
+.venv/bin/pip install -r backend/requirements-dev.txt   # includes backend/requirements.txt
 ```
 
 ### Dependencies
@@ -103,7 +103,7 @@ python -m venv .venv
 New runtime dependencies must be:
 
 1. justified by the requested feature
-2. added to `requirements.txt`
+2. added to `backend/requirements.txt` (development-only tools go in `backend/requirements-dev.txt`)
 3. installed inside `.venv`
 4. compatible with the project's supported Python version
 
