@@ -6,7 +6,8 @@ Run with `uvicorn app.api.main:app`.
 import re
 import sys
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.dependencies.models import Dependant
@@ -18,6 +19,7 @@ from app import __version__
 from app.api import health, meta
 from app.auth.dependencies import get_api_key, get_current_principal
 from app.core.config import Settings, SettingsError, get_settings
+from app.core.db import engine_from_settings
 from app.core.logging import configure_logging, request_id_var
 from app.core.problems import (
     handle_http_exception,
@@ -48,17 +50,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
+        lifespan=_lifespan,
         exception_handlers={
             HTTPException: handle_http_exception,
             RequestValidationError: handle_validation_error,
             Exception: handle_unhandled_exception,
         },
     )
+    app.state.settings = settings
     app.middleware("http")(_request_id_middleware)
     for router in ROUTERS:
         app.include_router(router)
     assert_routes_authenticated(app)
     return app
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Hold the database engine for the app's lifetime and close its pool on shutdown."""
+    app.state.engine = engine_from_settings(app.state.settings)
+    try:
+        yield
+    finally:
+        await app.state.engine.dispose()
 
 
 def assert_routes_authenticated(app: FastAPI) -> None:
