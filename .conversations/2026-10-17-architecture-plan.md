@@ -9,6 +9,8 @@ Project: OpenNote (Claude project thread "OpenNote plan"). Recorded per the last
 | 16:00 | Flemming | The full design document "Consulting OpenNotes — Powered by Obsidian" (stored verbatim in `docs/design/2026-10-17-opennote-design-document.md`) |
 | 16:01 | Flemming | "Make a plan for the above" |
 | 16:07 | Flemming | "refresh as I have added claude.md" |
+| 20:34 | Flemming | "add coderabbit reviews in" with `reviews.auto_review.drafts: true` → added `.coderabbit.yaml` |
+| 20:34 | Flemming | "add coderabbit reviews in" with `reviews.auto_review.drafts: true` → added `.coderabbit.yaml` |
 
 ## How the prompts were read
 
