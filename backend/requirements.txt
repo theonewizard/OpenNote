@@ -1,0 +1,5 @@
+# Runtime dependencies, pinned exactly (ADR-0014). Versions: docs/development/versions.md.
+fastapi==0.143.3
+pydantic==2.14.1
+pydantic-settings==2.16.0
+uvicorn[standard]==0.54.0
