@@ -10,7 +10,6 @@ Project: OpenNote (Claude project thread "OpenNote plan"). Recorded per the last
 | 16:01 | Flemming | "Make a plan for the above" |
 | 16:07 | Flemming | "refresh as I have added claude.md" |
 | 20:34 | Flemming | "add coderabbit reviews in" with `reviews.auto_review.drafts: true` → added `.coderabbit.yaml` |
-| 20:34 | Flemming | "add coderabbit reviews in" with `reviews.auto_review.drafts: true` → added `.coderabbit.yaml` |
 
 ## How the prompts were read
 
