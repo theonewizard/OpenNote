@@ -106,17 +106,19 @@ The same run pulled `ubi9/ubi-minimal:9.8` (RHEL 9.8) and `ubi10/ubi-minimal:10.
 
 - `python3.12`: branches c8s, c9s and c10s at 3.12.15 (https://gitlab.com/redhat/centos-stream/rpms/python3.12). It is the main `python3` of c10s: its spec builds the main package when 3.12 is the distribution default, and c10s sets `%__default_python3_version 3.12` (https://gitlab.com/redhat/centos-stream/rpms/python-rpm-macros/-/raw/c10s/macros.python-srpm).
 - `python3.14`: the "Python 3.14 stack in RHEL" (imported 2025-11-25), an AppStream component built as the separate `python3.14` package (`%bcond main_python 0`), branches c9s and c10s at 3.14.8 since 2026-10-12. https://gitlab.com/redhat/centos-stream/rpms/python3.14
-- `python3.13`: no such component (https://gitlab.com/redhat/centos-stream/rpms/python3.13 returns 404).
+- `python3.13`: no python3.13 project is visible to an anonymous GitLab API lookup (https://gitlab.com/api/v4/projects/redhat%2Fcentos-stream%2Frpms%2Fpython3.13 answers "404 Project Not Found", which GitLab also returns for private projects).
 - `python3.15`: live only on c11s; its c10s branch is retired. https://gitlab.com/redhat/centos-stream/rpms/python3.15
 
 **Unknowns and the checks that settle them.**
 
 - Is `python3.14` installable in `ubi9/ubi-minimal:9.8`? Run `microdnf install -y python3.14` in that image in CI; the Task 6 image build does exactly this.
 - Tags and digest of `ubi9/python-314`: https://catalog.redhat.com/software/containers/ubi9/python-314 and https://registry.access.redhat.com/v2/ubi9/python-314/tags/list (both blocked from this environment).
+- Python 3.15 images, not probed: `ubi9/python-315` (https://registry.access.redhat.com/v2/ubi9/python-315/tags/list) and `ubi10/python-315` (https://registry.access.redhat.com/v2/ubi10/python-315/tags/list).
+- Minimal Python images, not probed: sclorg upstream builds `ubi9/python-314-minimal`, `ubi10/python-312-minimal` and `ubi10/python-314-minimal` (https://raw.githubusercontent.com/sclorg/s2i-python-container/master/3.14-minimal/Dockerfile.rhel9, `3.14-minimal/Dockerfile.rhel10`, `3.12-minimal/Dockerfile.rhel10`). Check https://registry.access.redhat.com/v2/ubi9/python-314-minimal/tags/list, https://registry.access.redhat.com/v2/ubi10/python-312-minimal/tags/list and https://registry.access.redhat.com/v2/ubi10/python-314-minimal/tags/list.
 
 **Decision.**
 
-- Python 3.14 on UBI 9 is the newest UBI-available Python. No UBI 10 Python image exists, so UBI 10 is not used for Python images.
-- The API and worker runtime image is `registry.access.redhat.com/ubi9/ubi-minimal:9.8` plus `microdnf install python3.14`, verified by the CI image build in Task 6. If that package is absent, the runtime base becomes `registry.access.redhat.com/ubi9/python-314`.
+- Python 3.14 on UBI 9 is the newest of the probed UBI Python images (3.12 to 3.14). The probe found no `ubi10/python-312`, `-313` or `-314` image; the `-minimal` variants that sclorg upstream builds (`ubi9/python-314-minimal`, `ubi10/python-312-minimal`, `ubi10/python-314-minimal`) and any `python-315` image were not probed. UBI 10 is not used for Python images (ruling R20).
+- The API and worker runtime image is `registry.access.redhat.com/ubi9/ubi-minimal:9.8` plus `microdnf install python3.14`, verified by the CI image build in Task 6. If that package is absent, the runtime base becomes `registry.access.redhat.com/ubi9/python-314`. `ubi9/python-314-minimal` is a candidate fallback to probe in Task 6 (not probed).
 - The backend declares `requires-python = ">=3.13"` (the design floor). CI tests Python 3.13 and 3.14. Local development uses Python 3.13 or 3.14.
-- Gap: the runtime Python (3.14) is one minor release behind the latest stable release (3.15.0), which no UBI image or RHEL 9/10 package offers.
+- Gap: the runtime Python (3.14) is one minor release behind the latest stable release (3.15.0). CentOS Stream has no live python3.15 branch for c9s or c10s (evidence only; `ubi9/python-315` and `ubi10/python-315` were not probed).
