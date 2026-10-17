@@ -1,0 +1,28 @@
+name: probe-ubi-python
+on:
+  push:
+    branches: [probe/ubi-python]
+jobs:
+  ubi-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List Python packages available in UBI 9 and UBI 10 minimal
+        run: |
+          set +e
+          for img in registry.access.redhat.com/ubi9/ubi-minimal:9.8 registry.access.redhat.com/ubi10/ubi-minimal:10.2; do
+            echo "=================== $img"
+            docker run --rm "$img" sh -c '
+              if command -v microdnf >/dev/null; then PM=microdnf; else PM=dnf; fi
+              echo "package manager: $PM"; $PM --version 2>&1 | head -1
+              echo "--- available python3* packages:"
+              $PM repoquery --available --quiet "python3*" 2>&1 | grep -E "^python3(\.[0-9]+)?-[0-9]" | sort -u
+              echo "--- rpm -q python3:"; rpm -q python3 2>&1
+              echo "--- os-release:"; grep PRETTY_NAME /etc/os-release'
+          done
+          echo "=================== s2i python images"
+          for t in ubi9/python-312 ubi9/python-313 ubi9/python-314 ubi10/python-312 ubi10/python-313 ubi10/python-314; do
+            if docker manifest inspect "registry.access.redhat.com/$t:latest" >/dev/null 2>&1; then echo "$t: exists"; else echo "$t: missing"; fi
+          done
+          echo "=================== tags of ubi9/python-312 (catalog API)"
+          curl -sS "https://catalog.redhat.com/api/containers/v1/repositories/registry/registry.access.redhat.com/repository/ubi9/python-312/images?page_size=3&sort_by=creation_date%5Bdesc%5D" | head -c 600; echo
+          exit 0
