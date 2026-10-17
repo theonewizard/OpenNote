@@ -10,7 +10,7 @@ The protocol is judged by these invariants, which the simulation suite checks af
 |---|---|
 | I1 | **No acknowledged loss.** Any content a client persisted locally is, after the client syncs, either part of a server revision, stored as a conflict copy, or (for an operation the server `rejected`) still on the client, flagged and shown to the user. Content acknowledged by the server is never lost afterwards, including across server crashes. |
 | I2 | **No silent overwrite.** A write based on revision *n* never replaces revision *m > n* without a successful three-way merge or a conflict record. |
-| I3 | **Convergence.** When all clients are online and idle, every replica's file set and bytes equal the server's. |
+| I3 | **Convergence.** When all clients are online and idle, every replica's file set and bytes equal the server's, except files holding a `rejected` edit (§5), which stay divergent on that client until the user resolves or discards the edit. |
 | I4 | **Idempotency.** Replaying any request (retry, duplicate delivery) produces the same server state as one delivery. |
 | I5 | **No loops.** Applying a pulled change never generates a push of that same change. |
 | I6 | **Order independence from clocks.** No decision depends on device or server wall-clock time. |
@@ -88,7 +88,15 @@ Returns ordered entries `{seq, file_id, revision, path, kind, content_hash, size
 | Dirty | Do not touch the file. Record the remote revision; the pending `update` will be merged by the server on push |
 | Locally deleted (pending `delete`) | Keep pending; server decides on push |
 
-A cursor older than the tombstone retention window gets `410 Gone`; the client then performs a **full reconcile**: fetch the complete file list (`GET /sync/{vault_id}/snapshot`), compare hashes, and turn every local difference into ordinary operations. Full reconcile never deletes local content that the server does not know about; it creates it instead.
+A cursor older than the tombstone retention window gets `410 Gone`; the client then performs a **full reconcile**: fetch the complete file list (`GET /sync/{vault_id}/snapshot`), compare hashes, and turn every local difference into ordinary operations. Full reconcile never deletes local content, and it never resurrects a file the server deleted:
+
+| Local file vs snapshot | Action |
+|---|---|
+| Flagged `rejected` (§5), whatever its snapshot state | Skip: never pushed again until the user resolves or discards the edit; the flag survives the dropped outbox operation |
+| Not in the client's `files` table (never synced) | Push as a `create` |
+| Known (has a `base_revision`), missing from the snapshot, clean | The server deleted it and the tombstone has expired: move the local file to the recovery area, as for a tombstone |
+| Known, missing from the snapshot, dirty | Edit wins (§6): push as a `create` with a new `file_id` and flag it to the user as restored after a remote delete |
+| In the snapshot | Compare hashes; a difference becomes an `update` (dirty) or a download (clean) |
 
 Change notifications arrive over `WSS /api/v1/events` as `{vault_id, seq}` hints. The event channel is advisory; correctness depends only on pull.
 
@@ -147,7 +155,7 @@ Clients are not the only writers. The server vault volume can be edited directly
 on start / network up / event hint / timer (60 s) / local change (debounced 2 s):
     push outbox (blobs first, then ops, in order)
     pull until has_more = false
-    for each local dirty file without an outbox op (external edit, e.g. Obsidian on macOS):
+    for each local dirty file without an outbox op and not flagged rejected (external edit, e.g. Obsidian on macOS):
         enqueue update/create/delete from local scan
 ```
 
