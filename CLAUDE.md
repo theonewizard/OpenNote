@@ -347,9 +347,9 @@ AWS_ACCESS_KEY=<present>
 DATABASE_PASSWORD=<present>
 ```
 
-The runtime `.env` on TrueNAS contains live AWS, Cloudflare, database, and internal credentials.
+Any host, cluster, or namespace running OpenNote with real user vaults (Compose host, Kubernetes or OpenShift namespace) holds live credentials: database passwords, OIDC client secrets, token signing keys, and any opted-in AI provider keys.
 
-Treat access to that host as **production access**.
+Treat access to such a host as **production access**. When uncertain whether a target is production, treat it as production.
 
 ---
 
@@ -366,7 +366,7 @@ assert_routes_authenticated
 in:
 
 ```text
-api/main.py
+backend/app/api/main.py
 ```
 
 Intentionally unauthenticated routes must be explicitly included in:
@@ -375,10 +375,11 @@ Intentionally unauthenticated routes must be explicitly included in:
 KEYLESS_ROUTES
 ```
 
-New routes must use:
+New routes must use one of:
 
 ```python
-Depends(get_api_key)
+Depends(get_current_principal)   # OAuth 2.0 bearer token (users and devices)
+Depends(get_api_key)             # automation tokens
 ```
 
 or a stricter authorization mechanism.
@@ -439,15 +440,18 @@ Do not expose sensitive diagnostic information in `detail`.
 
 ---
 
-## 14. Frontend API Proxy Contract
+## 14. Frontend API Contract
 
-Frontend `/api/*` parameter allow-lists are part of the API contract.
+The web app talks to the backend through a TypeScript client generated from the committed OpenAPI document (`docs/api/openapi.json`). Query parameters are validated with Zod schemas in `web/src/api/`.
 
-Adding or modifying a backend query parameter requires reviewing and, where necessary, updating the corresponding proxy Zod schema in the **same change**.
+Adding or modifying a backend endpoint, query parameter, or payload requires, in the **same change**:
 
-Otherwise the parameter may be silently dropped.
+- regenerating the OpenAPI document and the TypeScript and Swift clients
+- updating the corresponding Zod schemas
 
-Backend and frontend contract changes must remain synchronized.
+CI fails when the committed OpenAPI document or generated clients drift from the backend.
+
+Backend and client contract changes must remain synchronized.
 
 ---
 

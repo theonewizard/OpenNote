@@ -11,7 +11,7 @@ Milestone M0: repository builds; backend starts in containers; Apple packages an
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
 | P0-01 | Architecture spec, ADRs, contracts, sync protocol, testing strategy, threat model, roadmap | — | P0 | Reviewed and approved by Flemming | TESTING |
-| P0-02 | Repository skeleton: structure per spec §6, `.gitignore`, `.editorconfig`, README, LICENSE (D1), Makefile, `docs/development/versions.md` with resolved latest stable versions | P0-01 | P0 | `make help` lists targets; `git status` clean after `make bootstrap` | NOT_STARTED |
+| P0-02 | Repository skeleton: structure per spec §6, `.gitignore`, `.editorconfig`, README, LICENSE (AGPL-3.0, added with the plan), Makefile, `docs/development/versions.md` with resolved latest stable versions | P0-01 | P0 | `make help` lists targets; `git status` clean after `make bootstrap` | NOT_STARTED |
 | P0-03 | Backend skeleton: `.venv`, pinned requirements, FastAPI app factory, settings, JSON logging, `/healthz`, `/readyz`, `/api/v1/meta`, RFC 9457 handler, `assert_routes_authenticated` + `KEYLESS_ROUTES` | P0-02 | P0 | `pytest`, `ruff`, `mypy --strict` pass; startup fails when an unauthenticated route is added (test) | NOT_STARTED |
 | P0-04 | Database configuration: SQLAlchemy 2 engine/session, Alembic with initial migration enabling `vector` and `pg_trgm` | P0-03 | P0 | Migration upgrades and downgrades against PostgreSQL in CI; `/readyz` reports DB state | NOT_STARTED |
 | P0-05 | Worker skeleton: Dramatiq + Valkey, one no-op health job, graceful SIGTERM | P0-03 | P0 | Integration test enqueues and completes the job against Valkey | NOT_STARTED |

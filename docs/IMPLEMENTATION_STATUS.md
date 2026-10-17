@@ -25,11 +25,11 @@ Last updated: 2026-10-17
 
 | Item | Blocked on |
 |---|---|
-| P0-02 onward | Review of the plan; decision D1 (licence) and D8 (`claude.md` → `CLAUDE.md`) |
+| P0-02 onward | Review and approval of the plan (D1, D7, D8 decided 2026-10-17) |
 
 ## Open architectural decisions
 
-D1–D8 in the [specification §4](superpowers/specs/2026-10-17-opennote-architecture-design.md#4-unresolved-decisions-need-flemming): licence, tenancy, minimum Apple OS, minimum OpenShift/Kubernetes, writing `id` on edit, history retention, applicability of `claude.md` §11–§14, `claude.md` file name.
+D2–D6 in the [specification §4](superpowers/specs/2026-10-17-opennote-architecture-design.md#4-unresolved-decisions-need-flemming): tenancy, minimum Apple OS, minimum OpenShift/Kubernetes, writing `id` on edit, history retention. D1 (AGPL-3.0), D7 (adapt `CLAUDE.md` §11–§14) and D8 (rename to `CLAUDE.md`) are decided.
 
 ## Test status
 

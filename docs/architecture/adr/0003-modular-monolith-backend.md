@@ -5,7 +5,7 @@ Date: 2026-10-17
 Deciders: Flemming (pending review)
 
 ## Context
-Design §6.1 says "initially deploy a collection of independent microservices", while §15.2.7 and §16 mandate a modular monolith and say to avoid premature microservices. `claude.md` §23 forbids distributed components when a local component suffices.
+Design §6.1 says "initially deploy a collection of independent microservices", while §15.2.7 and §16 mandate a modular monolith and say to avoid premature microservices. `CLAUDE.md` §23 forbids distributed components when a local component suffices.
 
 ## Decision
 One Python codebase (`backend/app`) with explicit module boundaries (vaults, notes, attachments, sync, search, auth, later tasks/calendar/ai). One container image runs as three process types: `api` (uvicorn), `worker` (background jobs), and, when AI is enabled, `ai` (separate image because of model runtime size). Modules talk through service functions, never through each other's tables.

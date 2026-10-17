@@ -1,13 +1,13 @@
 # Testing Strategy
 
-Status: Proposed (2026-10-17). Implements design §15.13 and `claude.md` §9. Storage and sync carry the data-integrity risk, so they get the deepest testing; UI layers get enough to catch regressions.
+Status: Proposed (2026-10-17). Implements design §15.13 and `CLAUDE.md` §9. Storage and sync carry the data-integrity risk, so they get the deepest testing; UI layers get enough to catch regressions.
 
 ## 1. Principles
 
 - Tests assert behaviour users depend on (bytes on disk, revisions, conflicts), not implementation details. No coverage-chasing (design §15.13).
 - Never mock the thing under test. Storage tests use real temporary directories; backend integration tests use real PostgreSQL and Valkey (CI service containers / Compose), never SQLite stand-ins for PostgreSQL behaviour.
-- Every bug fix gets a regression test that fails before the fix (`claude.md` §9).
-- Failing tests are never skipped, deleted or weakened to get green (`claude.md` §9, design §15.6).
+- Every bug fix gets a regression test that fails before the fix (`CLAUDE.md` §9).
+- Failing tests are never skipped, deleted or weakened to get green (`CLAUDE.md` §9, design §15.6).
 - Randomized tests are seeded; a failing seed is printed and becomes a fixed regression case.
 
 ## 2. Test layers

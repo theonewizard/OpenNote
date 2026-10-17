@@ -5,7 +5,7 @@ Date: 2026-10-17
 Deciders: Flemming (pending review)
 
 ## Context
-Design §12: local accounts, OIDC, OAuth 2.0, MFA via IdP, sessions, device registration. `claude.md` §12: deny-by-default, `assert_routes_authenticated` at startup, `KEYLESS_ROUTES` allow-list.
+Design §12: local accounts, OIDC, OAuth 2.0, MFA via IdP, sessions, device registration. `CLAUDE.md` §12: deny-by-default, `assert_routes_authenticated` at startup, `KEYLESS_ROUTES` allow-list.
 
 ## Decision
 - The backend issues its own tokens: OAuth 2.0 authorization code + PKCE for all clients (native via `ASWebAuthenticationSession`, web via a backend-for-frontend cookie session).

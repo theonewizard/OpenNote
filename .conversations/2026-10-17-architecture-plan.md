@@ -10,6 +10,8 @@ Project: OpenNote (Claude project thread "OpenNote plan"). Recorded per the last
 | 16:01 | Flemming | "Make a plan for the above" |
 | 16:07 | Flemming | "refresh as I have added claude.md" |
 | 20:34 | Flemming | "add coderabbit reviews in" with `reviews.auto_review.drafts: true` → added `.coderabbit.yaml` |
+| 20:58 | Flemming | "What is D1,D7,D8" → explained the three open decisions |
+| 20:59 | Flemming | "AGPL-3.0 it is, Adopt, and Rename" → D1 AGPL-3.0 (`LICENSE` added), D7 adapt `CLAUDE.md` §11–§14 ("Adopt" read as adapt), D8 `claude.md` renamed to `CLAUDE.md` |
 
 ## How the prompts were read
 

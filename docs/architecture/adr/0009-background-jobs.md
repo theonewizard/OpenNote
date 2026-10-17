@@ -5,7 +5,7 @@ Date: 2026-10-17
 Deciders: Flemming (pending review)
 
 ## Context
-Design §15.3 asks for Redis-backed background jobs. Redis changed licence in 2024 (RSALv2/SSPL, later adding AGPLv3 for Redis 8). Valkey is the BSD-licensed Linux Foundation fork and speaks the same protocol. `claude.md` §20 prefers established, well-maintained dependencies.
+Design §15.3 asks for Redis-backed background jobs. Redis changed licence in 2024 (RSALv2/SSPL, later adding AGPLv3 for Redis 8). Valkey is the BSD-licensed Linux Foundation fork and speaks the same protocol. `CLAUDE.md` §20 prefers established, well-maintained dependencies.
 
 ## Decision
 - Queue library: **Dramatiq** with its Redis broker (mature, synchronous workers suit file and CPU-bound jobs, retries with backoff and dead-letter built in). Phase 0 Task 1 re-checks maintenance status before pinning.

@@ -66,7 +66,7 @@ Where sections disagree, section 15 (written as instructions) wins unless there 
 | C6 | §15.3 "Redis-backed background jobs" vs Redis's 2024+ licence change | Use the Redis protocol; ship **Valkey** (BSD) as the default server, any Redis-compatible server works | [ADR-0009](../../architecture/adr/0009-background-jobs.md) |
 | C7 | §11 "UBI where practical" vs no freely pullable UBI images for PostgreSQL+pgvector and Valkey | Build our own UBI-based images for those two; dev Compose may use upstream images via an override file | [ADR-0010](../../architecture/adr/0010-container-images.md) |
 | C8 | §6.2 shows a checked-in `OpenNote.xcodeproj` | Generate it from `project.yml` with XcodeGen; generated project is not committed | [ADR-0011](../../architecture/adr/0011-apple-project-generation.md) |
-| C9 | §15.6 worktree path `.worktrees///` is truncated | Follow `claude.md` §6: worktrees under `.worktrees/<subsystem>/`, branches `feature/…`, `fix/…`, `security/…`; `.worktrees/` is git-ignored | [Development workflow](../../development/workflow.md) |
+| C9 | §15.6 worktree path `.worktrees///` is truncated | Follow `CLAUDE.md` §6: worktrees under `.worktrees/<subsystem>/`, branches `feature/…`, `fix/…`, `security/…`; `.worktrees/` is git-ignored | [Development workflow](../../development/workflow.md) |
 | C10 | §15.6 spec/plan filenames `YYYY-MM-DD--design.md` miss the topic slug | Use `YYYY-MM-DD-<topic>-design.md` and `YYYY-MM-DD-<topic>-plan.md` | this file |
 
 ---
@@ -94,18 +94,18 @@ Ranked by likelihood × impact on user data. Each has an owner work item in the 
 
 ## 4. Unresolved decisions (need Flemming)
 
-These are not blocking Phase 0 except D1 and D8; each has a default the plan uses until told otherwise.
+D1, D7 and D8 were decided by Flemming on 2026-10-17. The others are not blocking Phase 0; each has a default the plan uses until told otherwise.
 
 | # | Decision | Default used in this plan |
 |---|---|---|
-| D1 | Project licence | Apache-2.0 (permissive, patent grant). AGPL-3.0 is the alternative if you want hosted forks to stay open |
+| D1 | Project licence | **Decided: AGPL-3.0** (Flemming, 2026-10-17). Anyone who runs a modified OpenNote as a network service must offer its source to users. `LICENSE` holds the full text |
 | D2 | Tenancy in v1: single owner per server vs multi-user with per-vault ACL | Multi-user with owner/editor/viewer roles in the data model from day one; UI exposes owner only until Phase P2 sharing |
 | D3 | Minimum Apple OS versions | macOS 15, iOS/iPadOS 18 (SwiftUI and TextKit 2 maturity; Swift 6 strict concurrency) |
 | D4 | Minimum OpenShift/Kubernetes versions | OpenShift 4.16+, Kubernetes 1.30+ |
 | D5 | Whether OpenNote may write an `id` into existing notes when the user edits (not opens) them | No. IDs are written only to notes OpenNote creates, or by an explicit per-vault "normalize" action |
 | D6 | Version-history retention default | Keep all revisions 30 days, then daily snapshots for 1 year; configurable per vault |
-| D7 | Whether `claude.md` §11–§14 (TrueNAS host, `get_api_key`, Zod `/api` proxy) apply to OpenNote as written | Honoured as written, mapped as in §11 |
-| D8 | Rename `claude.md` to `CLAUDE.md` so Claude Code loads it on case-sensitive systems | Recommended, not done in this PR |
+| D7 | Whether `CLAUDE.md` §11–§14 (TrueNAS host, `get_api_key`, Zod `/api` proxy) apply to OpenNote as written | **Decided: adapt** (Flemming, 2026-10-17). §11 now names OpenNote production hosts, §12 the OpenNote dependencies and path, §14 the generated-client contract; the secret rules are unchanged |
+| D8 | Rename `claude.md` to `CLAUDE.md` so Claude Code loads it on case-sensitive systems | **Decided: renamed** in this PR (Flemming, 2026-10-17) |
 
 ---
 
@@ -199,20 +199,20 @@ Monorepo as in §15.4, with these concrete additions:
 
 ```
 OpenNote/
-├── claude.md                 # agent working rules (existing; see §11 on its file name)
-├── .conversations/           # every prompt, per claude.md "Document every prompt"
+├── CLAUDE.md                 # agent working rules (see §11)
+├── .conversations/           # every prompt, per CLAUDE.md "Document every prompt"
 ├── README.md
-├── LICENSE
+├── LICENSE                   # AGPL-3.0 (D1)
 ├── Makefile                  # single entry point: make bootstrap|lint|test|build|up
 ├── .github/workflows/        # backend, web, apple, containers, security
 ├── .editorconfig  .gitignore  .pre-commit-config.yaml
 ├── backend/
 │   ├── pyproject.toml        # project metadata, ruff, mypy, pytest config
-│   ├── requirements.txt      # pinned runtime deps (claude.md §3)
+│   ├── requirements.txt      # pinned runtime deps (CLAUDE.md §3)
 │   ├── requirements-dev.txt  # pinned test/lint tools, includes requirements.txt
 │   ├── alembic.ini
 │   ├── app/                  # modules listed in §5.3, plus core/ (config, logging, db, telemetry)
-│   │   └── api/main.py       # app factory + assert_routes_authenticated / KEYLESS_ROUTES (claude.md §12)
+│   │   └── api/main.py       # app factory + assert_routes_authenticated / KEYLESS_ROUTES (CLAUDE.md §12)
 │   ├── migrations/
 │   └── tests/{unit,integration}/
 ├── web/
@@ -301,21 +301,21 @@ Work items, dependencies and acceptance criteria: [ROADMAP.md](../../ROADMAP.md)
 
 ---
 
-## 11. Alignment with `claude.md`
+## 11. Alignment with `CLAUDE.md`
 
-The repository's `claude.md` (added 2026-10-17) governs how work is done. This plan follows it; points where it shapes the architecture:
+The repository's `CLAUDE.md` (added 2026-10-17) governs how work is done. This plan follows it; points where it shapes the architecture:
 
-| `claude.md` rule | Effect on this plan |
+| `CLAUDE.md` rule | Effect on this plan |
 |---|---|
 | §1.8 latest stable versions | The stack in design §6 is a floor. Phase 0 Task 1 resolves and pins the current stable release of each tool (Python, FastAPI, PostgreSQL, Node, React, Swift/Xcode, UBI) and records them in `docs/development/versions.md`; the container base must offer that Python version, otherwise the newest UBI-available one is used and the gap is recorded |
 | §3 `.venv` + `requirements.txt` + pip | No uv/Poetry. Pinned `requirements.txt` and `requirements-dev.txt` ([ADR-0014](../../architecture/adr/0014-python-tooling.md)) |
 | §6 worktrees and branch names | `.worktrees/<subsystem>/`, `feature/…`; squash-merge to `main` |
 | §12 deny-by-default auth | `backend/app/api/main.py` runs `assert_routes_authenticated()` at startup; only paths in `KEYLESS_ROUTES` (`/healthz`, `/readyz`, `/api/v1/meta`, OAuth/OIDC callback and token endpoints) may lack the auth dependency. The dependency is the stricter OAuth bearer check `get_current_principal` (allowed by §12 as "stricter authorization"); a `get_api_key` dependency exists for automation tokens (design §10.5) |
 | §13 RFC 9457 errors | Already the API contract's error model; generic `detail`, details logged server-side only |
-| §14 frontend `/api` proxy Zod allow-lists | The web app has no server-side proxy in v1 (nginx forwards `/api` unchanged). The equivalent contract guard is the TypeScript client generated from the committed OpenAPI document plus Zod validation of query parameters in `web/src/api/`; a backend parameter change without regenerating the client fails CI. Open question for Flemming (see §4, D7) |
+| §14 frontend API contract | No server-side proxy in v1 (nginx forwards `/api` unchanged). The contract guard is the TypeScript client generated from the committed OpenAPI document plus Zod validation of query parameters in `web/src/api/`; a backend change without regenerating clients fails CI. §14 was rewritten to say this (D7) |
 | §23 avoid over-engineering, §28 ponytail audit | Every implementation PR runs the `ponytail-audit` review step; the plan keeps one backend process image, no plugin system, no speculative abstractions beyond the AI provider interface the design requires |
 | "Document every prompt" | Prompts are recorded under `.conversations/YYYY-MM-DD-<topic>.md`; the full design document is kept at `docs/design/2026-10-17-opennote-design-document.md` |
 
-**File name.** The guidance file is `claude.md` (lower case). Claude Code looks for `CLAUDE.md`; on case-sensitive filesystems (Linux containers, CI) the lower-case name may not be loaded automatically. Recommendation: rename to `CLAUDE.md` (decision D8). This PR does not rename it.
+**File name.** The file was renamed from `claude.md` to `CLAUDE.md` (D8) so Claude Code loads it automatically on case-sensitive filesystems (Linux containers, CI).
 
-**Carried-over sections.** `claude.md` §11 (TrueNAS `.env` with AWS/Cloudflare credentials), §12's `get_api_key` and §14's Zod proxy read as inherited from another project. They are honoured as written; D7 asks whether they should be adapted for OpenNote.
+**Carried-over sections.** §11 (TrueNAS `.env`), §12 (`api/main.py`, `get_api_key` only) and §14 (Zod proxy) were inherited from another project. Per D7 they were adapted to OpenNote: §11 treats any host or namespace with real user vaults as production, §12 points at `backend/app/api/main.py` and allows `get_current_principal` or `get_api_key`, §14 describes the generated-client contract above.

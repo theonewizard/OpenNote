@@ -11,4 +11,8 @@ Self-hosted, local-first note-taking with Evernote-style productivity on top of 
 | Roadmap | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | Implementation status | [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) |
 | Architecture decisions | [docs/architecture/adr/](docs/architecture/adr/README.md) |
-| Rules for AI-assisted development | [claude.md](claude.md) |
+| Rules for AI-assisted development | [CLAUDE.md](CLAUDE.md) |
+
+## Licence
+
+[GNU Affero General Public License v3.0](LICENSE).

@@ -8,19 +8,19 @@
 
 **Tech Stack:** Python (latest stable available on UBI, ≥ 3.13), FastAPI, Pydantic v2, pydantic-settings, SQLAlchemy 2, Alembic, psycopg 3, Dramatiq, pytest; React, TypeScript, Vite, Tailwind CSS, shadcn/ui, Vitest, Playwright; Swift 6, SwiftPM, XcodeGen; Red Hat UBI, Docker Compose, Podman, Helm, GitHub Actions.
 
-**Spec:** `docs/superpowers/specs/2026-10-17-opennote-architecture-design.md` (with ADRs and contracts it links). Repository rules: `claude.md`.
+**Spec:** `docs/superpowers/specs/2026-10-17-opennote-architecture-design.md` (with ADRs and contracts it links). Repository rules: `CLAUDE.md`.
 
 ## Global Constraints
 
-- Use the latest stable version of every tool and library (`claude.md` §1.8); design §6 versions are floors. Record resolved versions in `docs/development/versions.md`.
-- Python only via the repository-root `.venv` (`.venv/bin/python|pip|pytest`, `claude.md` §3); deps pinned with `==` in `backend/requirements.txt` and `backend/requirements-dev.txt` (ADR-0014).
-- Use npm with a committed `package-lock.json` for `web/` (`claude.md` §4).
-- Every route depends on `get_current_principal` or `get_api_key`, except paths in `KEYLESS_ROUTES`; `assert_routes_authenticated(app)` runs at startup in `backend/app/api/main.py` (`claude.md` §12).
-- Errors are RFC 9457 `application/problem+json` with generic `detail`; exceptions are logged, never returned (`claude.md` §13).
-- Containers: UBI bases from `registry.access.redhat.com`, non-root UID 1001 group 0, arbitrary-UID safe, read-only root FS, graceful SIGTERM, health checks, no secrets (`claude.md` §5, ADR-0010).
-- Nothing generated is committed: `.venv/`, `node_modules/`, `__pycache__/`, `.vite/`, `apple/OpenNote.xcodeproj`, `.worktrees/`, `.env`, coverage output (`claude.md` §21).
+- Use the latest stable version of every tool and library (`CLAUDE.md` §1.8); design §6 versions are floors. Record resolved versions in `docs/development/versions.md`.
+- Python only via the repository-root `.venv` (`.venv/bin/python|pip|pytest`, `CLAUDE.md` §3); deps pinned with `==` in `backend/requirements.txt` and `backend/requirements-dev.txt` (ADR-0014).
+- Use npm with a committed `package-lock.json` for `web/` (`CLAUDE.md` §4).
+- Every route depends on `get_current_principal` or `get_api_key`, except paths in `KEYLESS_ROUTES`; `assert_routes_authenticated(app)` runs at startup in `backend/app/api/main.py` (`CLAUDE.md` §12).
+- Errors are RFC 9457 `application/problem+json` with generic `detail`; exceptions are logged, never returned (`CLAUDE.md` §13).
+- Containers: UBI bases from `registry.access.redhat.com`, non-root UID 1001 group 0, arbitrary-UID safe, read-only root FS, graceful SIGTERM, health checks, no secrets (`CLAUDE.md` §5, ADR-0010).
+- Nothing generated is committed: `.venv/`, `node_modules/`, `__pycache__/`, `.vite/`, `apple/OpenNote.xcodeproj`, `.worktrees/`, `.env`, coverage output (`CLAUDE.md` §21).
 - Work on `feature/phase-0-foundation` in `.worktrees/foundation/`; squash merge after CI is green.
-- Run the `ponytail-audit` review before the PR is marked ready (`claude.md` §28).
+- Run the `ponytail-audit` review before the PR is marked ready (`CLAUDE.md` §28).
 
 ## Review Focus
 
@@ -35,11 +35,11 @@
 ### Task 1: Repository skeleton and version resolution (P0-02)
 
 **Files:**
-- Create: `.gitignore`, `.editorconfig`, `LICENSE` (per decision D1), `Makefile`, `README.md` (replace one-line stub), `docs/development/versions.md`, `docs/development/setup.md`, empty package directories per spec §6 with `.gitkeep` only where a directory must exist before code lands
+- Create: `.gitignore`, `.editorconfig`, `Makefile`, `README.md` (replace one-line stub), `docs/development/versions.md`, `docs/development/setup.md`, empty package directories per spec §6 with `.gitkeep` only where a directory must exist before code lands
 - Create: `docs/design/` (already holds the design document)
 
 - [ ] **Step 1:** Resolve latest stable versions of Python (and the newest offered by a UBI Python image), PostgreSQL, pgvector, Valkey, Node LTS, React, Vite, TypeScript, Tailwind, Swift/Xcode, XcodeGen, UBI 9/10 image tags; write the table to `docs/development/versions.md` with source URL and date per row.
-- [ ] **Step 2:** Write `.gitignore` covering every entry in `claude.md` §21 plus `.venv/`, `node_modules/`, `apple/OpenNote.xcodeproj/`, `apple/.build/`, `**/.build/`, `.worktrees/`, `playwright-report/`, `test-results/`, `htmlcov/`, `.coverage`.
+- [ ] **Step 2:** Write `.gitignore` covering every entry in `CLAUDE.md` §21 plus `.venv/`, `node_modules/`, `apple/OpenNote.xcodeproj/`, `apple/.build/`, `**/.build/`, `.worktrees/`, `playwright-report/`, `test-results/`, `htmlcov/`, `.coverage`.
 - [ ] **Step 3:** Write `Makefile` targets: `help`, `bootstrap` (venv + pip install, `npm ci`), `lint`, `typecheck`, `test`, `build`, `up`, `down`, `openapi`, `apple-project`. Each target delegates to the subproject; no logic beyond that.
 - [ ] **Step 4:** Verify: `make help` prints all targets. (`make bootstrap` is verified in Task 11, once the requirements files and `package-lock.json` exist.)
 - [ ] **Step 5:** Commit `chore: repository skeleton and resolved tool versions`.
@@ -260,7 +260,7 @@ test("app loads at phone width without horizontal scroll", async ({ page }) => {
 - `security.yml`: gitleaks, pip-audit, bandit, `npm audit --audit-level=high`, Trivy filesystem scan; weekly schedule as well as on PR.
 
 - [ ] **Step 1:** Push the branch; expected: all five workflows run.
-- [ ] **Step 2:** Fix until all workflows are green; never disable a check to get green (`claude.md` §9).
+- [ ] **Step 2:** Fix until all workflows are green; never disable a check to get green (`CLAUDE.md` §9).
 - [ ] **Step 3:** Commit `ci: workflows for backend, web, apple, containers and security`.
 
 ### Task 10: Kubernetes, Helm and OpenShift skeletons (P0-11)
