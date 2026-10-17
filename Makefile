@@ -39,7 +39,7 @@ up: ## Start the full stack (COMPOSE="podman compose" for Podman)
 up-deps: ## Start only PostgreSQL and Valkey for local development
 	$(COMPOSE) -f $(COMPOSE_DIR)/compose.dev.yaml up -d --wait postgres valkey
 
-down: ## Stop the stack and the development dependencies
+down: ## Stop the full stack and the up-deps services
 	$(COMPOSE) -f $(COMPOSE_DIR)/compose.yaml down
 	$(COMPOSE) -f $(COMPOSE_DIR)/compose.dev.yaml down
 

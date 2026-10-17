@@ -7,7 +7,7 @@ How to set up a working copy and run the checks CI runs. Describes the repositor
 | Tool | Needed for |
 |---|---|
 | Git, GNU Make | everything |
-| Python 3.12 or 3.13 (the versions CI tests) | backend, worker |
+| Python 3.13 or 3.14 (the versions CI tests) | backend, worker |
 | Node.js 24 LTS with npm | web app |
 | Docker with Compose, or Podman with `podman compose` | PostgreSQL and Valkey for integration tests; the full stack |
 | macOS with Xcode and XcodeGen | Apple apps only |
@@ -71,7 +71,8 @@ Apple packages are tested with `swift test --package-path apple/Packages/<Packag
 
 | Target | What it does |
 |---|---|
-| `make up` / `make down` | Start the full stack from `infrastructure/compose/compose.yaml` (web on port 8080, API on 8000; added in Phase 0 Task 6); `down` also stops the `up-deps` services |
+| `make up` | Start the full stack from `infrastructure/compose/compose.yaml` (web on port 8080, API on 8000; added in Phase 0 Task 6) |
+| `make down` | Stop the full stack and the `up-deps` services |
 | `make openapi` | Regenerate `docs/api/openapi.json` and the TypeScript and Swift clients (added in Phase 0 Task 8); required in the same change as any API change (`CLAUDE.md` §14) |
 | `make apple-project` | Generate `apple/OpenNote.xcodeproj` from `apple/project.yml` with XcodeGen (macOS only; added in Phase 0 Task 7). The generated project is git-ignored |
 | `make help` | List all targets |

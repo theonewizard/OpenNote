@@ -26,6 +26,8 @@ Planned layout ([architecture specification](docs/superpowers/specs/2026-10-17-o
 | `apple/` | Swift packages and XcodeGen spec for the macOS and iOS/iPadOS apps |
 | `infrastructure/` | UBI Containerfiles, Docker Compose, Kubernetes, Helm and OpenShift |
 | `scripts/` | OpenAPI export and client generation, smoke test |
+| `tests/` | Cross-component tests: `integration/`, `e2e/`, `compatibility/` (Markdown vault corpus), `performance/` |
+| `.github/workflows/` | CI: backend, web, apple, containers, security |
 | `docs/` | Design, architecture, API contract, development and security documentation |
 
 ## Quick start
@@ -45,7 +47,8 @@ make lint typecheck test       # backend and web checks
 | `make lint` / `make typecheck` / `make test` | ruff, mypy, pytest for the backend; lint, typecheck, test scripts for the web app |
 | `make build` | Production build of the web app |
 | `make up-deps` | Start PostgreSQL and Valkey only |
-| `make up` / `make down` | Start or stop the full stack with Docker Compose (`COMPOSE="podman compose"` for Podman) |
+| `make up` | Start the full stack with Docker Compose (`COMPOSE="podman compose"` for Podman) |
+| `make down` | Stop the full stack and the `up-deps` services |
 | `make openapi` | Regenerate the OpenAPI document and the TypeScript and Swift clients |
 | `make apple-project` | Generate the Xcode project with XcodeGen (macOS) |
 

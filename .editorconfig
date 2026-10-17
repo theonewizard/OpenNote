@@ -12,12 +12,3 @@ indent_size = 4
 
 [Makefile]
 indent_style = tab
-
-# Compatibility corpus files are test fixtures whose bytes must not change
-# (CRLF, other encodings, missing final newline are deliberate cases).
-[tests/compatibility/vaults/**]
-charset = unset
-end_of_line = unset
-insert_final_newline = unset
-indent_style = unset
-indent_size = unset
