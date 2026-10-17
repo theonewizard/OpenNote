@@ -40,8 +40,4 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = ["-ra", "--strict-markers", "--strict-config"]
 xfail_strict = true
-filterwarnings = [
-    "error",
-    # Starlette 1.8 prefers httpx2 for its TestClient; httpx stays until that switch is decided.
-    "ignore:Using `httpx` with `starlette.testclient` is deprecated:starlette.exceptions.StarletteDeprecationWarning",
-]
+filterwarnings = ["error"]

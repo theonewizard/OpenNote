@@ -10,8 +10,9 @@ from pydantic import Field, PostgresDsn, RedisDsn, ValidationError, field_valida
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PREFIX = "OPENNOTE_"
-# Read from the file named by OPENNOTE_<FIELD>_FILE when OPENNOTE_<FIELD> is unset.
+# Read from the file named by OPENNOTE_<FIELD>_FILE when OPENNOTE_<FIELD> is unset or empty.
 SECRET_FIELDS = ("database_url", "valkey_url")
+MAX_SECRET_FILE_BYTES = 64 * 1024
 
 
 class SettingsError(Exception):
@@ -19,13 +20,19 @@ class SettingsError(Exception):
 
 
 class Settings(BaseSettings):
+    """Process settings. The URLs carry credentials, so repr() and str() leave them out;
+    model_dump() is an explicit call that includes them and must never be logged."""
+
     model_config = SettingsConfigDict(env_prefix=ENV_PREFIX, frozen=True)
 
     database_url: PostgresDsn = Field(
+        repr=False,
         description="SQLAlchemy URL for psycopg 3: "
-        "postgresql+psycopg://<user>:<password>@<host>:5432/<database>"
+        "postgresql+psycopg://<user>:<password>@<host>:5432/<database>",
     )
-    valkey_url: RedisDsn = Field(description="Valkey speaks RESP: redis://<host>:6379/0")
+    valkey_url: RedisDsn = Field(
+        repr=False, description="Valkey speaks RESP: redis://<host>:6379/0"
+    )
     vault_root: Path = Field(description="Directory holding the vaults")
     history_root: Path = Field(description="Directory holding note history")
     log_level: str = "INFO"
@@ -45,18 +52,24 @@ def _secrets_from_files() -> dict[str, Any]:
     for field in SECRET_FIELDS:
         variable = ENV_PREFIX + field.upper()
         path = os.environ.get(variable + "_FILE")
-        if path and variable not in os.environ:
+        if path and not os.environ.get(variable):
             secrets[field] = _read_secret_file(path, field)
     return secrets
 
 
 def _read_secret_file(path: str, field: str) -> str:
     try:
-        return Path(path).read_text(encoding="utf-8").removesuffix("\n")
+        with Path(path).open("rb") as file:
+            data = file.read(MAX_SECRET_FILE_BYTES + 1)
+        if len(data) <= MAX_SECRET_FILE_BYTES:
+            return data.decode("utf-8").removesuffix("\n")
     except (OSError, UnicodeDecodeError):
         pass
     # Raised outside the except block so the OSError, which names the path, is not chained.
-    raise SettingsError(f"invalid or missing settings: {field} (secret file unreadable)")
+    raise SettingsError(
+        f"invalid or missing settings: {field} "
+        "(secret file unreadable, not UTF-8 or larger than 64 KiB)"
+    )
 
 
 def load_settings() -> Settings:

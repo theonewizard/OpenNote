@@ -8,9 +8,9 @@ from fastapi.responses import PlainTextResponse
 from fastapi.testclient import TestClient
 
 from app.api import main
-from app.api.main import KEYLESS_ROUTES, create_app
+from app.api.main import KEYLESS_ROUTES, assert_routes_authenticated, create_app
 from app.auth.dependencies import Principal, get_api_key, get_current_principal
-from tests.conftest import test_settings
+from tests.conftest import as_test_user, test_settings
 
 
 def test_unauthenticated_route_fails_startup(monkeypatch):
@@ -56,6 +56,68 @@ def test_auth_dependency_deeper_in_the_tree_counts(build_app):
         return {}
 
     build_app(router)
+
+
+def router_level_dependency():
+    router = APIRouter(dependencies=[Depends(get_current_principal)])
+
+    @router.get("/api/v1/router-level")
+    def guarded():
+        return {"ok": True}
+
+    return router, "/api/v1/router-level"
+
+
+def include_level_dependency():
+    inner = APIRouter()
+
+    @inner.get("/api/v1/include-level")
+    def guarded():
+        return {"ok": True}
+
+    outer = APIRouter()
+    outer.include_router(inner, dependencies=[Depends(get_current_principal)])
+    return outer, "/api/v1/include-level"
+
+
+def nested_include_with_outer_dependency():
+    inner = APIRouter()
+
+    @inner.get("/nested")
+    def guarded():
+        return {"ok": True}
+
+    middle = APIRouter(prefix="/middle")
+    middle.include_router(inner)
+    outer = APIRouter(prefix="/api/v1/outer", dependencies=[Depends(get_current_principal)])
+    outer.include_router(middle)
+    return outer, "/api/v1/outer/middle/nested"
+
+
+@pytest.mark.parametrize(
+    "layout",
+    [router_level_dependency, include_level_dependency, nested_include_with_outer_dependency],
+)
+def test_dependencies_from_routers_and_includes_count(build_app, layout):
+    router, path = layout()
+    app = build_app(router)
+    assert assert_routes_authenticated(app) is None
+    assert TestClient(app).get(path).status_code == 401
+    assert TestClient(as_test_user(app)).get(path).json() == {"ok": True}
+
+
+def test_frontend_routes_fail_startup(tmp_path):
+    app = create_app(test_settings())
+    app.frontend("/", directory=tmp_path)
+    with pytest.raises(RuntimeError, match="frontend /"):
+        assert_routes_authenticated(app)
+
+
+def test_frontend_routes_of_an_included_router_fail_startup(build_app, tmp_path):
+    router = APIRouter(prefix="/ui")
+    router.frontend("/", directory=tmp_path)
+    with pytest.raises(RuntimeError, match="frontend /ui"):
+        build_app(router)
 
 
 def test_error_names_every_offending_method_and_path(build_app):

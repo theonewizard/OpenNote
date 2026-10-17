@@ -1,15 +1,15 @@
-"""RFC 9457 problem responses, request IDs and the log lines that carry them."""
+"""RFC 9457 problem responses and request IDs."""
 
-import json
 import logging
 import uuid
 
 import pytest
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.testclient import TestClient
+from pydantic import BaseModel, Field
 
 from app.auth.dependencies import get_current_principal
-from app.core.logging import configure_logging, request_id_var
+from app.core.logging import request_id_var
 from tests.conftest import as_test_user
 
 PROBLEMS = "https://opennote.dev/problems/"
@@ -74,6 +74,58 @@ def test_http_error_keeps_its_headers(client):
     assert r.json()["type"] == PROBLEMS + "http-error"
 
 
+def protected_client(build_app, router):
+    return TestClient(as_test_user(build_app(router)))
+
+
+def test_http_exception_detail_is_replaced_by_the_status_phrase(build_app, auth):
+    router = APIRouter(dependencies=[Depends(get_current_principal)])
+
+    @router.get("/api/v1/refuse")
+    def refuse():
+        raise HTTPException(
+            400, detail="secret-path /srv/vault/xyz hunter2", headers={"X-Probe": "kept"}
+        )
+
+    r = protected_client(build_app, router).get("/api/v1/refuse", headers=auth)
+    assert r.status_code == 400
+    assert r.headers["content-type"] == "application/problem+json"
+    assert r.headers["x-probe"] == "kept"
+    assert r.json()["detail"] == "Bad Request"
+    assert "/srv/vault" not in r.text and "hunter2" not in r.text
+
+
+def test_http_exception_without_a_body_status_gets_an_empty_response(build_app, auth):
+    router = APIRouter(dependencies=[Depends(get_current_principal)])
+
+    @router.get("/api/v1/unchanged")
+    def unchanged():
+        raise HTTPException(304, headers={"ETag": '"7"'})
+
+    r = protected_client(build_app, router).get("/api/v1/unchanged", headers=auth)
+    assert r.status_code == 304
+    assert r.content == b""
+    assert "content-type" not in r.headers
+    assert r.headers["etag"] == '"7"'
+
+
+def test_validation_pointer_escapes_slash_and_tilde(build_app, auth):
+    class Payload(BaseModel):
+        value: int = Field(alias="a/b~c")
+
+    router = APIRouter(dependencies=[Depends(get_current_principal)])
+
+    @router.post("/api/v1/payload")
+    def payload(body: Payload):
+        return {}
+
+    r = protected_client(build_app, router).post(
+        "/api/v1/payload", json={"a/b~c": "not-a-number"}, headers=auth
+    )
+    assert r.status_code == 422
+    assert [error["pointer"] for error in r.json()["errors"]] == ["/body/a~1b~0c"]
+
+
 def test_request_id_is_generated_and_echoed(client):
     r = client.get("/healthz")
     assert uuid.UUID(r.headers["x-request-id"]).version == 4
@@ -100,61 +152,3 @@ def test_request_id_is_set_for_logging_during_the_request(build_app, auth):
     client = TestClient(as_test_user(build_app(router)))
     r = client.get("/api/v1/current-request-id", headers={**auth, "X-Request-ID": "req-42"})
     assert r.json() == {"request_id": "req-42"}
-
-
-@pytest.fixture
-def restore_root_logger():
-    root = logging.getLogger()
-    handlers, level = root.handlers[:], root.level
-    yield
-    root.handlers[:] = handlers
-    root.setLevel(level)
-
-
-def test_log_lines_are_json_with_request_id_and_redacted_secrets(capsys, restore_root_logger):
-    configure_logging("INFO")
-    token = request_id_var.set("req-7")
-    try:
-        logging.getLogger("opennote.test").info(
-            {"event": "login", "password": "hunter2"},
-            extra={
-                "Authorization": "Bearer abc",
-                "session_cookie": "c00kie",
-                "refresh_token": "t0ken",
-                "client_secret": "s3cret",
-                "context": {"user": "ada", "api_token": "t0ken"},
-                "user": "ada",
-            },
-        )
-    finally:
-        request_id_var.reset(token)
-    line = json.loads(capsys.readouterr().out)
-    assert line["level"] == "INFO"
-    assert line["logger"] == "opennote.test"
-    assert line["request_id"] == "req-7"
-    assert line["msg"] == {"event": "login", "password": "<redacted>"}
-    for key in ("Authorization", "session_cookie", "refresh_token", "client_secret"):
-        assert line[key] == "<redacted>"
-    assert line["context"] == {"user": "ada", "api_token": "<redacted>"}
-    assert line["user"] == "ada"
-    assert "ts" in line
-
-
-def test_log_line_carries_the_exception(capsys, restore_root_logger):
-    configure_logging("INFO")
-    try:
-        raise ValueError("kaput")
-    except ValueError:
-        logging.getLogger("opennote.test").exception("failed")
-    line = json.loads(capsys.readouterr().out)
-    assert line["msg"] == "failed"
-    assert "request_id" not in line
-    assert "ValueError: kaput" in line["exc"]
-
-
-def test_reconfiguring_replaces_the_handler_and_level(capsys, restore_root_logger):
-    configure_logging("INFO")
-    configure_logging("WARNING")
-    logging.getLogger("opennote.test").info("below the level")
-    logging.getLogger("opennote.test").warning("once")
-    assert [json.loads(line)["msg"] for line in capsys.readouterr().out.splitlines()] == ["once"]

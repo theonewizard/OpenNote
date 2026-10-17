@@ -12,7 +12,12 @@ PLACEHOLDER_ENV = {
 }
 
 # app.api.main builds its module-level app on import, reading settings from the
-# environment, so the placeholders must be set before the imports below.
+# environment, so the placeholders must be set before the imports below. Any other
+# OPENNOTE_* variable (such as *_FILE) is cleared so the shell cannot leak into tests;
+# OPENNOTE_TEST_* stay, they point integration tests at their services.
+for _name in [n for n in os.environ if n.startswith("OPENNOTE_")]:
+    if not _name.startswith("OPENNOTE_TEST_"):
+        del os.environ[_name]
 os.environ.update(PLACEHOLDER_ENV)
 
 from collections.abc import Callable, Iterator

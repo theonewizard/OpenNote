@@ -10,7 +10,8 @@ from typing import Any
 
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
+from fastapi.utils import is_body_allowed_for_status_code
 from starlette.exceptions import HTTPException
 
 PROBLEM_TYPE_BASE = "https://opennote.dev/problems/"
@@ -29,9 +30,8 @@ class ProblemError(HTTPException):
         title: str,
         type_slug: str,
         detail: str | None = None,
-        headers: Mapping[str, str] | None = None,
     ) -> None:
-        super().__init__(status_code=status, detail=detail, headers=headers)
+        super().__init__(status_code=status, detail=detail)
         self.title = title
         self.type_slug = type_slug
 
@@ -60,16 +60,16 @@ def problem_response(
     )
 
 
-async def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
-    path, headers = request.url.path, exc.headers
+async def handle_http_exception(request: Request, exc: HTTPException) -> Response:
+    if not is_body_allowed_for_status_code(exc.status_code):  # 1xx, 204, 205, 304
+        return Response(status_code=exc.status_code, headers=exc.headers)
+    path = request.url.path
     if isinstance(exc, ProblemError):
-        return problem_response(
-            exc.status_code, exc.title, exc.type_slug, exc.detail, path, headers=headers
-        )
+        return problem_response(exc.status_code, exc.title, exc.type_slug, exc.detail, path)
     # exc.detail is free text from wherever it was raised; the status phrase is safe.
     detail = status_phrases.get(exc.status_code)
     return problem_response(
-        exc.status_code, "HTTP error", "http-error", detail, path, headers=headers
+        exc.status_code, "HTTP error", "http-error", detail, path, headers=exc.headers
     )
 
 

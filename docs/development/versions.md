@@ -40,7 +40,8 @@ How to read the rows:
 | pytest | 9.1.1 | 2026-06-19 | https://pypi.org/pypi/pytest/json | 2026-10-17 |
 | ruff | 0.17.1 | 2026-10-15 | https://pypi.org/pypi/ruff/json | 2026-10-17 |
 | mypy | 2.4.0 | 2026-10-01 | https://pypi.org/pypi/mypy/json | 2026-10-17 |
-| httpx | 0.28.1 | 2024-12-06 | https://pypi.org/pypi/httpx/json. Needed by Starlette's `TestClient`. Starlette 1.8.0 (installed by fastapi 0.143.3) deprecates `httpx` there in favour of httpx2 2.13.1 (2026-09-23, https://pypi.org/pypi/httpx2/json); not adopted yet, so `backend/pyproject.toml` ignores that one deprecation warning | 2026-10-17 |
+| starlette | 1.8.0 | 2026-10-13 | https://pypi.org/pypi/starlette/json. Imported directly by the backend, so pinned explicitly; the version fastapi 0.143.3 resolves | 2026-10-17 |
+| httpx2 | 2.13.1 | 2026-09-23 | https://pypi.org/pypi/httpx2/json. Test client behind Starlette's `TestClient`; Starlette 1.8.0 deprecates `httpx` there in favour of `httpx2` (https://github.com/pydantic/httpx2) | 2026-10-17 |
 
 None of these excludes Python 3.13 or 3.14 through `requires-python` (highest floor: `>=3.11`, SQLAlchemy and pydantic-settings).
 

@@ -41,12 +41,18 @@ def _tag_request_id(record: logging.LogRecord) -> bool:
 
 
 def _redact_record(record: logging.LogRecord) -> bool:
-    """Replace values of sensitive keys in `extra` fields and in dict messages."""
+    """Replace values of sensitive keys in `extra` fields, dict messages and format args.
+
+    Keys are matched, not values: a secret passed as a plain positional argument or
+    carried in exception text (exc_info) is not redacted here.
+    """
     for key, value in list(record.__dict__.items()):
         if key not in _RECORD_ATTRIBUTES:
             record.__dict__[key] = _redact(key, value)
     if isinstance(record.msg, Mapping):
-        record.msg = _redact("msg", record.msg)
+        record.msg = _redact(None, record.msg)
+    if record.args:
+        record.args = _redact(None, record.args)
     return True
 
 
@@ -55,6 +61,9 @@ def _redact(key: object, value: Any) -> Any:
         return REDACTED
     if isinstance(value, Mapping):
         return {k: _redact(k, v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        items = [_redact(None, item) for item in value]
+        return items if isinstance(value, list) else tuple(items)
     return value
 
 

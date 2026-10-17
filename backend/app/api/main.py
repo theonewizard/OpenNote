@@ -76,6 +76,13 @@ def assert_routes_authenticated(app: FastAPI) -> None:
                 for method in sorted(route.methods or ())
                 if (method, route.path) not in KEYLESS_ROUTES
             ]
+    # FastAPI 0.143 keeps app.frontend(...) and router.frontend(...) routes in private
+    # "low priority" lists outside app.routes, where iter_route_contexts does not look.
+    # The router's own iterator also yields those of included routers. Fail closed on all.
+    for frontend in app.router._iter_low_priority_routes():
+        group = getattr(frontend, "original_route", frontend)
+        paths = [route.path for route in getattr(group, "routes", [])]
+        offending.append("frontend " + (", ".join(paths) or type(group).__name__))
     if offending:
         raise RuntimeError("Routes without an auth dependency: " + ", ".join(offending))
 
