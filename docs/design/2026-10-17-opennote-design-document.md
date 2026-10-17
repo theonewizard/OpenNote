@@ -28,7 +28,7 @@ Evernote has evolved beyond a note-taking application into a productivity platfo
 
 Introduced AI Assistant, semantic search, and AI Meeting Notes.
 
-The proposed application should reproduce these core capabilities while addressing several limitations of traditional cloud-based note-taking systems. The AI integration last
+The proposed application should reproduce these core capabilities while addressing several limitations of traditional cloud-based note-taking systems.
 
 ### Primary design objectives
 
