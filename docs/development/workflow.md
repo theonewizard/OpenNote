@@ -32,6 +32,6 @@ Every prompt that drives work is recorded in `.conversations/YYYY-MM-DD-<topic>.
 
 | Environment | What | Approval |
 |---|---|---|
-| Local / CI | Developer machines, Claude Code containers, GitHub Actions | None needed |
+| Local / CI | Developer machines, Claude Code containers, GitHub Actions | None for routine work; the `claude.md` §2 approval gates (e.g. disabling tests or security checks) still apply |
 | Development / prepped | Dev Compose or a dev namespace | None needed (`claude.md` §2) |
 | Production | Anything holding real user vaults | Explicit approval for every change |

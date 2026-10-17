@@ -2,7 +2,7 @@
 
 | ADR | Title | Status |
 |---|---|---|
-| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
+| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Proposed |
 | [0002](0002-obsidian-vault-source-of-truth.md) | Obsidian-compatible vault is the source of truth | Proposed |
 | [0003](0003-modular-monolith-backend.md) | Modular monolith backend | Proposed |
 | [0004](0004-phase-order-and-early-sync-prototype.md) | Phase order and early sync prototype | Proposed |

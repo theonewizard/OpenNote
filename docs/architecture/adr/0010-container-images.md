@@ -19,4 +19,4 @@ Design §11 and `claude.md` §5 prefer UBI. Free UBI images are on `registry.acc
 `compose.dev.yaml` may substitute upstream `pgvector/pgvector` and `valkey/valkey` images for fast local start. All images: explicit version tags plus digest pinning in release builds, SIGTERM-graceful entrypoints, health checks, no secrets.
 
 ## Consequences
-Production images are fully UBI-based and OpenShift restricted-SCC compatible. We own patching of the PostgreSQL and Valkey images (CI rebuilds weekly and on CVE scan failures). Operators may instead use a managed PostgreSQL with pgvector.
+Production images are UBI-based and OpenShift restricted-SCC compatible, with one exception: the optional AI model runtime (upstream Ollama, Ubuntu-based) is not UBI. It is off by default, runs only when an operator enables the AI profile, and is listed as an exception in the release notes; a UBI-based llama.cpp server image can replace it later. We own patching of the PostgreSQL and Valkey images (CI rebuilds weekly and on CVE scan failures). Operators may instead use a managed PostgreSQL with pgvector.

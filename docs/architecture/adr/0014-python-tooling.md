@@ -8,7 +8,7 @@ Deciders: Flemming (pending review)
 `claude.md` §3 mandates a repository-local `.venv` used through `.venv/bin/python|pip|pytest` and dependencies in `requirements.txt`; §20 discourages new tools without need.
 
 ## Decision
-- `backend/.venv` created with `python -m venv`; `requirements.txt` (runtime) and `requirements-dev.txt` (`-r requirements.txt` + test/lint tools) with exact `==` pins.
+- Repository-root `.venv` (as in `claude.md` §3) created with `python -m venv`; dependency files live in `backend/` (design §15.4): `requirements.txt` (runtime) and `requirements-dev.txt` (`-r requirements.txt` + test/lint tools) with exact `==` pins.
 - `pyproject.toml` holds project metadata and tool configuration only.
 - Tools: `ruff` (lint + format), `mypy --strict`, `pytest` (+ `pytest-asyncio`, `hypothesis`, `schemathesis`), `pip-audit`, `bandit`.
 - Upgrades: a scheduled CI job (Dependabot/Renovate) opens PRs; no broad upgrades inside feature work (`claude.md` §20).

@@ -1,6 +1,6 @@
 # ADR-0001: Record architecture decisions
 
-Status: Accepted  
+Status: Proposed  
 Date: 2026-10-17  
 Deciders: Flemming (pending review)
 

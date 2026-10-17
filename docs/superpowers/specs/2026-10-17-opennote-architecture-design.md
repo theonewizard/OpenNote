@@ -178,7 +178,7 @@ The apps (`Apps/macOS`, `Apps/iOS`) are thin SwiftUI shells over these packages.
 
 ### 5.5 Web client architecture
 
-React + TypeScript + Vite, Tailwind + shadcn/ui, TanStack Query for server state, Zustand for UI state, CodeMirror 6 editor with Markdown live preview decorations, IndexedDB (via `idb`) for offline cache and outbox, service worker for app-shell caching. Typed API client generated with `openapi-typescript` from the backend's OpenAPI document. Web runs the same push/pull protocol as native clients but holds a cache, not a vault.
+React + TypeScript + Vite, Tailwind + shadcn/ui, TanStack Query for server state, Zustand for UI state, CodeMirror 6 editor with Markdown live preview decorations, IndexedDB (via `idb`) for offline cache and outbox, service worker for app-shell caching. Typed API client generated with `openapi-typescript` from the backend's OpenAPI document. Web runs the same push/pull protocol as native clients but holds a cache, not a vault. The IndexedDB cache is namespaced per user and vault and cleared on logout or account switch without silently discarding unsynced edits ([ADR-0015](../../architecture/adr/0015-web-offline-cache.md)).
 
 ### 5.6 Data flow: one edit, end to end
 
@@ -186,7 +186,7 @@ React + TypeScript + Vite, Tailwind + shadcn/ui, TanStack Query for server state
 2. `OpenNoteSync` appends an `update` operation (client_op_id, file_id, base_revision, new content hash) to the durable outbox.
 3. When online, the client uploads the blob if the server lacks that hash, then pushes the operation.
 4. Server `sync` checks `base_revision` against current: equal → commit revision n+1; behind → three-way merge with history base; clean → commit merged revision and return it; unclean → commit server side as current, store the client's version as a conflict copy, return `conflict`.
-5. Commit writes the vault file atomically, stores the history object, appends to the vault change sequence, updates indexes asynchronously via the worker, and publishes a change event.
+5. Commit follows the [commit procedure](../../architecture/sync-protocol.md#23-commit-procedure): history object, PostgreSQL revision and change sequence, history log, then the vault file. Search and link indexes update asynchronously via the worker, so search is eventually consistent; the note itself is readable immediately. A change event is published.
 6. Other clients receive the event over WebSocket (or poll) and pull changes since their cursor.
 
 Details: [sync protocol](../../architecture/sync-protocol.md).

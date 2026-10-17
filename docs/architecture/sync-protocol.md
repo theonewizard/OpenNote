@@ -8,7 +8,7 @@ The protocol is judged by these invariants, which the simulation suite checks af
 
 | ID | Invariant |
 |---|---|
-| I1 | **No acknowledged loss.** Any content a client persisted locally is, after the client syncs, either part of a server revision or stored as a conflict copy. |
+| I1 | **No acknowledged loss.** Any content a client persisted locally is, after the client syncs, either part of a server revision, stored as a conflict copy, or (for an operation the server `rejected`) still on the client, flagged and shown to the user. Content acknowledged by the server is never lost afterwards, including across server crashes. |
 | I2 | **No silent overwrite.** A write based on revision *n* never replaces revision *m > n* without a successful three-way merge or a conflict record. |
 | I3 | **Convergence.** When all clients are online and idle, every replica's file set and bytes equal the server's. |
 | I4 | **Idempotency.** Replaying any request (retry, duplicate delivery) produces the same server state as one delivery. |
@@ -29,6 +29,27 @@ The protocol is judged by these invariants, which the simulation suite checks af
 | Tombstone | A revision with `deleted = true`. Kept for at least the retention window (default 90 days) so offline clients learn about deletes |
 
 Commits are serialized per vault (PostgreSQL row lock on the vault's sequence row), which keeps `seq` gap-free and makes conflict decisions deterministic.
+
+### 2.3 Commit procedure
+
+Every committed revision, whatever its source, follows this order. The PostgreSQL commit (step 2) is the commit point; the client is acknowledged only after step 4.
+
+1. Write the revision's bytes to the history object store and `fsync` (content-addressed, so rewriting is harmless).
+2. In one PostgreSQL transaction: lock the vault sequence row, check preconditions, insert the revision row, assign `seq`, record the operation result under `client_op_id`. Commit.
+3. Append the revision's metadata line to the history JSONL log and `fsync`.
+4. Write the vault file atomically (storage contract §4).
+5. Respond `applied`/`merged`/`conflict`, enqueue indexing, publish the change event.
+
+| Crash after | State | Recovery (startup and every reconciliation run) |
+|---|---|---|
+| 1 | Orphan history object | Nothing to do; history GC removes objects no revision references |
+| 2 | Revision in PostgreSQL, missing from log and vault | Client got no response and retries; the retry hits the stored `client_op_id` result and returns it (`duplicate`). Recovery appends the missing log lines from PostgreSQL and re-materializes the vault file from the history object |
+| 3 | Revision in PostgreSQL and log, vault file still at the previous revision | Recovery re-materializes the vault file from the history object, if the file still has the previous revision's hash |
+| 4 | Fully committed, response lost | Client retry returns the stored result |
+
+If step 4 or recovery finds the vault file changed by something else (its hash matches neither the previous nor the new revision), the file is not overwritten. The on-disk content is submitted as an `update` with `base_revision` = the previous revision and merged per §6, so neither side is lost.
+
+Because steps 1 and 3 are durable before any response, a log-only rebuild after losing PostgreSQL contains every revision a client was told about (I1).
 
 ### 2.2 Client state (outside the vault)
 
@@ -61,7 +82,9 @@ Returns ordered entries `{seq, file_id, revision, path, kind, content_hash, size
 
 | Local state for `file_id` | Action |
 |---|---|
-| Unknown or clean | Download blob if needed, write atomically, set `base_* = local_* = remote`. Record the written hash so the watcher ignores it (I5) |
+| Unknown or clean, entry not deleted | Download blob if needed, write atomically, set `base_* = local_* = remote`. Record the written hash so the watcher ignores it (I5) |
+| Clean, entry is a tombstone | Move the local file to the client's recovery area (outside the vault), mark `deleted`, set base to the tombstone revision. The watcher ignores this removal |
+| Unknown, entry is a tombstone | Record the tombstone only |
 | Dirty | Do not touch the file. Record the remote revision; the pending `update` will be merged by the server on push |
 | Locally deleted (pending `delete`) | Keep pending; server decides on push |
 
@@ -81,7 +104,7 @@ Change notifications arrive over `WSS /api/v1/events` as `{vault_id, seq}` hints
 | `rejected` | Validation error (invalid path, quota, permission) with problem details | Keep local content, surface error, do not retry automatically |
 | `duplicate` | `client_op_id` already processed; returns the original result | Same as original |
 
-Server keeps `client_op_id` results for 30 days (I4).
+Server keeps `client_op_id` results for the same window as tombstones (default 90 days). The batch `Idempotency-Key` (24 h, API contract §1) only shortcuts a whole-batch replay; per-operation deduplication always relies on `client_op_id`. A client never pushes an outbox operation older than the retention window minus a 7-day margin: it drops those operations and runs a full reconcile (§4) instead. Reconcile compares content hashes, so an edit that was already applied becomes a no-op, and one that was not is pushed again as a fresh operation (I4).
 
 ## 6. Merge rules (server-side, single implementation)
 
