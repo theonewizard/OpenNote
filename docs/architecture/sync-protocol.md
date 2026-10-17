@@ -92,6 +92,7 @@ A cursor older than the tombstone retention window gets `410 Gone`; the client t
 
 | Local file vs snapshot | Action |
 |---|---|
+| Flagged `rejected` (§5), whatever its snapshot state | Skip: never pushed again until the user resolves or discards the edit; the flag survives the dropped outbox operation |
 | Not in the client's `files` table (never synced) | Push as a `create` |
 | Known (has a `base_revision`), missing from the snapshot, clean | The server deleted it and the tombstone has expired: move the local file to the recovery area, as for a tombstone |
 | Known, missing from the snapshot, dirty | Edit wins (§6): push as a `create` with a new `file_id` and flag it to the user as restored after a remote delete |
@@ -154,7 +155,7 @@ Clients are not the only writers. The server vault volume can be edited directly
 on start / network up / event hint / timer (60 s) / local change (debounced 2 s):
     push outbox (blobs first, then ops, in order)
     pull until has_more = false
-    for each local dirty file without an outbox op (external edit, e.g. Obsidian on macOS):
+    for each local dirty file without an outbox op and not flagged rejected (external edit, e.g. Obsidian on macOS):
         enqueue update/create/delete from local scan
 ```
 
