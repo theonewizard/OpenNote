@@ -4,12 +4,12 @@ Last updated: 2026-10-18
 
 ## Current phase
 
-**Phase 0 — Foundation, implemented; pre-release.** The work of the [Phase 0 plan](superpowers/plans/2026-10-17-phase-0-foundation-plan.md) is on the branch `feature/phase-0-foundation`, which goes to `main` as one squash-merged pull request. It holds skeletons and tooling only: the API answers `/healthz`, `/readyz` and `/api/v1/meta` and denies every other request (`CLAUDE.md` §12), the worker runs one smoke-test job, and the web and Apple apps show empty shells. Version 0.1.0 is not released, no image is published, and nothing is deployed anywhere. Roadmap items and their evidence: [ROADMAP.md, Phase 0](ROADMAP.md#phase-0--foundation-m0).
+**Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work of the [Phase 0 plan](superpowers/plans/2026-10-17-phase-0-foundation-plan.md), is delivered as one squash-merged pull request from `feature/phase-0-foundation`. It holds skeletons and tooling only: the API answers `/healthz`, `/readyz` and `/api/v1/meta`; any other path answers 404 and a wrong method 405 (`POST /healthz`), both as `application/problem+json`; and the startup assertion `assert_routes_authenticated` refuses to start the API if a route has no authentication dependency and is not in `KEYLESS_ROUTES` (`CLAUDE.md` §12). The worker runs one smoke-test job, and the web and Apple apps show empty shells. Version 0.1.0 is not released, no image is published, and nothing is deployed anywhere. Roadmap items and their evidence: [ROADMAP.md, Phase 0](ROADMAP.md#phase-0--foundation-m0).
 
 ## Completed
 
 - P0-01: architecture specification, ADR-0001 to ADR-0017 (all *Proposed*), contracts, sync protocol, testing strategy, threat model and roadmap, merged to `main` with the Phase 0 plan on 2026-10-17.
-- P0-02 to P0-12 except P0-07 and P0-09 (below): repository skeleton and versions record ([versions.md](development/versions.md)); backend app, database and migration baseline, readiness checks and worker; web app; Apple packages and app targets; OpenAPI export with generated TypeScript and Swift clients; security baseline; Kubernetes, Helm and OpenShift skeletons ([deployment guide](deployment/kubernetes.md)).
+- P0-02 to P0-12 except P0-07, P0-09 and P0-10 (below): repository skeleton and versions record ([versions.md](development/versions.md)); backend app, database and migration baseline, readiness checks and worker; web app; Apple packages and app targets; OpenAPI export with generated TypeScript and Swift clients; Kubernetes, Helm and OpenShift skeletons ([deployment guide](deployment/kubernetes.md)).
 - How to set up a working copy and run every check: [setup.md](development/setup.md).
 
 ## In progress
@@ -18,6 +18,7 @@ Last updated: 2026-10-18
 |---|---|---|
 | P0-07 Container images and Compose | TESTING | `podman compose` has never been run; CI uses Docker |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
+| P0-10 Security baseline | TESTING | The scans pass in CI ([security run](https://github.com/theonewizard/OpenNote/actions/runs/39122087160) and the image scans of the [containers run](https://github.com/theonewizard/OpenNote/actions/runs/39122087091)), but every Trivy step runs with `--ignore-unfixed`, so what was observed is zero HIGH and CRITICAL findings *that have a fix*; unfixed ones are not counted. Whether the criterion changes is Flemming's call. gitleaks passes with one reviewed false positive allowlisted in `.gitleaksignore` |
 
 ## Verified where
 
@@ -26,12 +27,12 @@ Last updated: 2026-10-18
 | Component | Local | CI | Not verified |
 |---|---|---|---|
 | Backend API and worker (P0-03 to P0-05) | ruff, mypy (strict), and pytest with the integration tests against the local PostgreSQL and Valkey: 102 passed, 2 skipped (they need a directory root cannot write to); the API under uvicorn and the worker with a job and a SIGTERM, run by hand | `backend`: the same checks on Python 3.13.16 and 3.14.8 against PostgreSQL 18.6 with pgvector 0.8.7 and Valkey 9.1.2 service containers, 104 passed on each | — |
-| Web app (P0-06) | lint, typecheck, 4 unit tests, production build, 2 Playwright tests in the preinstalled Chromium | `web`: the same, with the Chromium build that matches Playwright | Browsers other than Chromium |
+| Web app (P0-06) | lint, typecheck, 4 unit tests, production build, 2 Playwright tests in the preinstalled Chromium | `web`: the same, with the Chromium build that matches Playwright | Browsers other than Chromium. The shadcn files were generated against a local mirror of the shadcn registry built from shadcn-ui/ui at `d2fba50` (ui.shadcn.com is blocked here, [versions.md](development/versions.md)); a confirmation run on an unrestricted machine is open |
 | Container images and Compose (P0-07) | No image built and no stack started. Linted (hadolint, shellcheck, `docker compose config`); the entrypoints and nginx were run against local binaries | `containers`, `build, run, scan`: builds the four images; full stack healthy with migrations, both smoke tests, migration `0001` applied; the api image and the full stack as an arbitrary UID in group 0 with read-only root filesystems; the dev stack with the test database's extensions; Trivy scans of the four images | `podman compose` and Podman builds |
-| Apple packages and apps (P0-08) | Nothing compiled. `apple/project.yml` parsed; the Swift files parsed with a tree-sitter grammar | `apple`: on the `xcode-27` runner with Xcode 27.1, `swift test` for all five packages (10 tests), XcodeGen and unsigned builds of `OpenNote-macOS` and `OpenNote-iOS` (Simulator); on Linux in `swift:6.4.1`, `swift test` for `OpenNoteCore` and `OpenNoteStorage`; both jobs check the committed `Package.resolved` files | The apps are built, never launched: no UI test, no signing, no device |
+| Apple packages and apps (P0-08) | Nothing compiled. `apple/project.yml` parsed; the Swift files parsed with a tree-sitter grammar | `apple`: on the `xcode-27` runner with Xcode 27.1, `swift test` for all five packages (the job is green; its per-package result lines were not read; the sources hold 10 `@Test` functions, two per package), XcodeGen and unsigned builds of `OpenNote-macOS` and `OpenNote-iOS` (Simulator); on Linux in `swift:6.4.1`, `swift test` for `OpenNoteCore` and `OpenNoteStorage`; both jobs check the committed `Package.resolved` files | The apps are built, never launched: no UI test, no signing, no device |
 | OpenAPI contract and clients (P0-12) | `make openapi` writes the same bytes every run; the drift check exits 0, and 1 after adding a route | `backend`, `openapi drift`; the TypeScript types type-check in `web`; the Swift client is generated and compiled in `apple` (`OpenNoteAPI`'s `generatedClientExists` test) | — |
-| CI and security baseline (P0-09, P0-10) | gitleaks over the whole history, every pre-commit hook, actionlint | `security`: gitleaks, `pip-audit --strict`, bandit, `npm audit --audit-level=high`, Trivy filesystem scan; `containers`: Trivy image scans. Trivy fails on HIGH and CRITICAL findings that have a fix (`--ignore-unfixed`) | Pull-request runs, Dependabot, the Monday schedules and manual (`workflow_dispatch`) runs |
-| Kubernetes, Helm and OpenShift (P0-11) | `helm lint --strict` (Helm 4.3.1), the chart's default, OpenShift and Ingress renders and the kustomize base and overlay through kubeconform 0.8.0 at Kubernetes 1.29.0; Pod Security `restricted` with k8s.io/pod-security-admission 0.37.1: 4 pod templates, 0 forbidden, in each of the five renders | `containers`, `manifests`: `helm lint --strict`, the five renders, the invariant checks (no Secret or `secretKeyRef`, `fsGroup` and `fsGroupChangePolicy`, web's API upstream), kubeconform at 1.29.0 and `master` | Rendered and validated only: no cluster has run the manifests ([deployment guide](deployment/kubernetes.md)). Unseen: probes, the migration hook's ordering, the migration against a real database, the worker's drain within its grace period, nginx's graceful stop under the kubelet, `fsGroup` on real RWX storage, OpenShift SCC admission and the Route, the web pod's DNS lookup of the API, `helm uninstall` keeping the volumes |
+| CI and security baseline (P0-09, P0-10) | gitleaks over the whole history (below, "Open items"), every pre-commit hook; actionlint 1.7.12: four workflows clean, `apple.yml` exits 1 only because actionlint does not know the `xcode-27` runner label (harmless) | `security`: gitleaks, `pip-audit --strict`, bandit, `npm audit --audit-level=high`, Trivy filesystem scan; `containers`: Trivy image scans. Every Trivy step runs with `--ignore-unfixed`: it fails on HIGH and CRITICAL findings that have a fix and does not count unfixed ones, which is why P0-10 is TESTING | Pull-request runs, Dependabot, the Monday schedules and manual (`workflow_dispatch`) runs |
+| Kubernetes, Helm and OpenShift (P0-11) | `helm lint --strict` (Helm 4.3.1), the chart's default, OpenShift and Ingress renders and the kustomize base and overlay through kubeconform 0.8.0 at Kubernetes 1.29.0; Pod Security `restricted`, checked by hand (by the Task 10 implementer and re-reviewer, and again on `3fab73b`) with a throwaway Go program on k8s.io/pod-security-admission 0.37.1 that is not in the repository: 4 pod templates, 0 forbidden, in each of the five renders. A repeatable CI check is an open item | `containers`, `manifests`: `helm lint --strict`, the five renders, the invariant checks (no Secret or `secretKeyRef`, `fsGroup` and `fsGroupChangePolicy`, web's API upstream), kubeconform at 1.29.0 and `master` | Rendered and validated only: no cluster has run the manifests ([deployment guide](deployment/kubernetes.md)). Unseen: probes, the migration hook's ordering, the migration against a real database, the worker's drain within its grace period, nginx's graceful stop under the kubelet, `fsGroup` on real RWX storage, OpenShift SCC admission and the Route, the web pod's DNS lookup of the API, `helm uninstall` keeping the volumes |
 
 ### Fresh-clone check
 
@@ -41,7 +42,7 @@ On 2026-10-18 a fresh clone of `feature/phase-0-foundation` at `3fab73b` passed,
 |---|---|
 | `make bootstrap` | exit 0; `git status --porcelain` empty |
 | `make lint typecheck test build` | exit 0 (backend 102 passed, 2 skipped as root; web 4 tests; build) |
-| `npm run test:e2e` in `web/` | exit 0, 2 passed |
+| `OPENNOTE_PW_EXECUTABLE=<the preinstalled Chromium> npm run test:e2e` in `web/` (the Chromium build that matches Playwright is not installed in this container, so the variable, which `web/playwright.config.ts` reads, points at the preinstalled one) | exit 0, 2 passed |
 | `make help` | exit 0, lists the 11 targets |
 | `scripts/gen-openapi.sh && scripts/gen-clients.sh && git diff --exit-code …` | exit 0; exit 1 with a route added, exit 0 again after removing it |
 
@@ -55,9 +56,9 @@ These are repository settings only the owner can change ([workflow.md](developme
 
 ## Open items
 
-- The remote branch `probe/ubi-python`, a throwaway CI probe holding only `.github/workflows/probe.yml`, could not be deleted from the Claude Code environment. Delete it on GitHub; it is never merged.
+- The remote branch `probe/ubi-python`, a throwaway CI probe one commit ahead of `main` (the whole tree of `main` at `84eefbc` plus `.github/workflows/probe.yml`), could not be deleted from the Claude Code environment. Delete it on GitHub; it is never merged.
 - `backend/migrations/script.py.mako`, the template `alembic revision` uses, renders files that ruff flags. The first real migration (Phase 1) adds a ruff post-write hook or adapts the template.
-- The version 0.1.0 is written in three places, `backend/app/__init__.py`, `OpenNoteCore.version` and `MARKETING_VERSION` in `apple/project.yml`, and no check compares them yet (a `make check-versions` target or a CI step, Phase 1). `web/package.json` is `0.0.0` and carries no version.
+- The version 0.1.0 is written in `backend/app/__init__.py`, `OpenNoteCore.version`, `MARKETING_VERSION` in `apple/project.yml`, `version` and `appVersion` in `infrastructure/helm/opennote/Chart.yaml` and the four image tags in `infrastructure/kubernetes/base/*.yaml`; three Swift tests assert it, and the generated OpenAPI documents (`docs/api/openapi.json` and its Swift copy) carry it. No check compares them yet (a `make check-versions` target or a CI step, Phase 1, covering all of these). `web/package.json` is `0.0.0` and carries no version.
 - CI has no Pod Security `restricted` check; it was verified locally only (above).
 - `podman compose` has never been run (CI uses Docker).
 - The `xcode-27` runner label is a public-preview image, and CI installs XcodeGen from Homebrew unpinned; the job's `xcodegen --version` line has not been read from a log.
@@ -65,7 +66,7 @@ These are repository settings only the owner can change ([workflow.md](developme
 - GitHub moves `ubuntu-latest` to Ubuntu 26 from 2026-10-19. The runner tools that are not pinned (the runner image rows and kubectl in [versions.md](development/versions.md#continuous-integration)) need a recheck after the first run on the new image.
 - The postgres image imports the PGDG signing key only if its fingerprint and the SHA-256 of the whole decoded key match the pinned values, so a key rotation fails the build until both values are updated (by design).
 - The generated Swift client emits over 100 `#UnusedImportAccess` warnings under Swift 6.4 (swift-openapi-generator 1.14.1). They are not errors, but would fail a build that treats warnings as errors.
-- gitleaks over the whole history has been run locally, not in CI: CI scans the pushed or pull-request commits, and the whole history only on a manual or scheduled run.
+- gitleaks over the whole history has been run locally, not in CI: gitleaks 8.30.1 (the build of the pre-commit hook) over the history reachable from `d75d5fa` scanned 48 commits and found no leaks. One reviewed false positive, prose in the spec's risk table, is allowlisted by fingerprint in `.gitleaksignore`; without that file the same scan reports 1 leak. CI scans the pushed or pull-request commits, and the whole history only on a manual or scheduled run.
 
 ## Known limits
 
@@ -81,10 +82,10 @@ D2–D6 in the [specification §4](superpowers/specs/2026-10-17-opennote-archite
 
 | Suite | Tests | Where |
 |---|---|---|
-| Backend (unit and integration) | 104 | Local and CI |
+| Backend (unit and integration) | 104 in CI; 102 passed and 2 skipped locally (the two read-only-directory tests skip as root) | Local and CI |
 | Web unit (Vitest) | 4 | Local and CI |
 | Web end-to-end (Playwright) | 2 | Local and CI |
-| Apple (`swift test`, five packages) | 10 | CI only (macOS; `OpenNoteCore` and `OpenNoteStorage` also on Linux) |
+| Apple (`swift test`, five packages) | 10 `@Test` functions in the sources | CI only (macOS, green, per-package result lines not read; `OpenNoteCore` and `OpenNoteStorage` also on Linux) |
 
 ## Known defects
 
@@ -92,4 +93,4 @@ None known.
 
 ## Next planned work
 
-After the Phase 0 pull request is merged: Phase 1, starting with P1-10 (compatibility corpus) and P1-02 (byte-preserving reader and writer).
+Once Phase 0 is on `main`: Phase 1, starting with P1-10 (compatibility corpus) and P1-02 (byte-preserving reader and writer).

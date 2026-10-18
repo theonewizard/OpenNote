@@ -287,10 +287,13 @@ test("app loads at phone width without horizontal scroll", async ({ page }) => {
 
 ## Errata
 
-Where the implementation deliberately departs from the text above. The plan is a historical record and is not rewritten; the ruling numbers refer to the list in `.conversations/2026-10-17-phase-0-foundation.md`.
+Where the implementation departs from, or settles a point left open by, the text above. The plan is a historical record and is not rewritten; the ruling numbers refer to the list in `.conversations/2026-10-17-phase-0-foundation.md`.
 
 - R13, R67: the Swift package carries `openapi.json`, a byte-identical copy of `docs/api/openapi.json`, not the `openapi.yaml` of Task 8's file list; swift-openapi-generator reads JSON.
-- R66: each operation documents its errors as one `default` `application/problem+json` response (`ProblemDetails`), not one response per status; `/readyz` also documents its 503 `ProbeStatus` body.
+- R66: each operation documents its errors as one `default` `application/problem+json` response (`ProblemDetails`), not one response per status; `/readyz` also documents its 503 `ProbeStatus` body. This corrects ruling R40, not the plan text.
+- R35: the readiness checks take their target explicitly, `check_database(engine, timeout=2.0)` and `check_valkey(url, timeout=2.0)` (plus `check_directory`), not the zero-argument form of Task 3's interfaces.
+- R9: the `ping` actor also takes `delay_seconds` (default 0) and marks its start in `opennote:ping:<token>:started`, beyond Task 4's `ping(token)`.
+- R78: `apple.yml` runs on the `xcode-27` runner label, which carries Xcode 27.1, not on `macos-latest` as Task 9's interfaces say.
 - R64 (replacing R58): the web image has an entrypoint, `infrastructure/containers/web/entrypoint.sh`, which writes nginx's resolver (from `/etc/resolv.conf`) and the API upstream (`OPENNOTE_API_UPSTREAM`, default `api:8000`) to `/tmp` at start; Task 6's file list does not name it.
 - R44: the integration tests use Valkey database 1 by default and refuse database 0, the dev stack's.
 - R45: on SIGTERM the worker waits at most 50 s for running jobs (`--worker-shutdown-timeout 50000`), inside a 60 s stop grace period; a job still running then is delivered again.

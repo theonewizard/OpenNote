@@ -144,4 +144,6 @@ kustomize build infrastructure/openshift |
 
 The job also lints and renders the Ingress variant, runs the check of the third item on the saved renders, and repeats kubeconform with `-kubernetes-version master`.
 
+Neither the job nor the repository checks the Pod Security `restricted` profile: in Phase 0 it was checked by hand with a throwaway Go program, not committed, that runs the evaluator of `k8s.io/pod-security-admission` v0.37.1 at level `restricted` (versions v1.30 and latest) on every Deployment and Job pod template of the five renders, and found none forbidden; a repeatable check is an open item in [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md#open-items).
+
 None of this proves that the manifests work on a cluster: the probes, the migration hook, volume permissions, the SCC and the Route are only exercised by a real deployment.

@@ -18,7 +18,7 @@ Self-hosted, local-first note-taking with Evernote-style productivity on top of 
 
 ## Repository layout
 
-Planned layout ([architecture specification](docs/superpowers/specs/2026-10-17-opennote-architecture-design.md) §6); Phase 0 creates the skeletons.
+Layout (the Phase 0 skeletons; later phases fill them in). The full planned tree is in the [architecture specification](docs/superpowers/specs/2026-10-17-opennote-architecture-design.md) §6.
 
 | Directory | Contents |
 |---|---|
@@ -27,7 +27,6 @@ Planned layout ([architecture specification](docs/superpowers/specs/2026-10-17-o
 | `apple/` | Swift packages and XcodeGen spec for the macOS and iOS/iPadOS apps |
 | `infrastructure/` | UBI Containerfiles, Docker Compose, Kubernetes, Helm and OpenShift |
 | `scripts/` | OpenAPI export and client generation, smoke test |
-| `tests/` | Cross-component tests: `integration/`, `e2e/`, `compatibility/` (Markdown vault corpus), `performance/` |
 | `.github/workflows/` | CI: backend, web, apple, containers, security |
 | `docs/` | Design, architecture, API contract, development and security documentation |
 
@@ -48,7 +47,7 @@ make lint typecheck test       # backend and web checks
 | `make lint` / `make typecheck` / `make test` | ruff, mypy, pytest for the backend; lint, typecheck, test scripts for the web app |
 | `make build` | Production build of the web app |
 | `make up-deps` | Start PostgreSQL and Valkey only |
-| `make up` | Start the full stack with Docker Compose (`COMPOSE="podman compose"` for Podman) |
+| `make up` | Start the full stack with Docker Compose (`COMPOSE="podman compose"` for Podman, which is supported by design but untested; only Docker has been exercised) |
 | `make down` | Stop the full stack and the `up-deps` services |
 | `make openapi` | Regenerate the OpenAPI document and the TypeScript and Swift clients |
 | `make apple-project` | Generate the Xcode project with XcodeGen (macOS) |

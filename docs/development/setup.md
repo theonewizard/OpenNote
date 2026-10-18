@@ -9,7 +9,7 @@ How to set up a working copy and run the checks CI runs. Describes the repositor
 | Git, GNU Make | everything |
 | Python 3.13 or 3.14 (the versions CI tests) | backend, worker |
 | Node.js 24 LTS with npm | web app |
-| Docker with Compose, or Podman with `podman compose` | PostgreSQL and Valkey for integration tests; the full stack |
+| Docker with Compose, or Podman with `podman compose` (supported by design but untested; only Docker has been exercised) | PostgreSQL and Valkey for integration tests; the full stack |
 | macOS with Xcode and XcodeGen | Apple apps only |
 
 If `python3` on your machine is another version, pass a suitable interpreter: `make bootstrap PYTHON=python3.13`.
@@ -79,7 +79,7 @@ It validates every `OPENNOTE_*` setting at start and, if any is missing or inval
 
 ## 6. Run the full stack
 
-With `infrastructure/compose/.env` created (section 2) and Docker or Podman running:
+With `infrastructure/compose/.env` created (section 2) and Docker or Podman running (only Docker has been exercised; Podman is supported by design and untested):
 
 ```bash
 make up                                      # builds the images, then starts the stack

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | Proposed, awaiting review |
+| Status | Accepted 2026-10-17 (pull request #1 merged by Flemming; Phase 0 approved) |
 | Date | 2026-10-17 |
 | Source | "Consulting OpenNotes — Powered by Obsidian" design document (sections 1–18), in particular section 15 "Master Development Instructions" |
 | Covers | Section 15 §20 steps 1–9: requirements analysis, risks, architecture, roadmap, repository structure, ADRs, API and storage contracts, sync protocol, testing strategy |
@@ -170,7 +170,7 @@ Swift packages (one repository, local SPM packages):
 |---|---|---|
 | `OpenNoteCore` | Domain types, Markdown/frontmatter scanning (byte-preserving), link/tag extraction, path rules | Foundation; SHA-256 from CryptoKit on Apple platforms and from swift-crypto on Linux (Linux-buildable) |
 | `OpenNoteStorage` | Local vault file I/O (atomic writes, coordinated access), SQLite state DB, base-content cache | Foundation, SQLite (Linux-buildable) |
-| `OpenNoteAPI` | Generated client from OpenAPI (swift-openapi-generator), auth/session | Foundation, URLSession |
+| `OpenNoteAPI` | Generated client from OpenAPI (swift-openapi-generator), auth/session | Foundation, OpenAPIRuntime: the generated client types only, no URLSession transport yet (OpenAPIURLSession is added when Phase 1 first calls the API) |
 | `OpenNoteSync` | Outbox, pull/push loop, watcher integration (FSEvents/`NSFilePresenter`), conflict surfacing | Core, Storage, API |
 | `OpenNoteEditor` | TextKit 2 Markdown editor with live styling, no re-serialization | SwiftUI/AppKit/UIKit |
 
@@ -194,6 +194,8 @@ Details: [sync protocol](../../architecture/sync-protocol.md).
 ---
 
 ## 6. Repository structure
+
+After Phase 0 every entry below exists except these, which are planned: the root `tests/`, `web/src/features/`, `web/public/`, `apple/Tests/`, the telemetry module in `backend/app/core/` and the SCC notes in `infrastructure/openshift/` (the SCC is described in `docs/deployment/kubernetes.md` for now).
 
 Monorepo as in §15.4, with these concrete additions:
 
@@ -232,7 +234,7 @@ OpenNote/
 │   ├── helm/opennote/
 │   └── openshift/            # Route, SCC notes, kustomize overlay
 ├── docs/                     # as §15.4, plus architecture/adr/
-├── scripts/                  # bootstrap.sh, gen-openapi.sh, gen-clients.sh
+├── scripts/                  # gen-openapi.sh, gen-clients.sh, smoke-test.sh (bootstrap is make bootstrap)
 └── tests/{integration,e2e,compatibility,performance}/
     └── compatibility/vaults/ # Markdown corpus (see testing strategy)
 ```
@@ -307,7 +309,7 @@ The repository's `CLAUDE.md` (added 2026-10-17) governs how work is done. This p
 
 | `CLAUDE.md` rule | Effect on this plan |
 |---|---|
-| §1.8 latest stable versions | The stack in design §6 is a floor. Phase 0 Task 1 resolves and pins the current stable release of each tool (Python, FastAPI, PostgreSQL, Node, React, Swift/Xcode, UBI) and records them in `docs/development/versions.md`; the container base must offer that Python version, otherwise the newest UBI-available one is used and the gap is recorded |
+| §1.8 latest stable versions | The stack in design §6 is a floor. Phase 0 Task 1 resolved and pinned the current stable release of each tool (Python, FastAPI, PostgreSQL, Node, React, Swift/Xcode, UBI) and recorded them in `docs/development/versions.md`; the container base must offer that Python version, otherwise the newest UBI-available one is used and the gap is recorded |
 | §3 `.venv` + `requirements.txt` + pip | No uv/Poetry. Pinned `requirements.txt` and `requirements-dev.txt` ([ADR-0014](../../architecture/adr/0014-python-tooling.md)) |
 | §6 worktrees and branch names | `.worktrees/<subsystem>/`, `feature/…`; squash-merge to `main` |
 | §12 deny-by-default auth | `backend/app/api/main.py` runs `assert_routes_authenticated()` at startup; only paths in `KEYLESS_ROUTES` (`/healthz`, `/readyz`, `/api/v1/meta`, OAuth/OIDC callback and token endpoints) may lack the auth dependency. The dependency is the stricter OAuth bearer check `get_current_principal` (allowed by §12 as "stricter authorization"); a `get_api_key` dependency exists for automation tokens (design §10.5) |
