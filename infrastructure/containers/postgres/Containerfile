@@ -15,16 +15,27 @@ LABEL org.opencontainers.image.title="opennote-postgres" \
       org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
       org.opencontainers.image.licenses="PostgreSQL"
 
-# Packages are signature-checked against the PGDG key, fetched over HTTPS. $basearch is
-# expanded by microdnf, not the shell.
+# Packages are signature-checked against the PGDG key, fetched over HTTPS and imported only
+# if its fingerprint is D4BF 08AE 67A0 B4C7 A1DB  CCD2 40BC A2B4 08B4 0D20 ("PostgreSQL RPM
+# Repository", created 2023-12-19, no expiry; rpm lists it as gpg-pubkey-08b40d20-6581afc1).
+# An OpenPGP v4 fingerprint is the SHA-1 of the key's public-key packet, which for this key is
+# the first 400 bytes of the decoded file (header 0x99, length 397), so no gpg is needed.
+# $basearch is expanded by microdnf, not the shell.
 # hadolint ignore=SC2016
-RUN rpm --import https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL \
+RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
+    && curl --fail --silent --show-error --location --output "$key" \
+        https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL \
+    && fingerprint=$(sed -n '/^$/,/^=/p' "$key" | grep -v '^=' | base64 -d | head -c 400 \
+        | sha1sum | cut -d ' ' -f 1) \
+    && echo "PGDG key fingerprint: $fingerprint" \
+    && test "$fingerprint" = d4bf08ae67a0b4c7a1dbccd240bca2b408b40d20 \
+    && rpm --import "$key" \
     && printf '%s\n' '[pgdg18]' \
         'name=PostgreSQL 18 for RHEL 9 - $basearch' \
         'baseurl=https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-9-$basearch' \
         'enabled=1' \
         'gpgcheck=1' \
-        'gpgkey=https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL' \
+        'gpgkey=file:///etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL' \
         > /etc/yum.repos.d/pgdg18.repo \
     && microdnf install -y --nodocs --setopt=install_weak_deps=0 \
         postgresql18-server-18.6 postgresql18-contrib-18.6 pgvector_18-0.8.7 \
