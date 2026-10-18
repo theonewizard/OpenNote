@@ -112,11 +112,37 @@ On macOS with Xcode 27.1 and XcodeGen 2.46.0 or newer, installed with `brew inst
 ```bash
 swift test --package-path apple/Packages/OpenNoteCore      # and each other package in apple/Packages/
 make apple-project                                         # writes apple/OpenNote.xcodeproj
-xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-macOS -destination 'platform=macOS' build
-xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS -destination 'generic/platform=iOS Simulator' build
+xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-macOS -destination 'platform=macOS' -skipPackagePluginValidation build
+xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS -destination 'generic/platform=iOS Simulator' -skipPackagePluginValidation build
 ```
 
+`-skipPackagePluginValidation` lets `xcodebuild` run swift-openapi-generator's build plugin in `OpenNoteAPI` (section 8) without the trust prompt Xcode otherwise shows once per plugin; `swift build` and `swift test` run it without asking (added in Phase 0 Task 8).
+
 `apple/project.yml` defines the app targets `OpenNote-macOS` (macOS 15 or later) and `OpenNote-iOS` (iOS and iPadOS 18 or later), each with a scheme of the same name, sharing `apple/Apps/Shared` and linking the five local packages `OpenNoteCore`, `OpenNoteStorage`, `OpenNoteAPI`, `OpenNoteSync` and `OpenNoteEditor`. Code signing is off (`CODE_SIGNING_ALLOWED: NO`, no development team), so these builds need no Apple developer account; running on a device needs signing, which the project does not set up yet. The generated project and the `Info.plist` files XcodeGen writes into `apple/Apps/macOS/` and `apple/Apps/iOS/` are git-ignored. The `Package.resolved` files that `swift test` writes into the package directories are not committed yet: the first resolution in CI is committed, and CI then fails when a resolution drifts from it (added in Phase 0 Task 9). `OpenNoteCore` and `OpenNoteStorage` use no Apple-only frameworks, so `swift test` is expected to run them on Linux as well with the Swift 6.4.1 toolchain, where `OpenNoteCore` takes SHA-256 from swift-crypto instead of CryptoKit. Nothing has run on Linux yet; the Linux job of the Apple CI workflow is the first check (added in Phase 0 Task 9).
+
+## 8. API contract
+
+`docs/api/openapi.json` is generated from the backend and committed, together with the two client inputs generated from it (added in Phase 0 Task 8). A change to a route, parameter or payload regenerates all three in the same change (`CLAUDE.md` §14):
+
+```bash
+make openapi        # scripts/gen-openapi.sh, then scripts/gen-clients.sh
+```
+
+| File | Written by | From |
+|---|---|---|
+| `docs/api/openapi.json` | `scripts/gen-openapi.sh` | `create_app().openapi()` with placeholder settings (no service is contacted), keys sorted |
+| `web/src/api/schema.d.ts` | `scripts/gen-clients.sh` | `openapi.json`, through `openapi-typescript` (`web/` devDependency, `--alphabetize`) |
+| `apple/Packages/OpenNoteAPI/Sources/OpenNoteAPI/openapi.yaml` | `scripts/gen-clients.sh` | `openapi.json` as YAML (PyYAML); swift-openapi-generator's build plugin turns it into the Swift client on every build, as `openapi-generator-config.yaml` beside it says |
+
+Both scripts need `make bootstrap` (`.venv` and `web/node_modules`), use no network, run from any directory and write the same bytes every time. Each operationId is the endpoint function's name (`healthz`, `readyz`, `get_meta`), so name an endpoint function after the client method it becomes. Every operation documents a `default` response of type `application/problem+json` (`ProblemDetails`, RFC 9457). The web app has the generated types only: a fetch wrapper and the Zod schemas for query parameters arrive with the first endpoint that has them.
+
+CI runs this drift check (added in Phase 0 Task 9); run it before pushing an API change:
+
+```bash
+scripts/gen-openapi.sh && scripts/gen-clients.sh && git diff --exit-code docs/api/openapi.json web/src/api/schema.d.ts apple/Packages/OpenNoteAPI/Sources/OpenNoteAPI/openapi.yaml
+```
+
+It exits 1 and prints the difference when a committed file no longer matches the backend.
 
 ## Other targets
 

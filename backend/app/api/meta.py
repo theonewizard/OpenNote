@@ -20,7 +20,7 @@ def app_version() -> str:
 
 
 @router.get("/api/v1/meta")
-async def meta() -> ServerMeta:
+async def get_meta() -> ServerMeta:
     return ServerMeta(
         server_version=app_version(),
         api_versions=["v1"],

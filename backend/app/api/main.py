@@ -8,6 +8,7 @@ import sys
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import APIRouter, FastAPI, Request, Response
 from fastapi.dependencies.models import Dependant
@@ -22,6 +23,8 @@ from app.core.config import Settings, SettingsError, get_settings
 from app.core.db import engine_from_settings
 from app.core.logging import configure_logging, request_id_var
 from app.core.problems import (
+    PROBLEM_DETAILS_SCHEMA,
+    PROBLEM_MEDIA_TYPE,
     handle_http_exception,
     handle_unhandled_exception,
     handle_validation_error,
@@ -37,19 +40,40 @@ KEYLESS_ROUTES: frozenset[tuple[str, str]] = frozenset(
 _AUTH_DEPENDENCIES = (get_current_principal, get_api_key)
 _VALID_REQUEST_ID = re.compile(r"[\x20-\x7e]{1,128}")  # printable ASCII
 
+# Every error is an RFC 9457 problem (CLAUDE.md §13), so each operation documents one as its
+# default response. That also stops FastAPI documenting its own 422 body, which we never send.
+_PROBLEM_RESPONSE = {
+    "description": "Problem details (RFC 9457)",
+    "content": {PROBLEM_MEDIA_TYPE: {"schema": {"$ref": "#/components/schemas/ProblemDetails"}}},
+}
+
+
+class _OpenNoteAPI(FastAPI):
+    def openapi(self) -> dict[str, Any]:
+        """The OpenAPI document, plus the ProblemDetails schema the default responses use."""
+        document = super().openapi()
+        document.setdefault("components", {}).setdefault("schemas", {})["ProblemDetails"] = (
+            PROBLEM_DETAILS_SCHEMA
+        )
+        return document
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Build the API app without doing I/O. Raises RuntimeError for unauthenticated routes."""
     if settings is None:
         settings = get_settings()
     configure_logging(settings.log_level)
-    app = FastAPI(
+    app = _OpenNoteAPI(
         title="OpenNote API",
         version=__version__,
         # No interactive docs or live spec route; the OpenAPI document comes from app.openapi().
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
+        # operationId = the endpoint function's name (healthz, get_meta): short, stable names
+        # for the generated clients. FastAPI warns on a duplicate; the tests make that an error.
+        generate_unique_id_function=lambda route: route.name,
+        responses={"default": _PROBLEM_RESPONSE},
         lifespan=_lifespan,
         exception_handlers={
             HTTPException: handle_http_exception,

@@ -18,6 +18,22 @@ PROBLEM_TYPE_BASE = "https://opennote.dev/problems/"
 PROBLEM_MEDIA_TYPE = "application/problem+json"
 INTERNAL_ERROR_DETAIL = "An internal error occurred. The request ID is in the X-Request-ID header."
 
+# The body problem_response builds, as the OpenAPI document's ProblemDetails schema. detail
+# and instance are left out rather than null; extension members such as `errors` are allowed.
+PROBLEM_DETAILS_SCHEMA: dict[str, Any] = {
+    "title": "ProblemDetails",
+    "type": "object",
+    "properties": {
+        "type": {"type": "string"},
+        "title": {"type": "string"},
+        "status": {"type": "integer"},
+        "detail": {"type": "string"},
+        "instance": {"type": "string"},
+    },
+    "required": ["type", "title", "status"],
+    "additionalProperties": True,
+}
+
 logger = logging.getLogger(__name__)
 
 

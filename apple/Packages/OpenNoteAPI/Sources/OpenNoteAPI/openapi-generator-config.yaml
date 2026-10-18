@@ -1,0 +1,8 @@
+# swift-openapi-generator's build plugin generates the client from openapi.yaml beside this
+# file (written by scripts/gen-clients.sh) each time the package builds; nothing generated
+# is committed.
+generate:
+  - types
+  - client
+accessModifier: public
+namingStrategy: idiomatic
