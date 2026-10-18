@@ -26,8 +26,8 @@ Last updated: 2026-10-18
 
 | Component | Local | CI | Not verified |
 |---|---|---|---|
-| Backend API and worker (P0-03 to P0-05) | ruff, mypy (strict), and pytest with the integration tests against the local PostgreSQL and Valkey: 102 passed, 2 skipped (they need a directory root cannot write to); the API under uvicorn and the worker with a job and a SIGTERM, run by hand | `backend`: the same checks on Python 3.13.16 and 3.14.8 against PostgreSQL 18.6 with pgvector 0.8.7 and Valkey 9.1.2 service containers, 104 passed on each | — |
-| Web app (P0-06) | lint, typecheck, 4 unit tests, production build, 2 Playwright tests in the preinstalled Chromium | `web`: the same, with the Chromium build that matches Playwright | Browsers other than Chromium. The shadcn files were generated against a local mirror of the shadcn registry built from shadcn-ui/ui at `d2fba50` (ui.shadcn.com is blocked here, [versions.md](development/versions.md)); a confirmation run on an unrestricted machine is open |
+| Backend API and worker (P0-03 to P0-05) | ruff, mypy (strict), and pytest with the integration tests against the local PostgreSQL and Valkey: 113 passed, 2 skipped (they need a directory root cannot write to); the API under uvicorn and the worker with a job and a SIGTERM, run by hand | `backend`: the same checks on Python 3.13.16 and 3.14.8 against PostgreSQL 18.6 with pgvector 0.8.7 and Valkey 9.1.2 service containers, the same suite on each | — |
+| Web app (P0-06) | lint, typecheck, 5 unit tests, production build, 2 Playwright tests in the preinstalled Chromium | `web`: the same, with the Chromium build that matches Playwright | Browsers other than Chromium. The shadcn files were generated against a local mirror of the shadcn registry built from shadcn-ui/ui at `d2fba50` (ui.shadcn.com is blocked here, [versions.md](development/versions.md)); a confirmation run on an unrestricted machine is open |
 | Container images and Compose (P0-07) | No image built and no stack started. Linted (hadolint, shellcheck, `docker compose config`); the entrypoints and nginx were run against local binaries | `containers`, `build, run, scan`: builds the four images; full stack healthy with migrations, both smoke tests, migration `0001` applied; the api image and the full stack as an arbitrary UID in group 0 with read-only root filesystems; the dev stack with the test database's extensions; Trivy scans of the four images | `podman compose` and Podman builds |
 | Apple packages and apps (P0-08) | Nothing compiled. `apple/project.yml` parsed; the Swift files parsed with a tree-sitter grammar | `apple`: on the `xcode-27` runner with Xcode 27.1, `swift test` for all five packages (the job is green; its per-package result lines were not read; the sources hold 10 `@Test` functions, two per package), XcodeGen and unsigned builds of `OpenNote-macOS` and `OpenNote-iOS` (Simulator); on Linux in `swift:6.4.1`, `swift test` for `OpenNoteCore` and `OpenNoteStorage`; both jobs check the committed `Package.resolved` files | The apps are built, never launched: no UI test, no signing, no device |
 | OpenAPI contract and clients (P0-12) | `make openapi` writes the same bytes every run; the drift check exits 0, and 1 after adding a route | `backend`, `openapi drift`; the TypeScript types type-check in `web`; the Swift client is generated and compiled in `apple` (`OpenNoteAPI`'s `generatedClientExists` test) | — |
@@ -85,8 +85,8 @@ D2–D6 in the [specification §4](superpowers/specs/2026-10-17-opennote-archite
 
 | Suite | Tests | Where |
 |---|---|---|
-| Backend (unit and integration) | 104 in CI; 102 passed and 2 skipped locally (the two read-only-directory tests skip as root) | Local and CI |
-| Web unit (Vitest) | 4 | Local and CI |
+| Backend (unit and integration) | 113 passed and 2 skipped locally (the two read-only-directory tests skip as root); the same suite in CI | Local and CI |
+| Web unit (Vitest) | 5 | Local and CI |
 | Web end-to-end (Playwright) | 2 | Local and CI |
 | Apple (`swift test`, five packages) | 10 `@Test` functions in the sources | CI only (macOS, green, per-package result lines not read; `OpenNoteCore` and `OpenNoteStorage` also on Linux) |
 
