@@ -1,0 +1,77 @@
+# The background worker: the api image with `python -m app.workers`. No probes in Phase 0:
+# the worker has no HTTP endpoint. On SIGTERM it waits up to 50 s for running jobs, within
+# the 60 s grace period; a job still running after that is delivered again (at-least-once).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app.kubernetes.io/name: opennote
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opennote
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opennote
+        app.kubernetes.io/component: worker
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        # As in api.yaml.
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: ghcr.io/theonewizard/opennote-api:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.workers"]
+          envFrom:
+            - configMapRef:
+                name: opennote
+          env:
+            - name: OPENNOTE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: opennote
+                  key: OPENNOTE_DATABASE_URL
+            - name: OPENNOTE_VALKEY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: opennote
+                  key: OPENNOTE_VALKEY_URL
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: vaults
+              mountPath: /var/lib/opennote/vaults
+            - name: history
+              mountPath: /var/lib/opennote/history
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: vaults
+          persistentVolumeClaim:
+            claimName: vaults
+        - name: history
+          persistentVolumeClaim:
+            claimName: history
+        - name: tmp
+          emptyDir: {}

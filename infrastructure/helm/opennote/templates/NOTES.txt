@@ -1,0 +1,23 @@
+OpenNote {{ .Chart.AppVersion }} is installed as "{{ .Release.Name }}" in namespace {{ .Release.Namespace }}.
+
+The migration Job ran before the pods started. The pods need the Secret
+"{{ .Values.existingSecret }}" with OPENNOTE_DATABASE_URL and OPENNOTE_VALKEY_URL:
+
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+{{- if .Values.openshift.enabled }}
+
+Web app (OpenShift Route):
+  oc -n {{ .Release.Namespace }} get route {{ include "opennote.fullname" . }}-web
+{{- else if .Values.ingress.enabled }}
+
+Web app (Ingress):
+  kubectl -n {{ .Release.Namespace }} get ingress {{ include "opennote.fullname" . }}
+{{- else }}
+
+No Ingress or Route is enabled. To reach the web app from this machine:
+  kubectl -n {{ .Release.Namespace }} port-forward service/{{ include "opennote.fullname" . }}-web 8080:80
+then open http://127.0.0.1:8080
+{{- end }}
+
+The volumes {{ include "opennote.fullname" . }}-vaults and {{ include "opennote.fullname" . }}-history are kept on uninstall.

@@ -1,0 +1,88 @@
+# Values for the OpenNote chart (docs/deployment/kubernetes.md). PostgreSQL (with pgvector)
+# and Valkey are external; the chart reads their URLs from an existing Secret and never
+# holds a secret value itself.
+
+image:
+  # Not published yet: build opennote-api and opennote-web from infrastructure/containers,
+  # push them to a registry the cluster can pull from and point these at them.
+  apiRepository: ghcr.io/theonewizard/opennote-api
+  webRepository: ghcr.io/theonewizard/opennote-web
+  # Empty: the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# For a private registry: [{name: <pull secret>}].
+imagePullSecrets: []
+
+# The Secret, created before installing, with the keys OPENNOTE_DATABASE_URL and
+# OPENNOTE_VALKEY_URL (api and worker; the migration Job reads only the database URL).
+existingSecret: opennote
+
+# OPENNOTE_LOG_LEVEL, a Python log level name. OPENNOTE_ENVIRONMENT is always production.
+logLevel: INFO
+
+# web reaches the API at <release>-api.<namespace>.svc.<clusterDomain>:80, fully qualified
+# because nginx's resolver ignores the resolv.conf search list.
+clusterDomain: cluster.local
+
+# The images run as UID 1001, group 0; fsGroup makes the volumes writable on Kubernetes. Left
+# out when openshift.enabled is true, because the restricted SCC assigns the group.
+fsGroup: 1001
+
+openshift:
+  # true: no fsGroup, and a Route with edge TLS to web.
+  enabled: false
+  route:
+    # Empty: the router generates a host name under the cluster's apps domain.
+    host: ""
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # Empty: the rule matches any host.
+  host: ""
+  # A TLS Secret for host; empty: no tls section.
+  tlsSecretName: ""
+
+# Mounted by api and worker; ReadWriteMany because both mount them at once, on any node.
+# Kept on `helm uninstall` (helm.sh/resource-policy: keep).
+persistence:
+  accessMode: ReadWriteMany
+  # Empty: the cluster's default storage class.
+  storageClassName: ""
+  vaults:
+    size: 10Gi
+  history:
+    size: 10Gi
+
+api:
+  replicas: 1
+  # Also used by the migration Job.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+worker:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+web:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi

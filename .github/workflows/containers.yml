@@ -136,3 +136,73 @@ jobs:
             trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$image" || status=1
           done
           exit "$status"
+
+  # The Helm chart (defaults, OpenShift, Ingress) and the kustomize base and OpenShift
+  # overlay: lint, render and validate against the Kubernetes 1.30.0 schemas (the chart's
+  # kubeVersion floor) and the newest ones. No cluster is involved
+  # (docs/deployment/kubernetes.md).
+  manifests:
+    name: manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CHART: infrastructure/helm/opennote
+      KUBECONFORM: ghcr.io/yannh/kubeconform:v0.8.0@sha256:faffaf43f95aa6425306e1ab8d6fcad72acb9049158f38e574c085ea1ec0f64e
+      # The Route schema: OpenShift 4.15, the newest in the community catalog, at a fixed commit.
+      OPENSHIFT_SCHEMAS: 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/501527ab9c40c827144c8f45945b25a023e344ce/openshift/v4.15-strict/{{.ResourceKind}}_{{.Group}}_{{.ResourceAPIVersion}}.json'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Tool versions
+        run: |
+          helm version
+          kubectl version --client
+          docker pull --quiet "$KUBECONFORM"
+          docker run --rm "$KUBECONFORM" -v
+
+      - name: helm lint
+        run: |
+          helm lint --strict "$CHART"
+          helm lint --strict "$CHART" --set openshift.enabled=true
+          helm lint --strict "$CHART" --set ingress.enabled=true --set ingress.host=opennote.example.com \
+            --set ingress.tlsSecretName=opennote-tls
+
+      - name: Render the chart and the kustomizations
+        run: |
+          out=$RUNNER_TEMP/manifests
+          mkdir "$out"
+          helm template opennote "$CHART" > "$out/helm-defaults.yaml"
+          helm template opennote "$CHART" --set openshift.enabled=true > "$out/helm-openshift.yaml"
+          helm template opennote "$CHART" --set ingress.enabled=true --set ingress.host=opennote.example.com \
+            --set ingress.tlsSecretName=opennote-tls > "$out/helm-ingress.yaml"
+          kubectl kustomize infrastructure/kubernetes/base > "$out/kustomize-base.yaml"
+          kubectl kustomize infrastructure/openshift > "$out/kustomize-openshift.yaml"
+
+      # What kubeconform cannot see: no Secret object anywhere, fsGroup on each of the four
+      # pods on Kubernetes and on none on OpenShift (its restricted SCC assigns the group).
+      - name: No Secret, fsGroup only off OpenShift
+        run: |
+          out=$RUNNER_TEMP/manifests
+          if grep -n '^kind: Secret$' "$out"/*.yaml; then echo "a Secret is rendered"; exit 1; fi
+          for file in helm-defaults helm-ingress kustomize-base; do
+            count=$(grep -c '^ *fsGroup: 1001$' "$out/$file.yaml") || true
+            [[ $count == 4 ]] || { echo "$file: fsGroup 1001 on $count pods, want 4"; exit 1; }
+          done
+          if grep -n fsGroup "$out/helm-openshift.yaml" "$out/kustomize-openshift.yaml"; then
+            echo "fsGroup in an OpenShift variant"; exit 1
+          fi
+
+      - name: kubeconform
+        run: |
+          for version in 1.30.0 master; do
+            echo "Kubernetes schemas: $version"
+            docker run --rm -v "$RUNNER_TEMP/manifests:/manifests:ro" "$KUBECONFORM" -strict -summary \
+              -kubernetes-version "$version" -schema-location default -schema-location "$OPENSHIFT_SCHEMAS" \
+              /manifests
+          done

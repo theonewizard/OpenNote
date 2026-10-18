@@ -1,0 +1,51 @@
+# `alembic upgrade head` before every install and upgrade; the release's pods start or roll
+# only after it succeeds. It needs only OPENNOTE_DATABASE_URL. The release's ServiceAccount
+# does not exist yet at pre-install, so the Job runs as the namespace's default one, without
+# a token. The last Job stays until the next upgrade, for its logs.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "opennote.fullname" . }}-migrate
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "opennote.labels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "opennote.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.apiRepository }}:{{ include "opennote.tag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: OPENNOTE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret }}
+                  key: OPENNOTE_DATABASE_URL
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext:
+            {{- include "opennote.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,25 @@
+# OpenNote on Kubernetes: the api, worker and web Deployments, their Services, the vaults
+# and history volumes, the non-secret settings and the migration Job
+# (docs/deployment/kubernetes.md). PostgreSQL and Valkey are external. The Secret
+# `opennote` with the keys OPENNOTE_DATABASE_URL and OPENNOTE_VALKEY_URL must exist first.
+#
+#   kubectl apply -k infrastructure/kubernetes/base
+#
+# The images are not published yet: build opennote-api and opennote-web from
+# infrastructure/containers, push them to a registry the cluster can pull from and point an
+# overlay's `images:` at them. The manifests meet the Pod Security `restricted` profile.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Another namespace must also change OPENNOTE_API_UPSTREAM in configmap.yaml: nginx's
+# resolver ignores the resolv.conf search list, so web needs the api Service's full name.
+namespace: opennote
+
+resources:
+  - configmap.yaml
+  - pvc.yaml
+  - api.yaml
+  - worker.yaml
+  - web.yaml
+  - service.yaml
+  - job-migrate.yaml

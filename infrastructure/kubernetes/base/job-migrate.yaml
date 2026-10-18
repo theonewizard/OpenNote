@@ -1,0 +1,57 @@
+# Applies the database migrations: `alembic upgrade head` in the api image (WORKDIR /app),
+# which needs only OPENNOTE_DATABASE_URL. It runs alongside the Deployments when the base
+# is applied (kustomize has no ordering); `alembic upgrade head` is idempotent. A Job's pod
+# template cannot change, so delete the Job before applying a new image:
+#   kubectl -n opennote delete job migrate --ignore-not-found
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  labels:
+    app.kubernetes.io/name: opennote
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opennote
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        # As in api.yaml.
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: ghcr.io/theonewizard/opennote-api:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: OPENNOTE_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: opennote
+                  key: OPENNOTE_DATABASE_URL
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

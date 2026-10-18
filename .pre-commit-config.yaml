@@ -10,6 +10,9 @@ repos:
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-yaml
+        # Kubernetes manifests hold several documents; Helm templates are not YAML until rendered.
+        args: [--allow-multiple-documents]
+        exclude: ^infrastructure/helm/opennote/templates/
       - id: end-of-file-fixer
       - id: trailing-whitespace
         # Two trailing spaces are a Markdown line break.

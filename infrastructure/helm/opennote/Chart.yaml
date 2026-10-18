@@ -1,0 +1,7 @@
+apiVersion: v2
+name: opennote
+description: OpenNote API, background worker and web app on Kubernetes and OpenShift
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.30.0-0"

@@ -1,0 +1,25 @@
+# Settings that are not secret; the URLs come from .Values.existingSecret.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "opennote.fullname" . }}
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+data:
+  OPENNOTE_ENVIRONMENT: production
+  OPENNOTE_LOG_LEVEL: {{ .Values.logLevel | quote }}
+  OPENNOTE_VAULT_ROOT: /var/lib/opennote/vaults
+  OPENNOTE_HISTORY_ROOT: /var/lib/opennote/history
+  # The migration Job applies migrations, never the API.
+  OPENNOTE_MIGRATE_ON_START: "false"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "opennote.fullname" . }}-web
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+data:
+  # The api Service (service-api.yaml), fully qualified: nginx ignores the search list.
+  OPENNOTE_API_UPSTREAM: {{ printf "%s-api.%s.svc.%s:80" (include "opennote.fullname" .) .Release.Namespace .Values.clusterDomain | quote }}

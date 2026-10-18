@@ -1,0 +1,28 @@
+# OpenNote on OpenShift: the Kubernetes base without the pods' fsGroup, plus a Route to web
+# (docs/deployment/kubernetes.md, "OpenShift").
+#
+#   oc apply -k infrastructure/openshift
+#
+# The restricted-v2 SCC assigns each pod a UID and an fsGroup from the namespace's ranges
+# and refuses a fixed fsGroup outside them; the images work with any UID in group 0, and
+# the volumes get the SCC's group.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: opennote
+
+resources:
+  - ../kubernetes/base
+  - route.yaml
+
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/securityContext/fsGroup
+  - target:
+      kind: Job
+    patch: |-
+      - op: remove
+        path: /spec/template/spec/securityContext/fsGroup
