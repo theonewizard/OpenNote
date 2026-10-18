@@ -50,7 +50,7 @@ The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); V
 make up-deps
 ```
 
-Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` (added in Phase 0 Task 6) on `127.0.0.1:5432` and `127.0.0.1:6379`. Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps` (added in Phase 0 Task 3). The test database's name must end in `_test` (default `opennote_test`): the migration tests upgrade it and downgrade it to base, dropping the `vector` and `pg_trgm` extensions, so the integration tests refuse to run against any other database. The test Valkey database defaults to 1 (`redis://127.0.0.1:6379/1`) and must not be 0, the dev stack's: the worker tests delete the ping keys and the broker's default-queue, ack and heartbeat keys in it (added in Phase 0 Task 4). Use `COMPOSE="podman compose"` with any Compose target to use Podman.
+Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` (added in Phase 0 Task 6) on `127.0.0.1:5432` and `127.0.0.1:6379`. The first run builds the images. On its first start PostgreSQL creates the databases `opennote` and `opennote_test`, each with the `vector` and `pg_trgm` extensions, owned by the superuser `opennote` with password `opennote` (throwaway placeholders). Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps` (added in Phase 0 Task 3). The test database's name must end in `_test` (default `opennote_test`): the migration tests upgrade it and downgrade it to base, dropping the `vector` and `pg_trgm` extensions, so the integration tests refuse to run against any other database. The test Valkey database defaults to 1 (`redis://127.0.0.1:6379/1`) and must not be 0, the dev stack's: the worker tests delete the ping keys and the broker's default-queue, ack and heartbeat keys in it (added in Phase 0 Task 4). Use `COMPOSE="podman compose"` with any Compose target to use Podman.
 
 ## 4. Lint, type-check, test
 
@@ -76,6 +76,23 @@ cd backend && ../.venv/bin/python -m app.workers
 ```
 
 It validates every `OPENNOTE_*` setting at start and, if any is missing or invalid, exits with one line naming the fields; it uses `OPENNOTE_VALKEY_URL` and `OPENNOTE_LOG_LEVEL`. One worker process with four threads takes jobs from Valkey and logs JSON lines on stdout. On SIGTERM or Ctrl-C it lets running jobs finish, waiting at most 50 s, then exits. Do not point it at the test Valkey database (section 3): the worker tests' jobs and key cleanup would collide with it.
+
+## 6. Run the full stack
+
+With `infrastructure/compose/.env` created (section 2) and Docker or Podman running (added in Phase 0 Task 6):
+
+```bash
+make up                                      # builds the images on the first run
+scripts/smoke-test.sh http://localhost:8080
+make down
+```
+
+`make up` starts `infrastructure/compose/compose.yaml` (web, api, worker, postgres, valkey) and waits until every service with a health check is healthy. The web app is on http://localhost:8080 and forwards `/api/`, `/healthz` and `/readyz` to the API, which is also on http://localhost:8000 (`scripts/smoke-test.sh --api-only http://localhost:8000`). Both ports listen on 127.0.0.1 only. Every container runs as a non-root user with a read-only root filesystem.
+
+- Migrations are not applied on start by default. `OPENNOTE_MIGRATE_ON_START=true make up`, or that line in `.env`, makes the API run `alembic upgrade head` first; enable it for one API instance only.
+- The worker has no health check. When stopped it gets 60 s: it lets running jobs finish for up to 50 s, and a job still running after that is delivered again later (at-least-once).
+- Valkey keeps nothing on disk, so restarting it loses queued jobs.
+- Data lives in the volumes `opennote_vaults`, `opennote_history` and `opennote_pgdata`, which `make down` keeps (`docker compose -f infrastructure/compose/compose.yaml down -v` deletes them). PostgreSQL reads `POSTGRES_*` only when it initialises an empty volume, so a password changed in `.env` later must also be changed in the database.
 
 ## Other targets
 

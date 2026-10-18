@@ -10,8 +10,8 @@ Design §11 and `CLAUDE.md` §5 prefer UBI. Free UBI images are on `registry.acc
 ## Decision
 | Image | Base | Notes |
 |---|---|---|
-| `opennote-api` (also worker) | `ubi9/python-3xx` or `ubi10` Python image (newest Python available, see versions.md) builder → `ubi-minimal` runtime | Multi-stage, non-root UID 1001 group 0, read-only root FS |
-| `opennote-web` | Node UBI image builder → `ubi9/nginx-1xx` runtime | Static files + `/api` reverse proxy |
+| `opennote-api` (also worker) | `ubi9/ubi-minimal` with `python3.14` from the UBI 9 repositories, in the builder (virtual environment) and the runtime stage; `ubi9/python-314` if that RPM is missing (versions.md, "Python decision") | Multi-stage, non-root UID 1001 group 0, read-only root FS |
+| `opennote-web` | Official Node.js image builder (the `.nvmrc` release; only static files leave it) → `ubi9/ubi-minimal` + the `nginx:1.26` module stream runtime | Static files + `/api` reverse proxy |
 | `opennote-postgres` | `ubi-minimal` + PGDG PostgreSQL RPMs + `pgvector` RPM | Built in CI; arbitrary-UID safe entrypoint |
 | `opennote-valkey` | `ubi-minimal` + Valkey from EPEL/AppStream if available, else built from source in a builder stage | — |
 | `opennote-ai` | UBI Python image + Ollama client; model runtime as separate upstream Ollama container | Optional profile |

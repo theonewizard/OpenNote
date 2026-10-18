@@ -1,0 +1,47 @@
+# opennote-valkey: Valkey 9.1.2 built from the upstream source release on UBI 9 minimal
+# (the UBI 9 repositories carry no Valkey 9).
+#
+# Build from the repository root:
+#   docker build -f infrastructure/containers/valkey/Containerfile -t opennote-valkey:dev .
+#
+# Runs as UID 1001 group 0 or any other UID, on a read-only root filesystem: it keeps no
+# data on disk (see CMD).
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661 AS builder
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Build tools from the UBI 9 repositories, not version-pinned (builder stage only).
+# hadolint ignore=DL3041
+RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
+        gcc make openssl-devel tar gzip findutils \
+    && microdnf clean all
+
+# The checksum of this release's source archive, as pinned by the upstream valkey-container
+# project and by Homebrew (docs/development/versions.md).
+RUN curl -fsSL -o /tmp/valkey.tar.gz \
+        https://github.com/valkey-io/valkey/archive/refs/tags/9.1.2.tar.gz \
+    && echo "19c23908e7d57e8d91ef85b41f5646307582f10f4f0fb999bbf89ed24ec9c983  /tmp/valkey.tar.gz" \
+        | sha256sum -c - \
+    && mkdir /src \
+    && tar -xzf /tmp/valkey.tar.gz -C /src --strip-components=1 \
+    && make -C /src -j"$(nproc)" BUILD_TLS=yes USE_SYSTEMD=no \
+    && make -C /src install PREFIX=/opt/valkey
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661
+
+LABEL org.opencontainers.image.title="opennote-valkey" \
+      org.opencontainers.image.description="Valkey 9.1.2 for OpenNote background jobs" \
+      org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
+      org.opencontainers.image.licenses="BSD-3-Clause"
+
+COPY --from=builder /opt/valkey/bin/valkey-server /opt/valkey/bin/valkey-cli /usr/local/bin/
+
+USER 1001:0
+EXPOSE 6379
+
+# Reachable only on the container network, with no password, so protected mode is off.
+# No persistence (no RDB snapshots, no append-only file): queued jobs live in memory and a
+# restart loses them. Valkey stops cleanly on SIGTERM.
+CMD ["valkey-server", "--bind", "0.0.0.0", "--port", "6379", "--protected-mode", "no", \
+     "--save", "", "--appendonly", "no", "--dir", "/tmp"]

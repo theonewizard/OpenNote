@@ -1,0 +1,66 @@
+# PostgreSQL (with pgvector) and Valkey only, for local development and the integration
+# tests, on 127.0.0.1:5432 and 127.0.0.1:6379. From the repository root:
+#
+#   make up-deps   # docker compose -f infrastructure/compose/compose.dev.yaml up -d --wait postgres valkey
+#   make down
+#
+# The same images as the full stack, as a separate project with its own volume. The
+# credentials are throwaway development placeholders set here, not read from .env,
+# because they must match the integration tests' defaults
+# (postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote_test). Never publish
+# these ports beyond 127.0.0.1.
+
+name: opennote-dev
+
+x-service-defaults: &defaults
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  user: "1001:0"
+  restart: unless-stopped
+
+services:
+  postgres:
+    <<: *defaults
+    image: opennote-postgres:dev
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/postgres/Containerfile
+    environment:
+      POSTGRES_USER: opennote
+      POSTGRES_PASSWORD: opennote
+      POSTGRES_DB: opennote
+      # Created at the first start with the same extensions; the tests refuse any database
+      # whose name does not end in _test.
+      POSTGRES_TEST_DB: opennote_test
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Over TCP, which only opens once the first-start initialisation is done. Any user
+      # name will do: pg_isready does not log in.
+      test: ["CMD", "pg_isready", "--quiet", "--host=127.0.0.1", "--port=5432",
+             "--username=postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  valkey:
+    <<: *defaults
+    image: opennote-valkey:dev
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/valkey/Containerfile
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-h", "127.0.0.1", "-p", "6379", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:

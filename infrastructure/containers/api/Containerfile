@@ -1,0 +1,60 @@
+# opennote-api: the API server (default command) and the background worker
+# (command `python -m app.workers`), one image for both.
+#
+# Build from the repository root:
+#   docker build -f infrastructure/containers/api/Containerfile -t opennote-api:dev .
+#
+# Python 3.14 from the UBI 9 repositories on ubi-minimal (docs/development/versions.md,
+# "Python decision"). Runs as UID 1001 group 0 or any other UID in group 0, on a read-only
+# root filesystem with a writable /tmp.
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661 AS builder
+
+# Packages from the UBI 9 repositories are not version-pinned: they take the 9.8 stream's
+# security updates on top of the base image, which is pinned by digest.
+# hadolint ignore=DL3041
+RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
+    && microdnf clean all
+
+COPY backend/requirements.txt /tmp/requirements.txt
+# Wheels only: every pinned package has a cp314 manylinux wheel, so the build needs no
+# compiler, and a package without a wheel fails the build instead of compiling.
+RUN python3.14 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --disable-pip-version-check \
+        --only-binary=:all: -r /tmp/requirements.txt
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661
+
+LABEL org.opencontainers.image.title="opennote-api" \
+      org.opencontainers.image.description="OpenNote API server and background worker" \
+      org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
+      org.opencontainers.image.licenses="AGPL-3.0-only"
+
+# Not version-pinned, as in the builder.
+# hadolint ignore=DL3041
+RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
+    && microdnf clean all
+
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR /app
+COPY backend/alembic.ini ./
+COPY backend/app ./app
+COPY backend/migrations ./migrations
+COPY infrastructure/containers/api/entrypoint.sh ./
+
+# The only writable paths besides /tmp: the vault and history volumes, owned by group 0 so
+# that any UID in group 0 can write them (OpenShift assigns an arbitrary UID).
+RUN mkdir -p /var/lib/opennote/vaults /var/lib/opennote/history \
+    && chown -R 1001:0 /var/lib/opennote \
+    && chmod -R g=u /var/lib/opennote
+
+ENV PATH=/opt/venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+USER 1001:0
+EXPOSE 8000
+
+# uvicorn (API) and Dramatiq (worker) run as PID 1 and stop gracefully on SIGTERM.
+CMD ["/app/entrypoint.sh"]
