@@ -62,16 +62,13 @@ jobs:
           -destination 'generic/platform=iOS Simulator' -skipPackagePluginValidation
           CODE_SIGNING_ALLOWED=NO build
       - name: Package.resolved matches the committed files
+        # Changed and new (untracked) Package.resolved files both fail the job.
         run: &resolved-check |
-          changes=$(git status --porcelain --untracked-files=all -- apple)
+          changes=$(git status --porcelain --untracked-files=all -- '**/Package.resolved')
           if [[ -n $changes ]]; then
-            echo "SwiftPM's resolution differs from the committed Package.resolved files:"
+            echo "swift test resolved differently from the committed Package.resolved files:"
             echo "$changes"
-            git diff -- apple
-            # The workflow uploads no artefacts, so the new or changed files are printed as a
-            # base64 tar.gz to commit (base64 -d | tar -xz from the repository root).
-            git ls-files --modified --others --exclude-standard -- apple | tar -czf - -T - | base64 | tr -d '\n'
-            echo
+            git diff -- '**/Package.resolved'
             exit 1
           fi
 
