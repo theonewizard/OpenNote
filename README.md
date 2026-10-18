@@ -2,7 +2,7 @@
 
 Self-hosted, local-first note-taking with Evernote-style productivity on top of Obsidian-compatible Markdown vaults. Clients for macOS, iOS, iPadOS and the web; backend in Red Hat UBI containers.
 
-**Status:** planning. No application code yet.
+**Status:** Phase 0 (foundation) is implemented and pre-release: the skeletons and CI exist, product features do not yet, and nothing is deployed.
 
 | Start here | |
 |---|---|
@@ -13,6 +13,7 @@ Self-hosted, local-first note-taking with Evernote-style productivity on top of 
 | Architecture decisions | [docs/architecture/adr/](docs/architecture/adr/README.md) |
 | Rules for AI-assisted development | [CLAUDE.md](CLAUDE.md) |
 | Development setup | [docs/development/setup.md](docs/development/setup.md) |
+| Kubernetes and OpenShift | [docs/deployment/kubernetes.md](docs/deployment/kubernetes.md) |
 | Tool versions | [docs/development/versions.md](docs/development/versions.md) |
 
 ## Repository layout

@@ -282,3 +282,23 @@ test("app loads at phone width without horizontal scroll", async ({ page }) => {
 - [ ] **Step 3:** Update `docs/IMPLEMENTATION_STATUS.md` (what was verified where, including Apple results from CI) and set P0-02…P0-12 to `COMPLETED` in `docs/ROADMAP.md` only for items whose acceptance criteria were observed passing.
 - [ ] **Step 4:** Record the session's prompts in `.conversations/`.
 - [ ] **Step 5:** Commit `docs: phase 0 status`, open PR, squash merge after review.
+
+---
+
+## Errata
+
+Where the implementation deliberately departs from the text above. The plan is a historical record and is not rewritten; the ruling numbers refer to the list in `.conversations/2026-10-17-phase-0-foundation.md`.
+
+- R13, R67: the Swift package carries `openapi.json`, a byte-identical copy of `docs/api/openapi.json`, not the `openapi.yaml` of Task 8's file list; swift-openapi-generator reads JSON.
+- R66: each operation documents its errors as one `default` `application/problem+json` response (`ProblemDetails`), not one response per status; `/readyz` also documents its 503 `ProbeStatus` body.
+- R64 (replacing R58): the web image has an entrypoint, `infrastructure/containers/web/entrypoint.sh`, which writes nginx's resolver (from `/etc/resolv.conf`) and the API upstream (`OPENNOTE_API_UPSTREAM`, default `api:8000`) to `/tmp` at start; Task 6's file list does not name it.
+- R44: the integration tests use Valkey database 1 by default and refuse database 0, the dev stack's.
+- R45: on SIGTERM the worker waits at most 50 s for running jobs (`--worker-shutdown-timeout 50000`), inside a 60 s stop grace period; a job still running then is delivered again.
+- R20: the API and worker images run Python 3.14 from the UBI 9 repositories on `ubi9/ubi-minimal:9.8`; the backend's floor is Python 3.13, and CI tests 3.13 and 3.14.
+- R75, R84: a newer push cancels a branch's running workflows, except on `main` and for scheduled runs; containers and security both run every Monday at 06:00 UTC, where Task 9 schedules security only.
+- R85: the postgres Containerfile imports the PGDG signing key only after checking its fingerprint and the SHA-256 of the whole decoded key.
+- R83: the Task 9 implementer pushed its own commits to drive CI green (3 of the 8 pushes it was allowed).
+- R86: no image is published in Phase 0; the chart and the kustomize base default to the unpublished `ghcr.io/theonewizard/opennote-{api,web}:0.1.0`.
+- R93: the chart's floor is Kubernetes 1.29 (`kubeVersion: ">=1.29.0-0"`), and spec D4 reads "OpenShift 4.16+ (Kubernetes 1.29+)".
+- R94–R96: every pod sets `fsGroupChangePolicy: OnRootMismatch`; the `manifests` CI job checks the renders for what kubeconform cannot see (no Secret or `secretKeyRef`, the `fsGroup` and policy counts, web's API upstream); each `/tmp` emptyDir has `sizeLimit: 256Mi`.
+- R97 (replacing R88's `secretKeyRef`): the Secret `opennote` is mounted as files at `/run/secrets/opennote` and read through `OPENNOTE_DATABASE_URL_FILE` and `OPENNOTE_VALKEY_URL_FILE`.

@@ -16,7 +16,7 @@ Status: Proposed (2026-10-17). Implements design §15.13 and `CLAUDE.md` §9. St
 |---|---|---|---|
 | Backend unit | `backend/tests/unit` | pytest, Hypothesis | Every push |
 | Backend integration | `backend/tests/integration` | pytest + real PostgreSQL/pgvector + Valkey + temp vault dirs; Alembic upgrade from empty and downgrade one step | Every push |
-| API contract | `tests/integration/contract` | Schemathesis against the running API and committed `docs/api/openapi.json` (Phase 2+); OpenAPI drift check (`make openapi`, then `git diff --exit-code` on the generated files; `docs/api/openapi.json` is generated and committed from Phase 0) | Every push (drift check: CI added in Phase 0 Task 9; Schemathesis: Phase 2+) |
+| API contract | `tests/integration/contract` | Schemathesis against the running API and committed `docs/api/openapi.json` (Phase 2+); OpenAPI drift check (`make openapi`, then `git diff --exit-code` on the generated files; `docs/api/openapi.json` is generated and committed from Phase 0) | Every push (drift check; Schemathesis: Phase 2+) |
 | Compatibility | `tests/compatibility` | Shared corpus, run by Python and Swift parsers | Every push (Phase 1+) |
 | Sync simulation | `backend/tests/sync_sim` | Seeded simulation, invariants I1–I6 of the sync protocol | 500 seeds per push; 10,000 nightly |
 | Web unit/component | `web/tests/unit` | Vitest, Testing Library | Every push |

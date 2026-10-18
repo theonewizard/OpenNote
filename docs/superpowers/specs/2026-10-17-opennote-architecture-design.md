@@ -168,7 +168,7 @@ Swift packages (one repository, local SPM packages):
 
 | Package | Responsibility | Platform deps |
 |---|---|---|
-| `OpenNoteCore` | Domain types, Markdown/frontmatter scanning (byte-preserving), link/tag extraction, path rules | Foundation only (Linux-buildable) |
+| `OpenNoteCore` | Domain types, Markdown/frontmatter scanning (byte-preserving), link/tag extraction, path rules | Foundation; SHA-256 from CryptoKit on Apple platforms and from swift-crypto on Linux (Linux-buildable) |
 | `OpenNoteStorage` | Local vault file I/O (atomic writes, coordinated access), SQLite state DB, base-content cache | Foundation, SQLite (Linux-buildable) |
 | `OpenNoteAPI` | Generated client from OpenAPI (swift-openapi-generator), auth/session | Foundation, URLSession |
 | `OpenNoteSync` | Outbox, pull/push loop, watcher integration (FSEvents/`NSFilePresenter`), conflict surfacing | Core, Storage, API |

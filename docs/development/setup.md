@@ -1,6 +1,6 @@
 # Local Development Setup
 
-How to set up a working copy and run the checks CI runs. Describes the repository as it stands at the end of Phase 0; parts that a later Phase 0 task adds are marked "added in Phase 0 Task N" (see the [Phase 0 plan](../superpowers/plans/2026-10-17-phase-0-foundation-plan.md)). Exact tool versions are in [versions.md](versions.md).
+How to set up a working copy and run the checks CI runs. Describes the repository as it stands at the end of Phase 0. Exact tool versions are in [versions.md](versions.md).
 
 ## Prerequisites
 
@@ -20,11 +20,11 @@ If `python3` on your machine is another version, pass a suitable interpreter: `m
 make bootstrap
 ```
 
-This creates `.venv` at the repository root (`python3 -m venv .venv`), upgrades pip, installs `backend/requirements-dev.txt` (which includes `backend/requirements.txt`) into it, and runs `npm ci` in `web/`. Python packages are only ever installed into `.venv` (`CLAUDE.md` §3); run tools as `.venv/bin/python`, `.venv/bin/pytest` and so on. The requirements files are added in Phase 0 Task 2, `web/package-lock.json` in Task 5.
+This creates `.venv` at the repository root (`python3 -m venv .venv`), upgrades pip, installs `backend/requirements-dev.txt` (which includes `backend/requirements.txt`) into it, and runs `npm ci` in `web/`. Python packages are only ever installed into `.venv` (`CLAUDE.md` §3); run tools as `.venv/bin/python`, `.venv/bin/pytest` and so on.
 
 ## 2. Configure the environment
 
-Compose reads its variables from `infrastructure/compose/.env`. Create it from the template, which holds placeholders only (added in Phase 0 Task 6):
+Compose reads its variables from `infrastructure/compose/.env`. Create it from the template, which holds placeholders only:
 
 ```bash
 cp infrastructure/compose/.env.example infrastructure/compose/.env
@@ -32,7 +32,7 @@ cp infrastructure/compose/.env.example infrastructure/compose/.env
 
 `.env` is git-ignored and must never be committed; put real secrets only there or in your secret store.
 
-The backend reads settings from `OPENNOTE_`-prefixed environment variables (added in Phase 0 Task 2). Each secret can instead be read from a file named by `<NAME>_FILE`.
+The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each secret can instead be read from a file named by `<NAME>_FILE`.
 
 | Variable | Form |
 |---|---|
@@ -50,7 +50,7 @@ The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); V
 make up-deps
 ```
 
-Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` (added in Phase 0 Task 6) on `127.0.0.1:5432` and `127.0.0.1:6379`. The first run builds the images. On its first start PostgreSQL creates the databases `opennote` and `opennote_test`, each with the `vector` and `pg_trgm` extensions, owned by the superuser `opennote` with password `opennote` (throwaway placeholders). Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps` (added in Phase 0 Task 3). The test database's name must end in `_test` (default `opennote_test`): the migration tests upgrade it and downgrade it to base, dropping the `vector` and `pg_trgm` extensions, so the integration tests refuse to run against any other database. The test Valkey database defaults to 1 (`redis://127.0.0.1:6379/1`) and must not be 0, the dev stack's: the worker tests delete the ping keys and the broker's default-queue, ack and heartbeat keys in it (added in Phase 0 Task 4). Use `COMPOSE="podman compose"` with any Compose target to use Podman.
+Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` on `127.0.0.1:5432` and `127.0.0.1:6379`. The first run builds the images. On its first start PostgreSQL creates the databases `opennote` and `opennote_test`, each with the `vector` and `pg_trgm` extensions, owned by the superuser `opennote` with password `opennote` (throwaway placeholders). Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps`. The test database's name must end in `_test` (default `opennote_test`): the migration tests upgrade it and downgrade it to base, dropping the `vector` and `pg_trgm` extensions, so the integration tests refuse to run against any other database. The test Valkey database defaults to 1 (`redis://127.0.0.1:6379/1`) and must not be 0, the dev stack's: the worker tests delete the ping keys and the broker's default-queue, ack and heartbeat keys in it. Use `COMPOSE="podman compose"` with any Compose target to use Podman.
 
 ## 4. Lint, type-check, test
 
@@ -65,11 +65,11 @@ make lint typecheck test
 | `test` | `pytest` in `backend/` (unit and integration, so `make up-deps` first); `npm test` in `web/` |
 | `build` | `npm run build` in `web/` |
 
-Apple packages are tested with `swift test --package-path apple/Packages/<Package>` (added in Phase 0 Task 7).
+Apple packages are tested with `swift test --package-path apple/Packages/<Package>`.
 
 ## 5. Run the worker
 
-With the variables of section 2 set and Valkey running (added in Phase 0 Task 4):
+With the variables of section 2 set and Valkey running:
 
 ```bash
 cd backend && ../.venv/bin/python -m app.workers
@@ -79,7 +79,7 @@ It validates every `OPENNOTE_*` setting at start and, if any is missing or inval
 
 ## 6. Run the full stack
 
-With `infrastructure/compose/.env` created (section 2) and Docker or Podman running (added in Phase 0 Task 6):
+With `infrastructure/compose/.env` created (section 2) and Docker or Podman running:
 
 ```bash
 make up                                      # builds the images, then starts the stack
@@ -107,7 +107,7 @@ The stack is set up for local use. Before it serves anyone else, know what it do
 
 ## 7. Build the Apple apps
 
-On macOS with Xcode 27.1 and XcodeGen 2.46.0 or newer, installed with `brew install xcodegen` (added in Phase 0 Task 7):
+On macOS with Xcode 27.1 and XcodeGen 2.46.0 or newer, installed with `brew install xcodegen`:
 
 ```bash
 swift test --package-path apple/Packages/OpenNoteCore      # and each other package in apple/Packages/
@@ -116,13 +116,13 @@ xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-macOS -destination
 xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS -destination 'generic/platform=iOS Simulator' -skipPackagePluginValidation build
 ```
 
-`-skipPackagePluginValidation` lets `xcodebuild` run swift-openapi-generator's build plugin in `OpenNoteAPI` (section 8). Without it the build fails with `"OpenAPIGenerator" is disabled` (the generator's FAQ); in the Xcode IDE the same error offers "Enable Plugin", then "Trust & Enable". `swift build` and `swift test` run the plugin without either (added in Phase 0 Task 8).
+`-skipPackagePluginValidation` lets `xcodebuild` run swift-openapi-generator's build plugin in `OpenNoteAPI` (section 8). Without it the build fails with `"OpenAPIGenerator" is disabled` (the generator's FAQ); in the Xcode IDE the same error offers "Enable Plugin", then "Trust & Enable". `swift build` and `swift test` run the plugin without either.
 
-`apple/project.yml` defines the app targets `OpenNote-macOS` (macOS 15 or later) and `OpenNote-iOS` (iOS and iPadOS 18 or later), each with a scheme of the same name, sharing `apple/Apps/Shared` and linking the five local packages `OpenNoteCore`, `OpenNoteStorage`, `OpenNoteAPI`, `OpenNoteSync` and `OpenNoteEditor`. Code signing is off (`CODE_SIGNING_ALLOWED: NO`, no development team), so these builds need no Apple developer account; running on a device needs signing, which the project does not set up yet. The generated project and the `Info.plist` files XcodeGen writes into `apple/Apps/macOS/` and `apple/Apps/iOS/` are git-ignored. Each package's `Package.resolved` is committed: the files are the first resolution in CI (the macOS job; the Linux job resolved `OpenNoteCore` and `OpenNoteStorage` to identical files), and both Apple CI jobs fail when `swift test` resolves to anything else. After changing a dependency, commit the `Package.resolved` files that `swift test` rewrites (added in Phase 0 Task 9). The Xcode app builds resolve the package graph again, into a `Package.resolved` inside the git-ignored `apple/OpenNote.xcodeproj`, which the drift check cannot see; the committed per-package files pin what `swift test` resolves. `OpenNoteCore` and `OpenNoteStorage` use no Apple-only frameworks, so `swift test` runs them on Linux as well with the Swift 6.4.1 toolchain, where `OpenNoteCore` takes SHA-256 from swift-crypto instead of CryptoKit; the Linux job of the Apple CI workflow runs both in the `swift:6.4.1` image (added in Phase 0 Task 9).
+`apple/project.yml` defines the app targets `OpenNote-macOS` (macOS 15 or later) and `OpenNote-iOS` (iOS and iPadOS 18 or later), each with a scheme of the same name, sharing `apple/Apps/Shared` and linking the five local packages `OpenNoteCore`, `OpenNoteStorage`, `OpenNoteAPI`, `OpenNoteSync` and `OpenNoteEditor`. Code signing is off (`CODE_SIGNING_ALLOWED: NO`, no development team), so these builds need no Apple developer account; running on a device needs signing, which the project does not set up yet. The generated project and the `Info.plist` files XcodeGen writes into `apple/Apps/macOS/` and `apple/Apps/iOS/` are git-ignored. Each package's `Package.resolved` is committed: the files are the first resolution in CI (the macOS job; the Linux job resolved `OpenNoteCore` and `OpenNoteStorage` to identical files), and both Apple CI jobs fail when `swift test` resolves to anything else. After changing a dependency, commit the `Package.resolved` files that `swift test` rewrites. The Xcode app builds resolve the package graph again, into a `Package.resolved` inside the git-ignored `apple/OpenNote.xcodeproj`, which the drift check cannot see; the committed per-package files pin what `swift test` resolves. `OpenNoteCore` and `OpenNoteStorage` use no Apple-only frameworks, so `swift test` runs them on Linux as well with the Swift 6.4.1 toolchain, where `OpenNoteCore` takes SHA-256 from swift-crypto instead of CryptoKit; the Linux job of the Apple CI workflow runs both in the `swift:6.4.1` image.
 
 ## 8. API contract
 
-`docs/api/openapi.json` is generated from the backend and committed, together with the TypeScript types generated from it and a copy of it in the Swift package (added in Phase 0 Task 8). A change to a route, parameter or payload regenerates all three in the same change (`CLAUDE.md` §14):
+`docs/api/openapi.json` is generated from the backend and committed, together with the TypeScript types generated from it and a copy of it in the Swift package. A change to a route, parameter or payload regenerates all three in the same change (`CLAUDE.md` §14):
 
 ```bash
 make openapi        # scripts/gen-openapi.sh, then scripts/gen-clients.sh
@@ -136,7 +136,7 @@ make openapi        # scripts/gen-openapi.sh, then scripts/gen-clients.sh
 
 Both scripts need `make bootstrap` (`.venv` for the export, `web/node_modules` for the types), use no network, run from any directory and write the same bytes every time. The export stops with an error, writing nothing, when two operations share an operationId. Each operationId is the endpoint function's name (`healthz`, `readyz`, `get_meta`), so name an endpoint function after the client method it becomes. Every operation documents a `default` response of type `application/problem+json` (`ProblemDetails`, RFC 9457). The web app has the generated types only: a fetch wrapper and the Zod schemas for query parameters arrive with the first endpoint that has them.
 
-CI runs this drift check (added in Phase 0 Task 9); run it before pushing an API change:
+CI runs this drift check; run it before pushing an API change:
 
 ```bash
 scripts/gen-openapi.sh && scripts/gen-clients.sh && git diff --exit-code docs/api/openapi.json web/src/api/schema.d.ts apple/Packages/OpenNoteAPI/Sources/OpenNoteAPI/openapi.json
@@ -146,7 +146,7 @@ It exits 1 and prints the difference when a committed file no longer matches the
 
 ## 9. Continuous integration
 
-GitHub Actions runs five workflows from `.github/workflows/` on every pull request, on pushes to `main`, `feature/**`, `fix/**` and `security/**`, and on demand (added in Phase 0 Task 9). They need no secrets beyond the `GITHUB_TOKEN` GitHub provides, with read-only permissions. The pinned actions, tools and runner images are in [versions.md](versions.md#continuous-integration). A newer push to a branch cancels that branch's running workflows; a run on `main` or from the schedule is never cancelled once it has started (GitHub still replaces a queued, not yet started run of the same workflow and branch with a newer one). A pull request from a `feature/**`, `fix/**` or `security/**` branch runs every workflow twice, once for the push and once for the pull request: CI on a branch before its pull request exists is worth the extra minutes.
+GitHub Actions runs five workflows from `.github/workflows/` on every pull request, on pushes to `main`, `feature/**`, `fix/**` and `security/**`, and on demand. They need no secrets beyond the `GITHUB_TOKEN` GitHub provides, with read-only permissions. The pinned actions, tools and runner images are in [versions.md](versions.md#continuous-integration). A newer push to a branch cancels that branch's running workflows; a run on `main` or from the schedule is never cancelled once it has started (GitHub still replaces a queued, not yet started run of the same workflow and branch with a newer one). A pull request from a `feature/**`, `fix/**` or `security/**` branch runs every workflow twice, once for the push and once for the pull request: CI on a branch before its pull request exists is worth the extra minutes.
 
 | Workflow | Runs | Locally |
 |---|---|---|
@@ -169,8 +169,8 @@ Optional local hooks run checks on each commit: large files, merge-conflict mark
 
 | Target | What it does |
 |---|---|
-| `make up` | Start the full stack from `infrastructure/compose/compose.yaml` (web on port 8080, API on 8000; added in Phase 0 Task 6) |
+| `make up` | Start the full stack from `infrastructure/compose/compose.yaml` (web on port 8080, API on 8000) |
 | `make down` | Stop the full stack and the `up-deps` services |
-| `make openapi` | Regenerate `docs/api/openapi.json` and the TypeScript and Swift clients (added in Phase 0 Task 8); required in the same change as any API change (`CLAUDE.md` §14) |
-| `make apple-project` | Generate `apple/OpenNote.xcodeproj` from `apple/project.yml` with XcodeGen (macOS only; added in Phase 0 Task 7). The generated project is git-ignored |
+| `make openapi` | Regenerate `docs/api/openapi.json` and the TypeScript and Swift clients; required in the same change as any API change (`CLAUDE.md` §14) |
+| `make apple-project` | Generate `apple/OpenNote.xcodeproj` from `apple/project.yml` with XcodeGen (macOS only). The generated project is git-ignored |
 | `make help` | List all targets |
