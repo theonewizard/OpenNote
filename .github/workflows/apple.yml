@@ -24,7 +24,7 @@ defaults:
 
 jobs:
   macos:
-    name: macOS (Xcode 27.1)
+    name: macOS
     # The runner image that carries Xcode 27.1 (docs/development/versions.md, "CI runners").
     runs-on: xcode-27
     timeout-minutes: 60
@@ -76,7 +76,7 @@ jobs:
           fi
 
   linux:
-    name: Linux (Swift 6.4.1)
+    name: Linux
     runs-on: ubuntu-latest
     timeout-minutes: 30
     container: swift:6.4.1@sha256:6fbd5978b56a5a9ff05a48f8f678079fc45be496ecda15b4e74e8944fab857be

@@ -23,7 +23,7 @@ defaults:
 
 jobs:
   test:
-    name: test (Python ${{ matrix.python }})
+    name: test (${{ matrix.python }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -104,7 +104,7 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24.22.0
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: make bootstrap
