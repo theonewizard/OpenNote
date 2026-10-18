@@ -68,29 +68,58 @@ def test_migrations_need_only_the_database_url(pg_url, monkeypatch):
     assert extensions(pg_url) >= {"vector", "pg_trgm"}
 
 
-def test_cli_offline_mode_prints_sql_and_logs_without_connecting():
-    # Nothing listens on port 9, so any attempt to connect would fail at once.
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "alembic",
-            "-x",
-            "url=postgresql+psycopg://opennote:opennote@127.0.0.1:9/opennote_test",
-            "upgrade",
-            "head",
-            "--sql",
-        ],
+def alembic_cli(*args: str, env: dict[str, str] | None = None, timeout: float = 60):
+    """Run the Alembic command line from backend/, as an operator or a migration job would."""
+    return subprocess.run(  # noqa: S603 - arguments come from the tests below
+        [sys.executable, "-m", "alembic", *args],
         cwd=BACKEND_DIR,
+        env=env,
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=timeout,
         check=False,
     )
+
+
+def json_lines(text: str) -> list[dict]:
+    return [json.loads(line) for line in text.splitlines() if line.startswith("{")]
+
+
+def test_cli_offline_mode_prints_only_sql_on_stdout_without_connecting():
+    # Nothing listens on port 9, so any attempt to connect would fail at once.
+    dead_url = "url=postgresql+psycopg://opennote:opennote@127.0.0.1:9/opennote_test"
+    result = alembic_cli("-x", dead_url, "upgrade", "head", "--sql")
     assert result.returncode == 0, result.stderr
-    assert "CREATE EXTENSION IF NOT EXISTS vector;" in result.stdout
-    logs = [json.loads(line) for line in result.stdout.splitlines() if line.startswith("{")]
-    assert any(e["level"] == "INFO" and e["msg"].startswith("Running upgrade") for e in logs)
+    out = result.stdout
+    assert not json_lines(out)  # `--sql > upgrade.sql` must give psql a clean script
+    statements = [
+        "BEGIN;",
+        "CREATE EXTENSION IF NOT EXISTS vector;",
+        "CREATE EXTENSION IF NOT EXISTS pg_trgm;",
+        "COMMIT;",
+    ]
+    positions = [out.index(statement) for statement in statements]
+    assert positions == sorted(positions)
+    assert any(
+        e["level"] == "INFO" and e["msg"].startswith("Running upgrade")
+        for e in json_lines(result.stderr)
+    )
+
+
+def test_cli_current_prints_only_the_revision_on_stdout(pg_url):
+    alembic_upgrade(pg_url, "head")
+    result = alembic_cli(
+        "current", env={"PATH": os.environ["PATH"], "OPENNOTE_DATABASE_URL": pg_url}
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "0001 (head)\n"
+    assert json_lines(result.stderr)  # the progress lines went to stderr
+
+
+def test_cli_gives_up_on_a_database_that_never_answers(silent_port):
+    url = f"url=postgresql+psycopg://opennote:opennote@127.0.0.1:{silent_port}/opennote_test"
+    result = alembic_cli("-x", url, "current", timeout=15)  # TimeoutExpired if it hangs
+    assert result.returncode != 0
 
 
 def test_revision_renders_a_new_migration_from_the_template(tmp_path, monkeypatch):
@@ -110,10 +139,11 @@ def test_revision_renders_a_new_migration_from_the_template(tmp_path, monkeypatc
     assert "= '0001'" in source  # down_revision: chained onto the baseline
 
 
-def test_integration_tests_refuse_a_database_not_named_test():
-    env = os.environ | {
-        "OPENNOTE_TEST_DATABASE_URL": "postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote"
-    }
+@pytest.mark.parametrize(
+    "url", ["postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote", "not a url"]
+)
+def test_integration_tests_refuse_a_database_not_named_test(url):
+    env = os.environ | {"OPENNOTE_TEST_DATABASE_URL": url}
     result = subprocess.run(
         [
             sys.executable,

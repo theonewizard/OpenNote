@@ -17,6 +17,7 @@ import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
 from sqlalchemy import make_url
+from sqlalchemy.exc import ArgumentError
 
 from app.api.main import create_app
 from app.core.config import Settings
@@ -31,7 +32,11 @@ TEST_DATABASE_URL = os.environ.get("OPENNOTE_TEST_DATABASE_URL", DEFAULT_DATABAS
 
 def pytest_collection_modifyitems() -> None:
     """Stop before any test runs unless the test database is named *_test."""
-    if not (make_url(TEST_DATABASE_URL).database or "").endswith("_test"):
+    try:
+        database = make_url(TEST_DATABASE_URL).database or ""
+    except ArgumentError:  # empty or unparseable
+        database = ""
+    if not database.endswith("_test"):
         raise pytest.UsageError(
             "OPENNOTE_TEST_DATABASE_URL must name a database whose name ends in _test"
         )

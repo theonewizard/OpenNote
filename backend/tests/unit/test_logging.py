@@ -1,5 +1,6 @@
 """JSON log lines: request ID, exceptions and redaction of sensitive values."""
 
+import io
 import json
 import logging
 
@@ -64,6 +65,14 @@ def test_reconfiguring_replaces_the_handler_and_level(capsys, restore_root_logge
     logging.getLogger("opennote.test").info("below the level")
     logging.getLogger("opennote.test").warning("once")
     assert [json.loads(line)["msg"] for line in capsys.readouterr().out.splitlines()] == ["once"]
+
+
+def test_log_lines_go_to_the_given_stream_instead_of_stdout(capsys, restore_root_logger):
+    stream = io.StringIO()
+    configure_logging("INFO", stream=stream)
+    logging.getLogger("opennote.test").info("to the stream")
+    assert json.loads(stream.getvalue())["msg"] == "to the stream"
+    assert capsys.readouterr().out == ""
 
 
 def log_line(capsys, *args, **kwargs):

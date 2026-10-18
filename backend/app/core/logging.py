@@ -6,7 +6,7 @@ import sys
 from collections.abc import Mapping
 from contextvars import ContextVar
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TextIO
 
 REDACTED = "<redacted>"
 SENSITIVE_KEY_PARTS = ("authorization", "cookie", "token", "password", "secret")
@@ -18,9 +18,10 @@ _HANDLER_NAME = "opennote-json"
 _RECORD_ATTRIBUTES = frozenset(vars(logging.makeLogRecord({}))) | {"message", "asctime"}
 
 
-def configure_logging(level: str) -> None:
-    """Log JSON lines to stdout from the root logger; a repeat call replaces the handler."""
-    handler = logging.StreamHandler(sys.stdout)
+def configure_logging(level: str, stream: TextIO | None = None) -> None:
+    """Log JSON lines to `stream` (default stdout) from the root logger; a repeat call
+    replaces the handler."""
+    handler = logging.StreamHandler(sys.stdout if stream is None else stream)
     handler.set_name(_HANDLER_NAME)
     handler.addFilter(_tag_request_id)
     handler.addFilter(_redact_record)
