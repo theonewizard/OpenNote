@@ -1,13 +1,15 @@
 #!/bin/sh
 # opennote-web entrypoint. Writes /tmp/nginx-runtime.conf, which nginx.conf includes in its
-# server block, then runs nginx as PID 1 (so it receives SIGQUIT directly).
+# server block, then execs its arguments, the image's CMD (nginx), as PID 1 (so nginx
+# receives SIGQUIT directly).
 #   resolver: every nameserver in /etc/resolv.conf, the container's own DNS on Docker,
 #     Podman and Kubernetes alike; 127.0.0.11 (Docker's) if the file names none.
-#   $api: http://$OPENNOTE_API_UPSTREAM, host[:port], default api:8000. nginx's resolver
-#     ignores the resolv.conf search list, so Kubernetes needs a fully qualified name.
+#   $api: http://$OPENNOTE_API_UPSTREAM, host[:port], default api:8000 when unset (an empty
+#     value is refused). nginx's resolver ignores the resolv.conf search list, so Kubernetes
+#     needs a fully qualified name.
 set -eu
 
-upstream=${OPENNOTE_API_UPSTREAM:-api:8000}
+upstream=${OPENNOTE_API_UPSTREAM-api:8000}
 refuse() {
   echo "opennote-web cannot start: OPENNOTE_API_UPSTREAM must be host[:port]" >&2
   exit 1
@@ -35,5 +37,4 @@ fi
 
 printf "resolver%s valid=30s ipv6=off;\nset \$api http://%s;\n" "$servers" "$upstream" \
   >/tmp/nginx-runtime.conf
-# -e stderr: the compiled-in error log under /var/log is not writable here.
-exec nginx -e stderr -g 'daemon off;'
+exec "$@"

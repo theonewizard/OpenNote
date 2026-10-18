@@ -27,7 +27,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # $basearch is expanded by microdnf, not the shell.
 # hadolint ignore=SC2016
 RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
-    && curl --fail --silent --show-error --location --output "$key" \
+    && curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
+        --retry 3 --output "$key" \
         https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL \
     && sed -n '/^$/,/^=/p' "$key" | grep -v '^=' | base64 -d > /tmp/pgdg-key.bin \
     && fingerprint=$(head -c 400 /tmp/pgdg-key.bin | sha1sum | cut -d ' ' -f 1) \

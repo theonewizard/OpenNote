@@ -3,7 +3,7 @@
 # From the repository root:
 #
 #   cp infrastructure/compose/.env.example infrastructure/compose/.env   # then edit it
-#   make up     # docker compose -f infrastructure/compose/compose.yaml up -d --wait
+#   make up     # docker compose -f infrastructure/compose/compose.yaml up -d --wait --build
 #   make down
 #
 # Settings come from .env next to this file (or the shell), and each service gets only its
@@ -109,6 +109,8 @@ services:
       POSTGRES_TEST_DB:
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # PostgreSQL's parallel queries use shared memory in /dev/shm; Docker's default is 64 MB.
+    shm_size: 256m
     healthcheck:
       # Over TCP, which only opens once the first-start initialisation is done. Any user
       # name will do: pg_isready does not log in.

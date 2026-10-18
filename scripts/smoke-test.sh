@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke-test a running OpenNote stack: the API probes and metadata answer 200 and, unless
-# --api-only is given, GET / returns the web shell.
+# --api-only is given, GET / returns the web shell with a Content-Security-Policy header.
 #
 #   scripts/smoke-test.sh http://localhost:8080             # full stack, through the web proxy
 #   scripts/smoke-test.sh --api-only http://localhost:8000  # the API alone
@@ -63,5 +63,12 @@ check readyz /readyz '"status":"ok"'
 check meta /api/v1/meta '"api_versions"'
 if ! $api_only; then
   check "web shell" / '<div id="root">'
+  # The stack answered just above, so this needs no retry.
+  headers=$(curl --silent --max-time 5 --output /dev/null --dump-header - "$base_url/") || true
+  if ! grep --quiet --ignore-case '^content-security-policy:' <<<"$headers"; then
+    echo "FAIL  csp header: GET $base_url/ has no Content-Security-Policy header" >&2
+    exit 1
+  fi
+  echo "ok    csp header"
 fi
 echo "smoke test passed: $base_url"

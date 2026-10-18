@@ -38,6 +38,8 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # PostgreSQL's parallel queries use shared memory in /dev/shm; Docker's default is 64 MB.
+    shm_size: 256m
     healthcheck:
       # Over TCP, which only opens once the first-start initialisation is done. Any user
       # name will do: pg_isready does not log in.

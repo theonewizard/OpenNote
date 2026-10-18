@@ -16,12 +16,11 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-# Only the build inputs (the build type-checks src and tests), so a host's node_modules or
-# dist never enters the image.
-COPY web/index.html web/vite.config.ts web/playwright.config.ts \
+# Only the build inputs, so a host's node_modules or dist never enters the image. The build
+# type-checks src; the tests and their Playwright configuration are checked by CI's web job.
+COPY web/index.html web/vite.config.ts \
      web/tsconfig.json web/tsconfig.app.json web/tsconfig.node.json ./
 COPY web/src ./src
-COPY web/tests ./tests
 RUN npm run build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661
@@ -46,6 +45,9 @@ USER 1001:0
 EXPOSE 8080
 
 # SIGQUIT is nginx's graceful shutdown (SIGTERM is its fast one). The entrypoint writes
-# nginx's runtime settings to /tmp, then execs nginx, so nginx is PID 1 and receives it.
+# nginx's runtime settings to /tmp, then execs the command, so nginx is PID 1 and receives
+# it. Another command runs after the same step, as in `docker run opennote-web nginx -t`.
 STOPSIGNAL SIGQUIT
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# -e stderr: the compiled-in error log under /var/log is not writable here.
+CMD ["nginx", "-e", "stderr", "-g", "daemon off;"]
