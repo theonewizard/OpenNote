@@ -1,6 +1,13 @@
 # Dependabot version updates: weekly on Monday, minor and patch updates grouped into one pull
-# request per ecosystem, majors one by one. Versions are recorded in
-# docs/development/versions.md; a pull request that changes a pin updates its row there.
+# request per ecosystem, majors one by one, with Dependabot's default `dependencies` label.
+# Covered: the pip requirements in backend/, npm in web/, the actions in .github/workflows,
+# the base images of the four Containerfiles and the five Swift packages. Not covered, and
+# updated by hand: the service and job container images in the workflows (Dependabot's
+# github-actions updater skips `services:`, `container:` and `docker://` images), the
+# Trivy and gitleaks versions the workflows install, the pre-commit hook revs, the Node.js
+# release in .nvmrc, and the packages and source releases installed inside the Containerfiles.
+# Versions are recorded in docs/development/versions.md; whoever merges a Dependabot pull
+# request updates the rows it changes.
 version: 2
 updates:
   - package-ecosystem: pip
@@ -8,7 +15,6 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies]
     groups:
       pip-minor-and-patch:
         patterns: ["*"]
@@ -19,7 +25,6 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies]
     groups:
       npm-minor-and-patch:
         patterns: ["*"]
@@ -30,7 +35,6 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies]
     groups:
       github-actions-minor-and-patch:
         patterns: ["*"]
@@ -45,7 +49,6 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies]
     groups:
       docker-minor-and-patch:
         patterns: ["*"]
@@ -61,19 +64,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    labels: [dependencies]
     groups:
       swift-minor-and-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-
-  - package-ecosystem: docker-compose
-    directory: /infrastructure/compose
-    schedule:
-      interval: weekly
-      day: monday
-    labels: [dependencies]
-    groups:
-      docker-compose-minor-and-patch:
         patterns: ["*"]
         update-types: [minor, patch]
