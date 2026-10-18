@@ -45,17 +45,8 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
 
-  - package-ecosystem: swift
-    directories:
-      - /apple/Packages/OpenNoteAPI
-      - /apple/Packages/OpenNoteCore
-      - /apple/Packages/OpenNoteEditor
-      - /apple/Packages/OpenNoteStorage
-      - /apple/Packages/OpenNoteSync
-    schedule:
-      interval: weekly
-      day: monday
-    groups:
-      swift-minor-and-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
+# The five Swift packages (apple/Packages/*) are not listed: Dependabot's Swift updater runs Swift 6.3.1
+# and cannot read their `swift-tools-version: 6.4` manifests (first run on 2026-10-18 failed with
+# "package 'opennoteapi' is using Swift tools version 6.4.0 but the installed version is 6.3.1").
+# Their pins are updated by hand with their versions.md rows; add the `swift` ecosystem back once
+# Dependabot's updater ships Swift 6.4 or newer.

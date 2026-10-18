@@ -183,13 +183,14 @@ GitHub Actions runs five workflows from `.github/workflows/` on every pull reque
 
 The workflows upload no artefacts: findings, drift diffs and installed versions are in the job logs. A gitleaks finding that is not a secret is recorded by its fingerprint in `.gitleaksignore`, with the reason.
 
-Dependabot (`.github/dependabot.yml`) proposes updates every Monday, minor and patch updates grouped into one pull request per ecosystem and majors one by one, with its default `dependencies` label, for the pip requirements in `backend/`, the npm packages in `web/`, the GitHub Actions, the base images of the four Containerfiles and the five Swift packages. Whoever merges a Dependabot pull request updates the versions.md rows it changes and, for a pip bump, runs `make constraints` in the same change (a `requirements-dev.txt` bump that needs a newer pin shared with the runtime set is raised by hand, [versions.md](versions.md#backend-pypi)): Dependabot edits the requirements files only, and the `constraints` check fails until `backend/constraints.txt` agrees with them. It does not update the following, which are updated by hand together with their versions.md rows:
+Dependabot (`.github/dependabot.yml`) proposes updates every Monday, minor and patch updates grouped into one pull request per ecosystem and majors one by one, with its default `dependencies` label, for the pip requirements in `backend/`, the npm packages in `web/`, the GitHub Actions and the base images of the four Containerfiles. Whoever merges a Dependabot pull request updates the versions.md rows it changes and, for a pip bump, runs `make constraints` in the same change (a `requirements-dev.txt` bump that needs a newer pin shared with the runtime set is raised by hand, [versions.md](versions.md#backend-pypi)): Dependabot edits the requirements files only, and the `constraints` check fails until `backend/constraints.txt` agrees with them. It does not update the following, which are updated by hand together with their versions.md rows:
 
 - the service and job container images in the workflows (the pgvector, Valkey and Swift images; its github-actions updater skips `services:`, `container:` and `docker://` images);
 - the Trivy and gitleaks versions the workflows install;
 - the kubeconform image, the Helm release set in setup-helm's `version` input, the CRD-catalog commit and the Kubernetes schema versions of the `manifests` job;
 - the pre-commit hook revs and the Node.js release in `.nvmrc`;
-- the packages and source releases installed inside the Containerfiles.
+- the packages and source releases installed inside the Containerfiles;
+- the Swift package pins in `apple/Packages/*/Package.swift`: Dependabot's Swift updater runs Swift 6.3.1 and cannot read the `swift-tools-version: 6.4` manifests (its first run, 2026-10-18, failed on that), so the `swift` ecosystem is left out of `dependabot.yml` until the updater ships Swift 6.4.
 
 Optional local hooks run checks on each commit: large files, merge-conflict markers, YAML syntax, final newlines, trailing whitespace, private keys, ruff on `backend/`, and gitleaks on the staged changes (`.pre-commit-config.yaml`):
 
