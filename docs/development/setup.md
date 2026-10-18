@@ -105,6 +105,19 @@ The stack is set up for local use. Before it serves anyone else, know what it do
 - nginx's error log (stderr, level warn) includes the request line, query string and all, when a proxied request fails. The OpenNote API takes credentials only in headers, never in query strings, so no token appears there.
 - nginx sets `X-Forwarded-Proto` from its own connection and rate-limits `/healthz` and `/readyz` per client address. Both assume `web` is the edge: behind a TLS proxy the API is told `http` although the client used HTTPS, and all clients share the proxy's address and so one rate limit, until a trusted-proxy configuration exists.
 
+## 7. Build the Apple apps
+
+On macOS with Xcode 27.1 and XcodeGen 2.46.0 (`brew install xcodegen`; added in Phase 0 Task 7):
+
+```bash
+swift test --package-path apple/Packages/OpenNoteCore      # and each other package in apple/Packages/
+make apple-project                                         # writes apple/OpenNote.xcodeproj
+xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-macOS -destination 'platform=macOS' build
+xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS -destination 'generic/platform=iOS Simulator' build
+```
+
+`apple/project.yml` defines the app targets `OpenNote-macOS` (macOS 15 or later) and `OpenNote-iOS` (iOS and iPadOS 18 or later), each with a scheme of the same name, sharing `apple/Apps/Shared` and linking the five local packages `OpenNoteCore`, `OpenNoteStorage`, `OpenNoteAPI`, `OpenNoteSync` and `OpenNoteEditor`. Code signing is off (`CODE_SIGNING_ALLOWED: NO`, no development team), so these builds need no Apple developer account; running on a device needs signing, which the project does not set up yet. The generated project and the `Info.plist` files XcodeGen writes into `apple/Apps/macOS/` and `apple/Apps/iOS/` are git-ignored; do not commit the `Package.resolved` files that `swift test` writes into the package directories either. `OpenNoteCore` and `OpenNoteStorage` use no Apple-only frameworks, so `swift test` also runs them on Linux with the Swift 6.4.1 toolchain; there `OpenNoteCore` takes SHA-256 from swift-crypto instead of CryptoKit.
+
 ## Other targets
 
 | Target | What it does |

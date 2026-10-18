@@ -1,0 +1,93 @@
+# XcodeGen spec (ADR-0011): `make apple-project` writes apple/OpenNote.xcodeproj,
+# which is git-ignored, as are the Info.plist files generated from `info` below.
+name: OpenNote
+
+options:
+  minimumXcodeGenVersion: 2.46.0
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # Unsigned builds (CI); no development team.
+    CODE_SIGNING_ALLOWED: NO
+
+packages:
+  OpenNoteCore:
+    path: Packages/OpenNoteCore
+  OpenNoteStorage:
+    path: Packages/OpenNoteStorage
+  OpenNoteAPI:
+    path: Packages/OpenNoteAPI
+  OpenNoteSync:
+    path: Packages/OpenNoteSync
+  OpenNoteEditor:
+    path: Packages/OpenNoteEditor
+
+targets:
+  OpenNote-macOS:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - Apps/Shared
+      - Apps/macOS
+    info:
+      path: Apps/macOS/Info.plist
+      properties:
+        CFBundleDisplayName: OpenNote
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+    settings:
+      base:
+        PRODUCT_NAME: OpenNote
+        PRODUCT_BUNDLE_IDENTIFIER: dev.opennote.OpenNote
+    dependencies:
+      - package: OpenNoteCore
+      - package: OpenNoteStorage
+      - package: OpenNoteAPI
+      - package: OpenNoteSync
+      - package: OpenNoteEditor
+    scheme: {}
+
+  OpenNote-iOS:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - Apps/Shared
+      - Apps/iOS
+    info:
+      path: Apps/iOS/Info.plist
+      properties:
+        CFBundleDisplayName: OpenNote
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_NAME: OpenNote
+        PRODUCT_BUNDLE_IDENTIFIER: dev.opennote.OpenNote.iOS
+    dependencies:
+      - package: OpenNoteCore
+      - package: OpenNoteStorage
+      - package: OpenNoteAPI
+      - package: OpenNoteSync
+      - package: OpenNoteEditor
+    scheme: {}
