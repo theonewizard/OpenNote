@@ -87,7 +87,7 @@ scripts/smoke-test.sh http://localhost:8080
 make down
 ```
 
-`make up` rebuilds the images (unchanged layers come from the build cache), starts `infrastructure/compose/compose.yaml` (web, api, worker, postgres, valkey) and waits until every service with a health check is healthy. The web app is on http://localhost:8080 and forwards `/api/`, `/healthz` and `/readyz` to the API, which is also on http://localhost:8000 (`scripts/smoke-test.sh --api-only http://localhost:8000`). Both ports listen on 127.0.0.1 only. Every container runs as a non-root user with a read-only root filesystem.
+`make up` rebuilds the images (unchanged layers come from the build cache), starts `infrastructure/compose/compose.yaml` (web, api, worker, postgres, valkey) and waits until every service with a health check is healthy. The web app is on http://localhost:8080 and forwards `/api/`, `/healthz` and `/readyz` to the API, which is also on http://localhost:8000 (`scripts/smoke-test.sh --api-only http://localhost:8000`). The web container looks the API up at `api:8000` through the nameservers in its `/etc/resolv.conf`; `OPENNOTE_API_UPSTREAM` (host[:port]) names another upstream, such as a fully qualified service name on Kubernetes. Both ports listen on 127.0.0.1 only. Every container runs as a non-root user with a read-only root filesystem.
 
 - Migrations are not applied on start by default. Apply them deliberately with `docker compose -f infrastructure/compose/compose.yaml run --rm api alembic upgrade head`. `OPENNOTE_MIGRATE_ON_START=true make up`, or that line in `.env`, makes the API run `alembic upgrade head` first instead; enable it for one API instance only.
 - The worker has no health check. When stopped it gets 60 s: it lets running jobs finish for up to 50 s, and a job still running after that is delivered again later (at-least-once).
@@ -102,6 +102,7 @@ The stack is set up for local use. Before it serves anyone else, know what it do
 - Valkey has no password. It is reachable only from the other containers, because compose.yaml publishes no port for it.
 - All five services share one Compose network, so each container can reach every other one.
 - `web` serves plain HTTP. Anything beyond local use needs a TLS proxy in front of it, with real secrets in `.env`.
+- nginx's error log (stderr, level warn) includes the request line, query string and all, when a proxied request fails. The OpenNote API takes credentials only in headers, never in query strings, so no token appears there.
 - nginx sets `X-Forwarded-Proto` from its own connection and rate-limits `/healthz` and `/readyz` per client address. Both assume `web` is the edge: behind a TLS proxy the API is told `http` although the client used HTTPS, and all clients share the proxy's address and so one rate limit, until a trusted-proxy configuration exists.
 
 ## Other targets

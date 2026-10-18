@@ -1,5 +1,6 @@
 # opennote-web: the built web app on nginx, which forwards /api/, /healthz and /readyz to
-# the API at http://api:8000 (infrastructure/containers/web/nginx.conf).
+# the API at http://api:8000, or at OPENNOTE_API_UPSTREAM (host[:port]); see
+# infrastructure/containers/web/entrypoint.sh and nginx.conf.
 #
 # Build from the repository root:
 #   docker build -f infrastructure/containers/web/Containerfile -t opennote-web:dev .
@@ -38,12 +39,13 @@ RUN microdnf -y module enable nginx:1.26 \
     && microdnf clean all
 
 COPY infrastructure/containers/web/nginx.conf /etc/nginx/nginx.conf
+COPY infrastructure/containers/web/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY --from=builder /web/dist /usr/share/opennote/web
 
 USER 1001:0
 EXPOSE 8080
 
-# SIGQUIT is nginx's graceful shutdown (SIGTERM is its fast one). -e stderr: the compiled-in
-# error log under /var/log is not writable here.
+# SIGQUIT is nginx's graceful shutdown (SIGTERM is its fast one). The entrypoint writes
+# nginx's runtime settings to /tmp, then execs nginx, so nginx is PID 1 and receives it.
 STOPSIGNAL SIGQUIT
-CMD ["nginx", "-e", "stderr", "-g", "daemon off;"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
