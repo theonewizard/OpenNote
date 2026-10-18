@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from app.core.config import (
+    MAX_SECRET_FILE_BYTES,
     Settings,
     SettingsError,
     get_settings,
@@ -33,6 +34,11 @@ def test_settings_are_read_from_the_environment(monkeypatch):
     assert settings.history_root == Path("/nonexistent/opennote/history")
     assert settings.log_level == "INFO"
     assert settings.environment == "test"
+
+
+def test_environment_defaults_to_production(monkeypatch):
+    monkeypatch.delenv("OPENNOTE_ENVIRONMENT")
+    assert load_settings().environment == "production"
 
 
 def test_get_settings_is_cached():
@@ -95,13 +101,26 @@ def test_empty_variable_counts_as_unset_so_the_file_is_read(monkeypatch, tmp_pat
     assert str(load_settings().valkey_url) == url
 
 
-def test_oversized_secret_file_names_the_field_not_the_content(monkeypatch, tmp_path):
+def test_secret_file_of_exactly_the_cap_is_read(monkeypatch, tmp_path):
+    url = "postgresql+psycopg://u:p@h:5432/db"
+    url += "x" * (MAX_SECRET_FILE_BYTES - len(url))
     secret = tmp_path / "database_url"
-    secret.write_text("postgresql+psycopg://u:hunter2@h:5432/db" + "x" * 65536)
+    secret.write_text(url)
+    monkeypatch.delenv("OPENNOTE_DATABASE_URL")
+    monkeypatch.setenv("OPENNOTE_DATABASE_URL_FILE", str(secret))
+    assert MAX_SECRET_FILE_BYTES == 64 * 1024
+    assert str(load_settings().database_url) == url
+
+
+def test_oversized_secret_file_names_the_field_not_the_content(monkeypatch, tmp_path):
+    url = "postgresql+psycopg://u:hunter2@h:5432/db"
+    secret = tmp_path / "database_url"
+    secret.write_text(url + "x" * (MAX_SECRET_FILE_BYTES + 1 - len(url)))  # one byte over
     monkeypatch.delenv("OPENNOTE_DATABASE_URL")
     monkeypatch.setenv("OPENNOTE_DATABASE_URL_FILE", str(secret))
     with pytest.raises(SettingsError, match="database_url") as e:
         load_settings()
+    assert "larger than 64 KiB" in str(e.value)
     assert "hunter2" not in full_traceback(e.value)
     assert str(secret) not in full_traceback(e.value)
 
@@ -169,8 +188,9 @@ def test_log_level_is_case_insensitive(monkeypatch):
     assert load_settings().log_level == "DEBUG"
 
 
-def test_unknown_log_level_is_rejected(monkeypatch):
-    monkeypatch.setenv("OPENNOTE_LOG_LEVEL", "LOUD")
+@pytest.mark.parametrize("level", ["LOUD", "NOTSET", "notset"])
+def test_unknown_log_level_is_rejected(monkeypatch, level):
+    monkeypatch.setenv("OPENNOTE_LOG_LEVEL", level)
     with pytest.raises(SettingsError, match="log_level"):
         load_settings()
 

@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from app.api import main
 from app.api.main import KEYLESS_ROUTES, assert_routes_authenticated, create_app
 from app.auth.dependencies import Principal, get_api_key, get_current_principal
-from tests.conftest import as_test_user, test_settings
+from tests.conftest import as_test_user, placeholder_settings
 
 
 def test_unauthenticated_route_fails_startup(monkeypatch):
@@ -22,7 +22,18 @@ def test_unauthenticated_route_fails_startup(monkeypatch):
 
     monkeypatch.setattr(main, "ROUTERS", [*main.ROUTERS, rogue])
     with pytest.raises(RuntimeError, match="/api/v1/oops"):
-        create_app(test_settings())
+        create_app(placeholder_settings())
+
+
+def test_route_added_after_create_app_fails_at_lifespan_start():
+    app = create_app(placeholder_settings())
+
+    @app.get("/api/v1/late")
+    def late():
+        return {}
+
+    with pytest.raises(RuntimeError, match="GET /api/v1/late"), TestClient(app):
+        pass
 
 
 def test_keyless_routes_are_exactly_the_documented_set():
@@ -107,7 +118,7 @@ def test_dependencies_from_routers_and_includes_count(build_app, layout):
 
 
 def test_frontend_routes_fail_startup(tmp_path):
-    app = create_app(test_settings())
+    app = create_app(placeholder_settings())
     app.frontend("/", directory=tmp_path)
     with pytest.raises(RuntimeError, match="frontend /"):
         assert_routes_authenticated(app)
@@ -118,6 +129,15 @@ def test_frontend_routes_of_an_included_router_fail_startup(build_app, tmp_path)
     router.frontend("/", directory=tmp_path)
     with pytest.raises(RuntimeError, match="frontend /ui"):
         build_app(router)
+
+
+def test_frontend_route_error_names_the_include_prefix(build_app, tmp_path):
+    inner = APIRouter(prefix="/ui")
+    inner.frontend("/", directory=tmp_path)
+    outer = APIRouter()
+    outer.include_router(inner, prefix="/app")
+    with pytest.raises(RuntimeError, match="frontend /app/ui"):
+        build_app(outer)
 
 
 def test_error_names_every_offending_method_and_path(build_app):

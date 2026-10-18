@@ -92,6 +92,7 @@
   "paths": {
     "/api/v1/meta": {
       "get": {
+        "description": "The server version, the API and sync protocol versions, and the login methods.",
         "operationId": "get_meta",
         "responses": {
           "200": {
@@ -120,6 +121,7 @@
     },
     "/healthz": {
       "get": {
+        "description": "Whether the server process answers: always 200 `ok`; no dependency is checked.",
         "operationId": "healthz",
         "responses": {
           "200": {

@@ -26,6 +26,7 @@ from redis import Redis
 
 from app.workers.broker import NAMESPACE
 from app.workers.jobs import ping
+from tests.integration.conftest import collect_integration_tests
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 WORKER_KEY_PATTERNS = (
@@ -97,9 +98,6 @@ class WorkerProcess:
         self.stdout = stdout
         self.stderr = stderr
 
-    def enqueue_slow_job(self, token: str, seconds: float) -> None:
-        ping.send(token, delay_seconds=seconds)
-
     def wait_job_started(self, token: str, timeout: float) -> bool:
         return wait_until(
             lambda: self.valkey.get(f"opennote:ping:{token}:started") == b"1", timeout
@@ -168,7 +166,7 @@ def test_ping_job_completes(worker, valkey):
 
 
 def test_sigterm_during_job_exits_within_grace(worker_process, valkey):
-    worker_process.enqueue_slow_job("t2", seconds=2)
+    ping.send("t2", delay_seconds=2)
     assert worker_process.wait_job_started("t2", timeout=10)  # start barrier
     worker_process.sigterm()
     assert worker_process.wait(timeout=10) == 0
@@ -180,10 +178,6 @@ def test_ping_keys_expire_within_60_seconds(worker, valkey):
     worker.join()
     assert 0 < valkey.ttl("opennote:ping:t1") <= 60
     assert 0 < valkey.ttl("opennote:ping:t1:started") <= 60
-
-
-def test_test_broker_uses_the_opennote_namespace():
-    assert cast(RedisBroker, ping.broker).namespace == "opennote"
 
 
 def test_worker_logs_json_lines_on_stdout(worker_process, valkey_url):
@@ -218,28 +212,15 @@ def test_worker_logs_no_valkey_password_when_valkey_is_unreachable(
 
 @pytest.mark.parametrize(
     "url",
-    ["redis://127.0.0.1:6379/0", f"redis://:{secrets.token_hex(16)}@127.0.0.1:no-port/1"],
-    ids=["database-0", "invalid-with-password"],
+    [
+        "redis://127.0.0.1:6379/0",
+        "redis://127.0.0.1:6379/-1",
+        f"redis://:{secrets.token_hex(16)}@127.0.0.1:no-port/1",
+    ],
+    ids=["database-0", "negative-database", "invalid-with-password"],
 )
 def test_integration_tests_refuse_valkey_database_0_or_an_invalid_url(url):
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-q",
-            "-p",
-            "no:cacheprovider",
-            "--collect-only",
-            "tests/integration",
-        ],
-        cwd=BACKEND_DIR,
-        env=os.environ | {"OPENNOTE_TEST_VALKEY_URL": url},
-        capture_output=True,
-        text=True,
-        timeout=60,
-        check=False,
-    )
+    result = collect_integration_tests(OPENNOTE_TEST_VALKEY_URL=url)
     assert result.returncode == pytest.ExitCode.USAGE_ERROR
     assert "OPENNOTE_TEST_VALKEY_URL must" in result.stderr
     output = result.stdout + result.stderr

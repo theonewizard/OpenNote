@@ -37,13 +37,14 @@ class Settings(BaseSettings):
     vault_root: Path = Field(description="Directory holding the vaults")
     history_root: Path = Field(description="Directory holding note history")
     log_level: str = "INFO"
-    environment: Literal["development", "test", "production"]
+    environment: Literal["development", "test", "production"] = "production"
 
     @field_validator("log_level")
     @classmethod
     def _known_log_level(cls, value: str) -> str:
         level = value.upper()
-        if level not in logging.getLevelNamesMapping():
+        # NOTSET on the root logger would pass every record, library debug output included.
+        if level == "NOTSET" or level not in logging.getLevelNamesMapping():
             raise ValueError("unknown log level")
         return level
 
@@ -69,7 +70,7 @@ def _read_secret_file(path: str, field: str) -> str:
     # Raised outside the except block so the OSError, which names the path, is not chained.
     raise SettingsError(
         f"invalid or missing settings: {field} "
-        "(secret file unreadable, not UTF-8 or larger than 64 KiB)"
+        f"(secret file unreadable, not UTF-8 or larger than {MAX_SECRET_FILE_BYTES // 1024} KiB)"
     )
 
 

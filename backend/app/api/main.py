@@ -91,7 +91,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Hold the database engine for the app's lifetime and close its pool on shutdown."""
+    """Hold the database engine for the app's lifetime and close its pool on shutdown.
+    The route guard runs again first, so a route added after create_app() stops the start."""
+    assert_routes_authenticated(app)
     app.state.engine = engine_from_settings(app.state.settings)
     try:
         yield
@@ -119,7 +121,9 @@ def assert_routes_authenticated(app: FastAPI) -> None:
     # The router's own iterator also yields those of included routers. Fail closed on all.
     for frontend in app.router._iter_low_priority_routes():
         group = getattr(frontend, "original_route", frontend)
-        paths = [route.path for route in getattr(group, "routes", [])]
+        # An included router's frontend routes keep its include prefix apart from their path.
+        prefix = getattr(frontend, "frontend_prefix", "")
+        paths = [prefix + route.path for route in getattr(group, "routes", [])]
         offending.append("frontend " + (", ".join(paths) or type(group).__name__))
     if offending:
         raise RuntimeError("Routes without an auth dependency: " + ", ".join(offending))

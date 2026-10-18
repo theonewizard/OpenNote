@@ -7,13 +7,13 @@ import sys
 from pathlib import Path
 
 from app.workers.broker import broker_from_settings
-from tests.conftest import test_settings
+from tests.conftest import placeholder_settings
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 def test_broker_keeps_its_keys_under_the_opennote_namespace():
-    assert broker_from_settings(test_settings()).namespace == "opennote"
+    assert broker_from_settings(placeholder_settings()).namespace == "opennote"
 
 
 def test_invalid_settings_stop_the_worker_with_one_line_on_stderr():

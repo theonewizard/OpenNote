@@ -1,4 +1,9 @@
-"""JSON log lines on stdout, tagged with the request ID and with sensitive values redacted."""
+"""JSON log lines, on stdout unless configure_logging is given another stream, tagged with
+the request ID and with sensitive values redacted.
+
+Redaction matches keys, not values: a message that is not a Mapping, and a list of
+(key, value) pairs, are not redacted (a design limit).
+"""
 
 import json
 import logging
@@ -9,7 +14,11 @@ from datetime import UTC, datetime
 from typing import Any, TextIO
 
 REDACTED = "<redacted>"
-SENSITIVE_KEY_PARTS = ("authorization", "cookie", "token", "password", "secret")
+# Matched against the key in lower case with "-" read as "_", so X-API-Key matches api_key.
+SENSITIVE_KEY_PARTS = ("authorization", "cookie", "token", "password", "secret", "api_key")
+# Containers nested deeper than this, a self-referencing one included, are redacted whole,
+# so redaction always ends and lets no unchecked value through.
+_MAX_DEPTH = 8
 
 # Set by the request-ID middleware for the duration of each request.
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
@@ -57,15 +66,33 @@ def _redact_record(record: logging.LogRecord) -> bool:
     return True
 
 
-def _redact(key: object, value: Any) -> Any:
-    if isinstance(key, str) and any(part in key.lower() for part in SENSITIVE_KEY_PARTS):
+def _redact(key: object, value: Any, depth: int = 0) -> Any:
+    """`value` with the values of sensitive keys replaced, or `value` itself when nothing in
+    it is. A changed container is rebuilt with its own type where that type's constructor
+    takes the new items, else as a dict, list or tuple."""
+    if isinstance(key, str) and any(
+        part in key.lower().replace("-", "_") for part in SENSITIVE_KEY_PARTS
+    ):
+        return REDACTED
+    if not isinstance(value, Mapping | list | tuple):
+        return value
+    if depth == _MAX_DEPTH:
         return REDACTED
     if isinstance(value, Mapping):
-        return {k: _redact(k, v) for k, v in value.items()}
-    if isinstance(value, list | tuple):
-        items = [_redact(None, item) for item in value]
-        return items if isinstance(value, list) else tuple(items)
-    return value
+        old = list(value.values())
+        items: Any = {k: _redact(k, v, depth + 1) for k, v in value.items()}
+        new = list(items.values())
+    else:
+        old = list(value)
+        new = [_redact(None, item, depth + 1) for item in value]
+        items = new if isinstance(value, list) else tuple(new)
+    if all(a is b for a, b in zip(old, new, strict=False)):
+        return value
+    container_type: Any = type(value)  # a subclass's constructor may take anything
+    try:
+        return container_type(items)
+    except Exception:  # a constructor that takes other arguments, as a namedtuple's does
+        return items
 
 
 class JsonFormatter(logging.Formatter):
@@ -75,7 +102,8 @@ class JsonFormatter(logging.Formatter):
         entry: dict[str, Any] = {
             key: value
             for key, value in record.__dict__.items()
-            if key not in _RECORD_ATTRIBUTES and key != "request_id"
+            # color_message: uvicorn's copy of the message with ANSI colour codes.
+            if key not in _RECORD_ATTRIBUTES and key not in ("request_id", "color_message")
         }
         entry |= {
             "ts": datetime.fromtimestamp(record.created, UTC).isoformat(timespec="milliseconds"),

@@ -11,12 +11,10 @@ import pytest
 from app.api import health
 from app.api.health import check_valkey
 from app.api.main import create_app
-from app.core.logging import JsonFormatter
+from app.core.logging import _RECORD_ATTRIBUTES, JsonFormatter
 from tests.integration.conftest import serve
 
 pytestmark = pytest.mark.anyio
-
-STANDARD_RECORD_ATTRIBUTES = set(vars(logging.makeLogRecord({}))) | {"message", "asctime"}
 
 
 def failed_checks(caplog):
@@ -119,7 +117,7 @@ async def test_readyz_503_when_a_data_directory_is_read_only(
 async def test_readyz_logs_the_failed_check_by_name_only(client_with_dead_db, caplog):
     await client_with_dead_db.get("/readyz")
     [record] = [r for r in caplog.records if r.levelno == logging.WARNING]
-    assert set(vars(record)) - STANDARD_RECORD_ATTRIBUTES == {"check", "error", "request_id"}
+    assert set(vars(record)) - _RECORD_ATTRIBUTES == {"check", "error", "request_id"}
     assert record.check == "database"
     assert re.fullmatch(r"[A-Za-z_]+", record.error)  # a class name, no message or port
     line = JsonFormatter().format(record).lower()

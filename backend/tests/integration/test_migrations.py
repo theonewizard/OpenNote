@@ -14,6 +14,8 @@ from alembic.config import Config
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import NullPool
 
+from tests.integration.conftest import collect_integration_tests
+
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 ALEMBIC_INI = BACKEND_DIR / "alembic.ini"
 
@@ -140,27 +142,16 @@ def test_revision_renders_a_new_migration_from_the_template(tmp_path, monkeypatc
 
 
 @pytest.mark.parametrize(
-    "url", ["postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote", "not a url"]
+    "url",
+    [
+        "postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote",
+        "not a url",
+        "postgresql+psycopg://opennote:opennote@127.0.0.1:no-port/opennote_test",
+        "postgresql+psycopg://opennote:opennote@[::1/opennote_test",
+    ],
+    ids=["not-named-test", "not-a-url", "non-numeric-port", "unclosed-ipv6-bracket"],
 )
 def test_integration_tests_refuse_a_database_not_named_test(url):
-    env = os.environ | {"OPENNOTE_TEST_DATABASE_URL": url}
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-q",
-            "-p",
-            "no:cacheprovider",
-            "--collect-only",
-            "tests/integration",
-        ],
-        cwd=BACKEND_DIR,
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=60,
-        check=False,
-    )
+    result = collect_integration_tests(OPENNOTE_TEST_DATABASE_URL=url)
     assert result.returncode == pytest.ExitCode.USAGE_ERROR
     assert "must name a database whose name ends in _test" in result.stderr

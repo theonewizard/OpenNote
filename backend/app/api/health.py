@@ -26,6 +26,7 @@ class ProbeStatus(BaseModel):
 
 @router.get("/healthz")
 async def healthz() -> ProbeStatus:
+    """Whether the server process answers: always 200 `ok`; no dependency is checked."""
     return ProbeStatus(status="ok")
 
 
@@ -73,6 +74,7 @@ async def check_valkey(url: str, timeout: float = 2.0) -> bool:  # noqa: ASYNC10
 
 async def check_directory(check: str, path: Path, timeout: float = 2.0) -> bool:  # noqa: ASYNC109
     """True when `path` is a directory this process may create files in."""
+    # Known limit: a hung mount strands the thread after the timeout; it cannot be cancelled.
     return await _passes(check, asyncio.to_thread(_is_writable_directory, path), timeout)
 
 

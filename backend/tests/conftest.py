@@ -32,12 +32,9 @@ from app.auth.dependencies import Principal, get_current_principal
 from app.core.config import Settings
 
 
-def test_settings() -> Settings:
+def placeholder_settings() -> Settings:
     """Settings built from the placeholders; nothing is read from disk or contacted."""
     return Settings(**{k.removeprefix("OPENNOTE_").lower(): v for k, v in PLACEHOLDER_ENV.items()})
-
-
-test_settings.__test__ = False  # a helper that tests import, not a test
 
 
 def as_test_user(app: FastAPI) -> FastAPI:
@@ -58,14 +55,14 @@ def build_app(monkeypatch: pytest.MonkeyPatch) -> Callable[..., FastAPI]:
 
     def build(*routers: APIRouter) -> FastAPI:
         monkeypatch.setattr(main, "ROUTERS", [*main.ROUTERS, *routers])
-        return create_app(test_settings())
+        return create_app(placeholder_settings())
 
     return build
 
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    with TestClient(create_app(test_settings())) as test_client:
+    with TestClient(create_app(placeholder_settings())) as test_client:
         yield test_client
 
 

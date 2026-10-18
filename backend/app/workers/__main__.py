@@ -2,8 +2,8 @@
 process of four threads on the Valkey broker.
 
 On SIGTERM or SIGINT the main process passes SIGTERM to the worker process, which stops
-taking messages, finishes the jobs in progress, puts prefetched messages back on their
-queue and exits; the main process then exits 0.
+taking messages, finishes the jobs in progress (waiting at most 50 s), puts prefetched
+messages back on their queue and exits; the main process then exits 0.
 """
 
 import sys

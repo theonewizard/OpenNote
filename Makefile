@@ -14,7 +14,7 @@ help: ## List the targets
 bootstrap: ## Create .venv, install backend dev requirements, run npm ci in web/
 	$(PYTHON) -m venv .venv
 	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install -r backend/requirements-dev.txt
+	.venv/bin/pip install -c backend/constraints.txt -r backend/requirements-dev.txt
 	cd web && npm ci
 
 lint: ## Lint and format-check backend and web

@@ -13,7 +13,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Meta */
+        /**
+         * Get Meta
+         * @description The server version, the API and sync protocol versions, and the login methods.
+         */
         get: operations["get_meta"];
         put?: never;
         post?: never;
@@ -30,7 +33,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Healthz */
+        /**
+         * Healthz
+         * @description Whether the server process answers: always 200 `ok`; no dependency is checked.
+         */
         get: operations["healthz"];
         put?: never;
         post?: never;

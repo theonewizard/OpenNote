@@ -10,7 +10,7 @@ from app import __version__
 from app.api.main import create_app
 from app.api.openapi import duplicate_operation_ids
 from app.auth.dependencies import get_current_principal
-from tests.conftest import as_test_user, test_settings
+from tests.conftest import as_test_user, placeholder_settings
 
 PROBLEM_CONTENT = {
     "application/problem+json": {"schema": {"$ref": "#/components/schemas/ProblemDetails"}}
@@ -19,7 +19,7 @@ JSON_TYPES = {"string": str, "integer": int}
 
 
 def openapi() -> dict[str, Any]:
-    return create_app(test_settings()).openapi()
+    return create_app(placeholder_settings()).openapi()
 
 
 def assert_fits_problem_schema(body: dict[str, Any], *extensions: str) -> None:

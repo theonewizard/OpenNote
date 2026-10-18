@@ -11,6 +11,8 @@ keys there.
 
 import os
 import socket
+import subprocess
+import sys
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -26,6 +28,7 @@ from app.api.main import create_app
 from app.core.config import Settings
 from app.workers.broker import configure_broker
 
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_DATABASE_URL = "postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote_test"
 DEFAULT_VALKEY_URL = "redis://127.0.0.1:6379/1"
 # Nothing listens on port 9, so connecting is refused at once. The password is a marker
@@ -53,20 +56,43 @@ TEST_VALKEY_DB = _configure_test_broker()
 
 def pytest_collection_modifyitems() -> None:
     """Stop before any test runs unless the test database is named *_test and the test
-    Valkey database is valid and not 0."""
+    Valkey database is valid and above 0."""
     try:
         database = make_url(TEST_DATABASE_URL).database or ""
-    except ArgumentError:  # empty or unparseable
+    except (ArgumentError, ValueError):  # empty or unparseable, a bad port or IPv6 bracket
         database = ""
     if not database.endswith("_test"):
         raise pytest.UsageError(
             "OPENNOTE_TEST_DATABASE_URL must name a database whose name ends in _test"
         )
-    if not TEST_VALKEY_DB:  # None (invalid URL) or 0
+    if TEST_VALKEY_DB is None or TEST_VALKEY_DB <= 0:  # invalid URL, 0 or negative
         raise pytest.UsageError(
-            "OPENNOTE_TEST_VALKEY_URL must be a valid redis:// URL naming a database "
-            "other than 0, which is the dev stack's"
+            "OPENNOTE_TEST_VALKEY_URL must be a valid redis:// or rediss:// URL naming a "
+            "database above 0 (database 0 is the dev stack's)"
         )
+
+
+def collect_integration_tests(**env_overrides: str) -> subprocess.CompletedProcess[str]:
+    """Collect tests/integration in a new pytest process with `env_overrides` added to the
+    environment, so the guards above run as they would for a developer."""
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            "--collect-only",
+            "tests/integration",
+        ],
+        cwd=BACKEND_DIR,
+        env=os.environ | env_overrides,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ import logging
 
 import pytest
 
-from app.core.logging import configure_logging, request_id_var
+from app.core.logging import _redact, configure_logging, request_id_var
 
 
 @pytest.fixture
@@ -29,7 +29,8 @@ def test_log_lines_are_json_with_request_id_and_redacted_secrets(capsys, restore
                 "session_cookie": "c00kie",
                 "refresh_token": "t0ken",
                 "client_secret": "s3cret",
-                "context": {"user": "ada", "api_token": "t0ken"},
+                "api_key": "k3y",
+                "context": {"user": "ada", "api_token": "t0ken", "X-API-Key": "k3y"},
                 "user": "ada",
             },
         )
@@ -40,9 +41,9 @@ def test_log_lines_are_json_with_request_id_and_redacted_secrets(capsys, restore
     assert line["logger"] == "opennote.test"
     assert line["request_id"] == "req-7"
     assert line["msg"] == {"event": "login", "password": "<redacted>"}
-    for key in ("Authorization", "session_cookie", "refresh_token", "client_secret"):
+    for key in ("Authorization", "session_cookie", "refresh_token", "client_secret", "api_key"):
         assert line[key] == "<redacted>"
-    assert line["context"] == {"user": "ada", "api_token": "<redacted>"}
+    assert line["context"] == {"user": "ada", "api_token": "<redacted>", "X-API-Key": "<redacted>"}
     assert line["user"] == "ada"
     assert "ts" in line
 
@@ -105,3 +106,39 @@ def test_redaction_reaches_mappings_among_positional_arguments(capsys, restore_r
     out = log_line(capsys, "%s then %s", {"api_token": "LEAK6"}, "done")
     assert json.loads(out)["msg"] == "{'api_token': '<redacted>'} then done"
     assert "LEAK6" not in out
+
+
+def test_redaction_ends_on_a_self_referencing_structure(capsys, restore_root_logger):
+    loop = {"password": "LEAK7"}
+    loop["self"] = loop
+    out = log_line(capsys, "loop", extra={"loop": loop})
+    assert "LEAK7" not in out
+    nested = json.loads(out)["loop"]
+    for _ in range(8):
+        assert set(nested) == {"password", "self"}
+        nested = nested["self"]
+    assert nested == "<redacted>"  # the depth guard
+
+
+class Pair(tuple):
+    """A tuple subclass, as a library might put in a log record."""
+
+
+def test_redaction_keeps_the_container_type_and_unchanged_objects():
+    redacted = _redact(None, Pair(({"token": "LEAK8"}, "kept")))
+    assert type(redacted) is Pair
+    assert redacted == ({"token": "<redacted>"}, "kept")
+    clean = Pair(({"user": "ada"}, "kept"))
+    assert _redact(None, clean) is clean
+
+
+def test_uvicorn_color_message_is_left_out(capsys, restore_root_logger):
+    out = log_line(
+        capsys,
+        "Started server process [%d]",
+        42,
+        extra={"color_message": "Started server process [\x1b[36m%d\x1b[0m]"},
+    )
+    line = json.loads(out)
+    assert line["msg"] == "Started server process [42]"
+    assert "color_message" not in line
