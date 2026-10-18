@@ -41,8 +41,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_VERSION: 8.30.1
-          # Findings go to the job summary; commenting would need pull-requests: write.
+          # Findings go to the job log and summary; commenting would need pull-requests: write.
           GITLEAKS_ENABLE_COMMENTS: false
+          # No SARIF artefact: the workflows upload none (setup.md, "Continuous integration").
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
 
   python:
     name: pip-audit, bandit

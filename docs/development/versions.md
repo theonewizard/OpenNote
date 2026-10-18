@@ -144,7 +144,7 @@ Every `uses:` in `.github/workflows/` names the full commit SHA of a release tag
 | actions/setup-python | v7.0.0 | `5fda3b95a4ea91299a34e894583c3862153e4b97` | 2026-07-19 | 2026-10-18 |
 | actions/setup-node | v7.1.0 | `949feb2413d6458794dcd2491c4babbbce0c15c1` | 2026-10-07 | 2026-10-18 |
 | aquasecurity/setup-trivy | v0.3.1 | `81e514348e19b6112ce2a7e3ecbafe19c1e1f567` (lightweight tag; the action's own steps pin `actions/checkout` and `actions/cache` by SHA, and the Trivy install script to a commit of aquasecurity/trivy) | 2026-06-03 | 2026-10-18 |
-| gitleaks/gitleaks-action | v3.0.0 | `e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e` | 2026-05-30 | 2026-10-18 |
+| gitleaks/gitleaks-action | v3.0.0 | `e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e`. Free for repositories of a personal account, which this is (the run log says "[theonewizard] is an individual user. No license key is required."); a repository of an organisation needs a `GITLEAKS_LICENSE` secret | 2026-05-30 | 2026-10-18 |
 
 ### Tools the actions install
 
