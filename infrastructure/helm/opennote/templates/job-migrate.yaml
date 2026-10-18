@@ -1,5 +1,5 @@
 # `alembic upgrade head` before every install and upgrade; the release's pods start or roll
-# only after it succeeds. It needs only the database URL, read from the Secret's file. The
+# only after it succeeds. It needs only the database URL, the one Secret key it mounts. The
 # release's ServiceAccount does not exist yet at pre-install, so the Job runs as the
 # namespace's default one, without a token. The last Job stays until the next upgrade, for
 # its logs.
@@ -51,6 +51,7 @@ spec:
         - name: secrets
           secret:
             secretName: {{ .Values.existingSecret }}
+            items: [{key: OPENNOTE_DATABASE_URL, path: OPENNOTE_DATABASE_URL}]
         - name: tmp
           emptyDir:
             sizeLimit: 256Mi

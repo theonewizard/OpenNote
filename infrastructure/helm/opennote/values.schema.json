@@ -57,7 +57,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "accessMode": {"type": "string", "enum": ["ReadWriteMany", "ReadWriteOnce", "ReadWriteOncePod"]},
+        "accessMode": {"type": "string", "enum": ["ReadWriteMany", "ReadWriteOnce"]},
         "storageClassName": {"type": "string"},
         "vaults": {"$ref": "#/definitions/size"},
         "history": {"$ref": "#/definitions/size"}

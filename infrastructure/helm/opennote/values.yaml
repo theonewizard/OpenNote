@@ -19,11 +19,16 @@ imagePullSecrets: []
 # OPENNOTE_*_FILE (api and worker; the migration Job reads only the database URL).
 existingSecret: opennote
 
-# OPENNOTE_LOG_LEVEL, a Python log level name. OPENNOTE_ENVIRONMENT is always production.
+# logLevel and clusterDomain go into the two ConfigMaps. Every Deployment's checksum/config
+# annotation covers both ConfigMaps, so changing either value rolls all three Deployments.
+
+# OPENNOTE_LOG_LEVEL: one of CRITICAL, ERROR, WARNING, INFO, DEBUG. OPENNOTE_ENVIRONMENT is
+# always production.
 logLevel: INFO
 
-# web reaches the API at <release>-api.<namespace>.svc.<clusterDomain>:80, fully qualified
-# because nginx's resolver ignores the resolv.conf search list.
+# web reaches the API at <fullname>-api.<namespace>.svc.<clusterDomain>:80, fully qualified
+# because nginx's resolver ignores the resolv.conf search list. <fullname> is the release
+# name if it contains "opennote", else <release>-opennote.
 clusterDomain: cluster.local
 
 # The images run as UID 1001, group 0; fsGroup makes the volumes writable on Kubernetes. Left

@@ -1,5 +1,5 @@
 # Applies the database migrations: `alembic upgrade head` in the api image (WORKDIR /app),
-# which needs only the database URL, read from the Secret's file. It runs alongside the
+# which needs only the database URL, the one Secret key it mounts. It runs alongside the
 # Deployments when the base is applied (kustomize has no ordering); `alembic upgrade head`
 # is idempotent. A Job's pod template cannot change, so delete the Job before applying a
 # new image:
@@ -58,6 +58,7 @@ spec:
         - name: secrets
           secret:
             secretName: opennote
+            items: [{key: OPENNOTE_DATABASE_URL, path: OPENNOTE_DATABASE_URL}]
         - name: tmp
           emptyDir:
             sizeLimit: 256Mi

@@ -17,12 +17,7 @@ resources:
 
 patches:
   - target:
-      kind: Deployment
-    patch: |-
-      - op: remove
-        path: /spec/template/spec/securityContext/fsGroup
-  - target:
-      kind: Job
+      kind: Deployment|Job
     patch: |-
       - op: remove
         path: /spec/template/spec/securityContext/fsGroup
