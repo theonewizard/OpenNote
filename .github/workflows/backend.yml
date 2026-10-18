@@ -1,6 +1,7 @@
-# Backend: the Makefile's backend lines (ruff, mypy, pytest with the integration tests) on
-# Python 3.13 and 3.14 against PostgreSQL with pgvector and Valkey service containers, and
-# the OpenAPI drift check (docs/development/setup.md, "Continuous integration").
+# Backend: the constraints check of `make bootstrap`, the Makefile's backend lines (ruff,
+# mypy, pytest with the integration tests) on Python 3.13 and 3.14 against PostgreSQL with
+# pgvector and Valkey service containers, and the OpenAPI drift check
+# (docs/development/setup.md, "Continuous integration").
 name: backend
 
 on:
@@ -22,6 +23,24 @@ defaults:
     shell: bash
 
 jobs:
+  # The check in `make bootstrap`, with the job's interpreter: Dependabot bumps the
+  # requirements files only, and the pins in backend/constraints.txt must follow.
+  constraints:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: backend/constraints.txt agrees with the requirements files
+        run: |
+          python -m pip install --dry-run --quiet -c backend/constraints.txt \
+            -r backend/requirements.txt -r backend/requirements-dev.txt \
+            || { echo "backend/constraints.txt is stale: run make constraints"; exit 1; }
+
   test:
     name: test (${{ matrix.python }})
     runs-on: ubuntu-latest
@@ -72,7 +91,8 @@ jobs:
           cache-dependency-path: |
             backend/requirements*.txt
             backend/constraints.txt
-      # The backend lines of `make bootstrap` (it also runs npm ci in web/).
+      # The backend lines of `make bootstrap` but its constraints check, the job above (it
+      # also runs npm ci in web/).
       - name: Create .venv
         run: |
           python3 -m venv .venv

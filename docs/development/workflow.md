@@ -16,7 +16,7 @@ CI cannot change repository settings; the repository owner sets these on GitHub:
 - **Private vulnerability reporting:** Settings → Security → "Private vulnerability reporting", enable. The advisory form that `SECURITY.md` links to works only once this is on.
 - **Branch protection for `main`** (Settings → Branches, or a ruleset):
   - require a pull request before merging;
-  - require these status checks, by their exact job names (`.github/workflows/`; docs/development/setup.md, "Continuous integration"): `test (3.13)`, `test (3.14)` and `openapi drift` (backend); `lint, typecheck, test, build, e2e` (web); `macOS` and `Linux` (apple); `build, run, scan` and `manifests` (containers); `gitleaks`, `pip-audit, bandit`, `npm audit` and `trivy filesystem` (security). A job added to a workflow later is added to this list and to the settings;
+  - require these status checks, by their exact job names (`.github/workflows/`; docs/development/setup.md, "Continuous integration"): `constraints`, `test (3.13)`, `test (3.14)` and `openapi drift` (backend); `lint, typecheck, test, build, e2e` (web); `macOS` and `Linux` (apple); `build, run, scan` and `manifests` (containers); `gitleaks`, `pip-audit, bandit`, `npm audit` and `trivy filesystem` (security). A job added to a workflow later is added to this list and to the settings;
   - block force pushes and deletion of `main`.
 - **Merge methods:** Settings → General → "Pull Requests": allow squash merging only, with merge commits and rebase merging turned off.
 

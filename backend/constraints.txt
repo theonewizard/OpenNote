@@ -3,10 +3,10 @@
 # and the backend CI jobs install with `-c backend/constraints.txt`, so a transitive
 # dependency cannot change between installs. pip-audit audits this file in CI.
 #
-# Generated 2026-10-18 by `pip freeze` in a new virtual environment with Python 3.14.6
-# (pip 26.1.2) after `pip install -r backend/requirements.txt`; Python 3.13.16 freezes the
-# same set. Regenerate it the same way, by hand, whenever requirements.txt changes
-# (docs/development/versions.md, "Backend (PyPI)").
+# Generated 2026-10-18 by `make constraints` with Python 3.14.6 (pip 26.1.2): `pip freeze`
+# in a new virtual environment after `pip install --only-binary=:all: -r requirements.txt`.
+# Run `make constraints` whenever requirements.txt changes, a Dependabot pull request
+# included (docs/development/versions.md, "Backend (PyPI)").
 alembic==1.20.0
 annotated-doc==0.0.5
 annotated-types==0.8.0

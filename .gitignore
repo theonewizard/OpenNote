@@ -13,6 +13,7 @@
 
 # Python
 .venv/
+.venv-constraints/
 __pycache__/
 *.pyc
 *.egg-info/

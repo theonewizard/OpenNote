@@ -6,7 +6,7 @@ COMPOSE ?= docker compose
 COMPOSE_DIR := infrastructure/compose
 
 .DEFAULT_GOAL := help
-.PHONY: help bootstrap lint typecheck test build up up-deps down openapi apple-project
+.PHONY: help bootstrap constraints lint typecheck test build up up-deps down openapi apple-project
 
 help: ## List the targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -14,8 +14,28 @@ help: ## List the targets
 bootstrap: ## Create .venv, install backend dev requirements, run npm ci in web/
 	$(PYTHON) -m venv .venv
 	.venv/bin/pip install --upgrade pip
+	.venv/bin/pip install --dry-run --quiet -c backend/constraints.txt -r backend/requirements.txt \
+		-r backend/requirements-dev.txt || { echo "backend/constraints.txt is stale: run make constraints"; exit 1; }
 	.venv/bin/pip install -c backend/constraints.txt -r backend/requirements-dev.txt
 	cd web && npm ci
+
+constraints: ## Regenerate backend/constraints.txt from a clean install of requirements.txt
+	rm -rf .venv-constraints
+	$(PYTHON) -m venv .venv-constraints
+	.venv-constraints/bin/pip install --quiet --disable-pip-version-check --only-binary=:all: \
+		-r backend/requirements.txt
+	{ printf '%s\n' \
+		'# Every package a clean install of requirements.txt brings in, pinned exactly: the runtime' \
+		'# dependencies and their transitive dependencies (ADR-0014). The api image, `make bootstrap`' \
+		'# and the backend CI jobs install with `-c backend/constraints.txt`, so a transitive' \
+		'# dependency cannot change between installs. pip-audit audits this file in CI.' \
+		'#' \
+		"# Generated $$(date -u +%F) by \`make constraints\` with $$(.venv-constraints/bin/python -V) (pip $$(.venv-constraints/bin/pip -V | cut -d' ' -f2)): \`pip freeze\`" \
+		'# in a new virtual environment after `pip install --only-binary=:all: -r requirements.txt`.' \
+		'# Run `make constraints` whenever requirements.txt changes, a Dependabot pull request' \
+		'# included (docs/development/versions.md, "Backend (PyPI)").'; \
+		.venv-constraints/bin/pip freeze; } > backend/constraints.txt
+	rm -rf .venv-constraints
 
 lint: ## Lint and format-check backend and web
 	cd backend && ../.venv/bin/ruff check .
