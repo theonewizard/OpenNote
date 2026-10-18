@@ -21,6 +21,7 @@ from sqlalchemy.exc import ArgumentError
 
 from app.api.main import create_app
 from app.core.config import Settings
+from app.workers.broker import configure_broker
 
 DEFAULT_DATABASE_URL = "postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote_test"
 DEFAULT_VALKEY_URL = "redis://127.0.0.1:6379/0"
@@ -28,6 +29,12 @@ DEFAULT_VALKEY_URL = "redis://127.0.0.1:6379/0"
 # that tests look for in logs.
 DEAD_DATABASE_URL = "postgresql+psycopg://opennote:dead-db-password@127.0.0.1:9/opennote_test"
 TEST_DATABASE_URL = os.environ.get("OPENNOTE_TEST_DATABASE_URL", DEFAULT_DATABASE_URL)
+TEST_VALKEY_URL = os.environ.get("OPENNOTE_TEST_VALKEY_URL", DEFAULT_VALKEY_URL)
+
+# Actors bind to dramatiq's global broker when app.workers.jobs is imported, so the test
+# broker is set here, before any test module imports the jobs. The other settings are the
+# placeholders tests/conftest.py puts in the environment. Nothing connects yet.
+configure_broker(Settings(valkey_url=TEST_VALKEY_URL))
 
 
 def pytest_collection_modifyitems() -> None:
@@ -54,7 +61,7 @@ def pg_url() -> str:
 
 @pytest.fixture
 def valkey_url() -> str:
-    return os.environ.get("OPENNOTE_TEST_VALKEY_URL", DEFAULT_VALKEY_URL)
+    return TEST_VALKEY_URL
 
 
 @pytest.fixture

@@ -36,8 +36,8 @@ How to read the rows:
 | SQLAlchemy | 2.1.5 | 2026-10-16 | https://pypi.org/pypi/sqlalchemy/json | 2026-10-17 |
 | alembic | 1.20.0 | 2026-09-11 | https://pypi.org/pypi/alembic/json | 2026-10-17 |
 | psycopg | 3.3.6 | 2026-09-18 | https://pypi.org/pypi/psycopg/json. Pinned as `psycopg[binary]==3.3.6`: the extra installs `psycopg-binary` 3.3.6, so local venvs and the image need no libpq build | 2026-10-17 |
-| redis (redis-py) | 8.1.0 | 2026-07-30 | https://pypi.org/pypi/redis/json. The Valkey client (Valkey speaks RESP): the readiness check now, Dramatiq's Redis broker later; one client library for both | 2026-10-17 |
-| dramatiq | 2.2.1 | 2026-09-02 | https://pypi.org/pypi/dramatiq/json | 2026-10-17 |
+| redis (redis-py) | 8.1.0 | 2026-07-30 | https://pypi.org/pypi/redis/json. The Valkey client (Valkey speaks RESP): the readiness check and Dramatiq's Redis broker; one client library for both | 2026-10-17 |
+| dramatiq | 2.2.1 | 2026-09-02 | https://pypi.org/pypi/dramatiq/json. Pinned as `dramatiq[redis]==2.2.1`: the extra requires `redis>=4.0,<9.0`, which the redis pin satisfies. Maintenance re-checked for ADR-0009: five releases between 2025-11-18 (2.0.0) and 2026-09-02 (2.2.1), changelog https://raw.githubusercontent.com/Bogdanp/dramatiq/master/docs/source/changelog.rst | 2026-10-18 |
 | pytest | 9.1.1 | 2026-06-19 | https://pypi.org/pypi/pytest/json | 2026-10-17 |
 | ruff | 0.17.1 | 2026-10-15 | https://pypi.org/pypi/ruff/json | 2026-10-17 |
 | mypy | 2.4.0 | 2026-10-01 | https://pypi.org/pypi/mypy/json | 2026-10-17 |
