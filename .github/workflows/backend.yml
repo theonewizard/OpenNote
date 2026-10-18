@@ -1,0 +1,139 @@
+# Backend: the constraints check of `make bootstrap`, the Makefile's backend lines (ruff,
+# mypy, pytest with the integration tests) on Python 3.13 and 3.14 against PostgreSQL with
+# pgvector and Valkey service containers, and the OpenAPI drift check
+# (docs/development/setup.md, "Continuous integration").
+name: backend
+
+on:
+  pull_request:
+  push:
+    branches: [main, "feature/**", "fix/**", "security/**", "docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A newer push cancels a branch's running run; runs on main finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.event_name != 'schedule' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # The check in `make bootstrap`, with the job's interpreter: Dependabot bumps the
+  # requirements files only, and the pins in backend/constraints.txt must follow.
+  constraints:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - name: backend/constraints.txt agrees with the requirements files
+        run: |
+          python -m pip install --dry-run --quiet -c backend/constraints.txt \
+            -r backend/requirements.txt -r backend/requirements-dev.txt \
+            || { echo "backend/constraints.txt is stale: run make constraints"; exit 1; }
+
+  test:
+    name: test (${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13", "3.14"]
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg18@sha256:2358fcba361ed2233a5ed81b5fe4ca779ccb304120ce531a3bf51c0ed7e2bc11
+        # Throwaway placeholders for this job's database (the integration-test defaults).
+        # POSTGRES_USER is the cluster superuser, so migration 0001 can create the
+        # vector and pg_trgm extensions.
+        env:
+          POSTGRES_USER: opennote
+          POSTGRES_PASSWORD: opennote
+          POSTGRES_DB: opennote_test
+        ports:
+          - 5432:5432
+        # Over TCP, which opens only after the image's first-start initialisation.
+        options: >-
+          --health-cmd "pg_isready --host=127.0.0.1 --username=opennote --dbname=opennote_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      valkey:
+        image: valkey/valkey:9.1.2@sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      OPENNOTE_TEST_DATABASE_URL: postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote_test
+      # Database 1: the suite refuses database 0, the dev stack's.
+      OPENNOTE_TEST_VALKEY_URL: redis://127.0.0.1:6379/1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements*.txt
+            backend/constraints.txt
+      # The backend lines of `make bootstrap` but its constraints check, the job above (it
+      # also runs npm ci in web/).
+      - name: Create .venv
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -c backend/constraints.txt -r backend/requirements-dev.txt
+      - name: ruff check
+        working-directory: backend
+        run: ../.venv/bin/ruff check .
+      - name: ruff format --check
+        working-directory: backend
+        run: ../.venv/bin/ruff format --check .
+      - name: mypy
+        working-directory: backend
+        run: ../.venv/bin/mypy app
+      - name: pytest (unit and integration)
+        working-directory: backend
+        run: ../.venv/bin/pytest -q
+
+  openapi-drift:
+    name: openapi drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements*.txt
+            backend/constraints.txt
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: make bootstrap
+      - run: make openapi
+      - name: The committed contract and clients match the backend
+        run: >-
+          git diff --exit-code docs/api/openapi.json web/src/api/schema.d.ts
+          apple/Packages/OpenNoteAPI/Sources/OpenNoteAPI/openapi.json

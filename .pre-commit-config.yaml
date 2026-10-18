@@ -1,0 +1,34 @@
+# Optional local hooks (docs/development/setup.md, "Continuous integration"):
+#   .venv/bin/pre-commit install
+# Each rev is the commit its release tag pointed to when it was resolved with
+# `git ls-remote --tags` (the frozen form of `pre-commit autoupdate --freeze`); versions are
+# recorded in docs/development/versions.md.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-yaml
+        # Kubernetes manifests hold several documents; Helm templates are not YAML until rendered.
+        args: [--allow-multiple-documents]
+        exclude: ^infrastructure/helm/opennote/templates/
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        # Two trailing spaces are a Markdown line break.
+        args: [--markdown-linebreak-ext=md]
+      - id: detect-private-key
+
+  # The same ruff as backend/requirements-dev.txt, on backend/ only, as CI runs it.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 38bfb07c0c64c304f47eb52090f8288150c77730 # frozen: v0.17.1
+    hooks:
+      - id: ruff-check
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e # frozen: v8.30.1
+    hooks:
+      - id: gitleaks

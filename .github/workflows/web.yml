@@ -1,0 +1,45 @@
+# Web: the Makefile's web lines (lint, typecheck, test, build) and the Playwright tests in
+# Chromium (docs/development/setup.md, "Continuous integration").
+name: web
+
+on:
+  pull_request:
+  push:
+    branches: [main, "feature/**", "fix/**", "security/**", "docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A newer push cancels a branch's running run; runs on main finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.event_name != 'schedule' }}
+
+defaults:
+  run:
+    shell: bash
+    working-directory: web
+
+jobs:
+  web:
+    name: lint, typecheck, test, build, e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # The Chromium build that matches @playwright/test, with its system libraries.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

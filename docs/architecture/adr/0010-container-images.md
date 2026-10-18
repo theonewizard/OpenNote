@@ -10,13 +10,13 @@ Design §11 and `CLAUDE.md` §5 prefer UBI. Free UBI images are on `registry.acc
 ## Decision
 | Image | Base | Notes |
 |---|---|---|
-| `opennote-api` (also worker) | `ubi9/python-3xx` or `ubi10` Python image (newest Python available, see versions.md) builder → `ubi-minimal` runtime | Multi-stage, non-root UID 1001 group 0, read-only root FS |
-| `opennote-web` | Node UBI image builder → `ubi9/nginx-1xx` runtime | Static files + `/api` reverse proxy |
+| `opennote-api` (also worker) | `ubi9/ubi-minimal` with `python3.14` from the UBI 9 repositories and the virtual environment built in the same image; `ubi9/python-314` if that RPM is missing (versions.md, "Python decision") | One stage (installing wheels needs nothing the runtime lacks), non-root UID 1001 group 0, read-only root FS |
+| `opennote-web` | Official Node.js image builder (the `.nvmrc` release; only static files leave it) → `ubi9/ubi-minimal` + the `nginx:1.26` module stream runtime | Static files + `/api` reverse proxy |
 | `opennote-postgres` | `ubi-minimal` + PGDG PostgreSQL RPMs + `pgvector` RPM | Built in CI; arbitrary-UID safe entrypoint |
-| `opennote-valkey` | `ubi-minimal` + Valkey from EPEL/AppStream if available, else built from source in a builder stage | — |
-| `opennote-ai` | UBI Python image + Ollama client; model runtime as separate upstream Ollama container | Optional profile |
+| `opennote-valkey` | `ubi-minimal` + Valkey 9.1.2 built from source in a builder stage (RHEL 9 packages Valkey 8.1.10) | — |
+| `opennote-ai` | UBI Python image + Ollama client; model runtime as separate upstream Ollama container | Optional profile; not built in Phase 0 |
 
-`compose.dev.yaml` may substitute upstream `pgvector/pgvector` and `valkey/valkey` images for fast local start. All images: explicit version tags plus digest pinning in release builds, SIGTERM-graceful entrypoints, health checks, no secrets.
+`compose.dev.yaml` uses the same images as `compose.yaml`; the upstream `pgvector/pgvector` and `valkey/valkey` images serve only as the backend CI job's service containers. All images: explicit version tags plus digest pinning on every build, SIGTERM-graceful entrypoints, health checks, no secrets.
 
 ## Consequences
-Production images are UBI-based and OpenShift restricted-SCC compatible, with one exception: the optional AI model runtime (upstream Ollama, Ubuntu-based) is not UBI. It is off by default, runs only when an operator enables the AI profile, and is listed as an exception in the release notes; a UBI-based llama.cpp server image can replace it later. We own patching of the PostgreSQL and Valkey images (CI rebuilds weekly and on CVE scan failures). Operators may instead use a managed PostgreSQL with pgvector.
+Production images are UBI-based and OpenShift restricted-SCC compatible, with one exception: the optional AI model runtime (upstream Ollama, Ubuntu-based) is not UBI. It is off by default, runs only when an operator enables the AI profile, and is listed as an exception in the release notes; a UBI-based llama.cpp server image can replace it later. We own patching of the PostgreSQL and Valkey images: CI rebuilds and scans every image on every push and pull request and every Monday from `main`, and a HIGH or CRITICAL finding that has a fix fails the run; nothing rebuilds an image automatically when a scan fails. Operators may instead use a managed PostgreSQL with pgvector.

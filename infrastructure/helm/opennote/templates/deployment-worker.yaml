@@ -1,0 +1,50 @@
+# The api image with `python -m app.workers`. No probes in Phase 0: the worker has no HTTP
+# endpoint. On SIGTERM it waits up to 50 s for running jobs, within the 60 s grace period;
+# a job still running after that is delivered again (at-least-once).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opennote.fullname" . }}-worker
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "opennote.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "opennote.labels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "opennote.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        {{- include "opennote.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: worker
+          image: "{{ .Values.image.apiRepository }}:{{ include "opennote.tag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "app.workers"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "opennote.fullname" . }}
+          env:
+            {{- include "opennote.secretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          securityContext:
+            {{- include "opennote.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            {{- include "opennote.backendVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "opennote.backendVolumes" . | nindent 8 }}

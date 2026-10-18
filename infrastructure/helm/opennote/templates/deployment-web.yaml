@@ -1,0 +1,64 @@
+# nginx on port 8080: the built app, and /api/, /healthz and /readyz forwarded to the api
+# Service (OPENNOTE_API_UPSTREAM, configmap.yaml). Probes on /, which needs no API.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opennote.fullname" . }}-web
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  replicas: {{ .Values.web.replicas }}
+  selector:
+    matchLabels:
+      {{- include "opennote.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        {{- include "opennote.labels" . | nindent 8 }}
+        app.kubernetes.io/component: web
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "opennote.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "opennote.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: web
+          image: "{{ .Values.image.webRepository }}:{{ include "opennote.tag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: {{ include "opennote.fullname" . }}-web
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+          securityContext:
+            {{- include "opennote.containerSecurityContext" . | nindent 12 }}
+          # nginx keeps its pid, runtime configuration and temporary files here.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi

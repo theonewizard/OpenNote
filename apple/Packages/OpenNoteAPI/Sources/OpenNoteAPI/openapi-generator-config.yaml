@@ -1,0 +1,9 @@
+# swift-openapi-generator's build plugin generates the client from openapi.json beside this
+# file each time the package builds; nothing it generates is committed. openapi.json is a
+# copy of docs/api/openapi.json written by scripts/gen-clients.sh (make openapi): generated,
+# do not edit (JSON carries no comment of its own).
+generate:
+  - types
+  - client
+accessModifier: public
+namingStrategy: idiomatic

@@ -1,0 +1,68 @@
+# uvicorn on port 8000. /healthz (no dependencies) for startup and liveness, /readyz
+# (database, Valkey, both directories) for readiness, every 10 s since it opens connections.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opennote.fullname" . }}-api
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  selector:
+    matchLabels:
+      {{- include "opennote.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "opennote.labels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "opennote.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "opennote.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: api
+          image: "{{ .Values.image.apiRepository }}:{{ include "opennote.tag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: {{ include "opennote.fullname" . }}
+          env:
+            {{- include "opennote.secretEnv" . | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext:
+            {{- include "opennote.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            {{- include "opennote.backendVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "opennote.backendVolumes" . | nindent 8 }}

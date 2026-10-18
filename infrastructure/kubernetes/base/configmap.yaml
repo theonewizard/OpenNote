@@ -1,0 +1,29 @@
+# Settings that are not secret. api and worker read `opennote`, web reads `web`. The
+# database and Valkey URLs come from the Secret `opennote`, mounted as files (api.yaml),
+# which these manifests reference but never contain.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opennote
+  labels:
+    app.kubernetes.io/name: opennote
+data:
+  OPENNOTE_ENVIRONMENT: production
+  OPENNOTE_LOG_LEVEL: INFO
+  # The mount points of the vaults and history volumes (api.yaml, worker.yaml).
+  OPENNOTE_VAULT_ROOT: /var/lib/opennote/vaults
+  OPENNOTE_HISTORY_ROOT: /var/lib/opennote/history
+  # The migration Job (job-migrate.yaml) applies migrations, never the API.
+  OPENNOTE_MIGRATE_ON_START: "false"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web
+  labels:
+    app.kubernetes.io/name: opennote
+    app.kubernetes.io/component: web
+data:
+  # host:port of the api Service (service.yaml). Fully qualified, because nginx's resolver
+  # ignores the resolv.conf search list; change it with the namespace.
+  OPENNOTE_API_UPSTREAM: api.opennote.svc.cluster.local:80

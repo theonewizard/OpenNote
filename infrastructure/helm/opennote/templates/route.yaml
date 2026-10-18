@@ -1,0 +1,23 @@
+{{- if .Values.openshift.enabled }}
+# web through the OpenShift router: TLS ends at the router (edge) with its default
+# certificate, and plain HTTP is redirected to HTTPS.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "opennote.fullname" . }}-web
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  {{- with .Values.openshift.route.host }}
+  host: {{ . | quote }}
+  {{- end }}
+  to:
+    kind: Service
+    name: {{ include "opennote.fullname" . }}-web
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}

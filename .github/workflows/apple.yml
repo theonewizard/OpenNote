@@ -1,0 +1,90 @@
+# Apple: `swift test` for each package and unsigned builds of both app schemes with Xcode
+# 27.1 on macOS, and `swift test` for OpenNoteCore and OpenNoteStorage on Linux. Both jobs
+# fail when SwiftPM's resolution differs from the committed Package.resolved files
+# (docs/development/setup.md, "Continuous integration").
+name: apple
+
+on:
+  pull_request:
+  push:
+    branches: [main, "feature/**", "fix/**", "security/**", "docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A newer push cancels a branch's running run; runs on main finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.event_name != 'schedule' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  macos:
+    name: macOS
+    # The runner image that carries Xcode 27.1 (docs/development/versions.md, "CI runners").
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Explicitly 27.1, never the image default: XcodeGen 2.46.0 cannot convert
+      # projects for Xcode 27.2 (versions.md, XcodeGen row).
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
+          swift --version
+      - name: swift test (each package)
+        run: |
+          for p in OpenNoteCore OpenNoteStorage OpenNoteAPI OpenNoteSync OpenNoteEditor; do
+            echo "::group::swift test $p"
+            swift test --package-path "apple/Packages/$p"
+            echo "::endgroup::"
+          done
+      - name: Install XcodeGen (Homebrew, not pinned)
+        run: |
+          brew install xcodegen
+          xcodegen --version
+      - name: Generate the Xcode project (make apple-project)
+        run: xcodegen generate --spec apple/project.yml
+      - name: Build OpenNote-macOS
+        run: >-
+          xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-macOS
+          -destination 'platform=macOS' -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build
+      - name: Build OpenNote-iOS
+        run: >-
+          xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS
+          -destination 'generic/platform=iOS Simulator' -skipPackagePluginValidation
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Package.resolved matches the committed files
+        # Changed and new (untracked) Package.resolved files both fail the job.
+        run: &resolved-check |
+          changes=$(git status --porcelain --untracked-files=all -- '**/Package.resolved')
+          if [[ -n $changes ]]; then
+            echo "swift test resolved differently from the committed Package.resolved files:"
+            echo "$changes"
+            git diff -- '**/Package.resolved'
+            exit 1
+          fi
+
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: swift:6.4.1@sha256:6fbd5978b56a5a9ff05a48f8f678079fc45be496ecda15b4e74e8944fab857be
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: swift --version
+      - run: swift test --package-path apple/Packages/OpenNoteCore
+      - run: swift test --package-path apple/Packages/OpenNoteStorage
+      # The container runs as root and the checkout belongs to the runner user.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Package.resolved matches the committed files
+        run: *resolved-check

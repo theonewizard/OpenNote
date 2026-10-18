@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Values of the OpenNote chart (values.yaml describes each one)",
+  "type": "object",
+  "additionalProperties": false,
+  "definitions": {
+    "name": {"type": "string", "minLength": 1},
+    "size": {"type": "object", "additionalProperties": false, "required": ["size"],
+             "properties": {"size": {"type": "string", "minLength": 1}}},
+    "workload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "replicas": {"type": "integer", "minimum": 0},
+        "resources": {"type": "object"}
+      }
+    }
+  },
+  "properties": {
+    "global": {"type": "object"},
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "apiRepository": {"$ref": "#/definitions/name"},
+        "webRepository": {"$ref": "#/definitions/name"},
+        "tag": {"type": "string"},
+        "pullPolicy": {"type": "string", "enum": ["Always", "IfNotPresent", "Never"]}
+      }
+    },
+    "imagePullSecrets": {"type": "array", "items": {"type": "object", "required": ["name"]}},
+    "existingSecret": {"$ref": "#/definitions/name"},
+    "logLevel": {"type": "string", "enum": ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]},
+    "clusterDomain": {"$ref": "#/definitions/name"},
+    "fsGroup": {"type": "integer", "minimum": 1},
+    "openshift": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "route": {"type": "object", "additionalProperties": false,
+                  "properties": {"host": {"type": "string"}}}
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "className": {"type": "string"},
+        "annotations": {"type": "object", "additionalProperties": {"type": "string"}},
+        "host": {"type": "string"},
+        "tlsSecretName": {"type": "string"}
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "accessMode": {"type": "string", "enum": ["ReadWriteMany", "ReadWriteOnce"]},
+        "storageClassName": {"type": "string"},
+        "vaults": {"$ref": "#/definitions/size"},
+        "history": {"$ref": "#/definitions/size"}
+      }
+    },
+    "api": {"$ref": "#/definitions/workload"},
+    "worker": {"$ref": "#/definitions/workload"},
+    "web": {"$ref": "#/definitions/workload"}
+  }
+}

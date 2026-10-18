@@ -1,0 +1,141 @@
+# OpenNote full stack: web (nginx, port 8080) in front of api (port 8000), the background
+# worker, PostgreSQL with pgvector and Valkey, built from infrastructure/containers.
+# From the repository root:
+#
+#   cp infrastructure/compose/.env.example infrastructure/compose/.env   # then edit it
+#   make up     # docker compose -f infrastructure/compose/compose.yaml up -d --wait --build
+#   make down
+#
+# Settings come from .env next to this file (or the shell), and each service gets only its
+# own: api and worker the OPENNOTE_* variables, postgres the POSTGRES_* ones. Without .env
+# api, worker and postgres refuse to start and name the missing settings; `down` needs no
+# .env. The published ports listen on 127.0.0.1 only: put a TLS proxy in front of web to
+# serve other hosts (docs/development/setup.md, "Security posture of the default stack").
+
+name: opennote
+
+x-service-defaults: &defaults
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  user: "1001:0"
+  restart: unless-stopped
+
+x-backend: &backend
+  <<: *defaults
+  image: opennote-api:dev
+  build:
+    context: ../..
+    dockerfile: infrastructure/containers/api/Containerfile
+  # A variable without a value is taken from .env or the shell and left unset if neither
+  # has it; an empty value would not fall back to the default (OPENNOTE_LOG_LEVEL=INFO).
+  environment: &backend-environment
+    OPENNOTE_DATABASE_URL:
+    OPENNOTE_DATABASE_URL_FILE:
+    OPENNOTE_VALKEY_URL:
+    OPENNOTE_VALKEY_URL_FILE:
+    OPENNOTE_ENVIRONMENT:
+    OPENNOTE_LOG_LEVEL:
+    OPENNOTE_VAULT_ROOT: /var/lib/opennote/vaults
+    OPENNOTE_HISTORY_ROOT: /var/lib/opennote/history
+  volumes:
+    - vaults:/var/lib/opennote/vaults
+    - history:/var/lib/opennote/history
+  depends_on:
+    postgres:
+      condition: service_healthy
+    valkey:
+      condition: service_healthy
+
+services:
+  api:
+    <<: *backend
+    environment:
+      <<: *backend-environment
+      # false unless .env or the shell sets it: production applies migrations deliberately
+      # (infrastructure/containers/api/entrypoint.sh).
+      OPENNOTE_MIGRATE_ON_START: ${OPENNOTE_MIGRATE_ON_START:-false}
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "3", "--output", "/dev/null",
+             "http://127.0.0.1:8000/readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "app.workers"]
+    # No healthcheck in Phase 0: the worker has no HTTP endpoint. While Valkey is down it
+    # retries every 3 s and logs CRITICAL lines; that is expected, not a crash loop.
+    # On SIGTERM it waits up to 50 s for running jobs; a job still running when the grace
+    # period ends is killed and delivered again later (at-least-once).
+    stop_grace_period: 60s
+
+  web:
+    <<: *defaults
+    image: opennote-web:dev
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/web/Containerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--max-time", "3", "--output", "/dev/null",
+             "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  postgres:
+    <<: *defaults
+    image: opennote-postgres:dev
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/postgres/Containerfile
+    # Taken from .env or the shell as for the backend. Without a password the first start
+    # refuses to initialise (infrastructure/containers/postgres/entrypoint.sh).
+    environment:
+      POSTGRES_USER:
+      POSTGRES_PASSWORD:
+      POSTGRES_PASSWORD_FILE:
+      POSTGRES_DB:
+      POSTGRES_TEST_DB:
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # PostgreSQL's parallel queries use shared memory in /dev/shm; Docker's default is 64 MB.
+    shm_size: 256m
+    healthcheck:
+      # Over TCP, which only opens once the first-start initialisation is done. Any user
+      # name will do: pg_isready does not log in.
+      test: ["CMD", "pg_isready", "--quiet", "--host=127.0.0.1", "--port=5432",
+             "--username=postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    # The image stops with SIGINT (fast shutdown), which writes a checkpoint first.
+    stop_grace_period: 60s
+
+  valkey:
+    <<: *defaults
+    image: opennote-valkey:dev
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/valkey/Containerfile
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-h", "127.0.0.1", "-p", "6379", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  vaults:
+  history:
+  pgdata:

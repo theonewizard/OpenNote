@@ -1,0 +1,19 @@
+# web through the OpenShift router. TLS ends at the router (edge) with the router's default
+# certificate; plain HTTP is redirected to HTTPS. Without spec.host the router generates a
+# host name under the cluster's apps domain.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: web
+  labels:
+    app.kubernetes.io/name: opennote
+    app.kubernetes.io/component: web
+spec:
+  to:
+    kind: Service
+    name: web
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
