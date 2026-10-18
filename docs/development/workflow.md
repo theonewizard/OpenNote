@@ -9,14 +9,16 @@ Status: Proposed (2026-10-17). `CLAUDE.md` is authoritative; this page applies i
 - `.worktrees/` is git-ignored.
 - Completed work is squash-merged into `main` through a pull request after CI is green and the diff is reviewed. `main` is never force-pushed.
 
-### Branch protection
+### Repository settings the owner enables
 
-Recommended settings for `main` (repository settings, "Branches"; the repository owner sets them, CI cannot):
+CI cannot change repository settings; the repository owner sets these on GitHub:
 
-- Require a pull request before merging.
-- Require these status checks to pass: the jobs of the five workflows `backend`, `web`, `apple`, `containers` and `security` (`.github/workflows/`; docs/development/setup.md, "Continuous integration").
-- Block force pushes (and deletion of `main`).
-- Allow squash merging only.
+- **Private vulnerability reporting:** Settings → Security → "Private vulnerability reporting", enable. The advisory form that `SECURITY.md` links to works only once this is on.
+- **Branch protection for `main`** (Settings → Branches, or a ruleset):
+  - require a pull request before merging;
+  - require these status checks, by their exact job names (`.github/workflows/`; docs/development/setup.md, "Continuous integration"): `test (3.13)`, `test (3.14)` and `openapi drift` (backend); `lint, typecheck, test, build, e2e` (web); `macOS` and `Linux` (apple); `build, run, scan` (containers); `gitleaks`, `pip-audit, bandit`, `npm audit` and `trivy filesystem` (security). A job added to a workflow later is added to this list and to the settings;
+  - block force pushes and deletion of `main`.
+- **Merge methods:** Settings → General → "Pull Requests": allow squash merging only, with merge commits and rebase merging turned off.
 
 ## Per feature
 

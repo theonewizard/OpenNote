@@ -11,6 +11,10 @@ Please do not report security problems in public issues, pull requests or discus
 Report them privately through GitHub's form instead:
 https://github.com/theonewizard/OpenNote/security/advisories/new
 
+The form works only once the maintainer has enabled private vulnerability reporting for the
+repository; until then, open a public issue that asks for a private contact and contains no
+details of the problem.
+
 A useful report includes:
 
 - what is affected: the component (API, worker, web app, Apple apps, container images, CI)
