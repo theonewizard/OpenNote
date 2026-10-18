@@ -20,7 +20,7 @@ Status: Proposed (2026-10-17). Implements design §15.13 and `CLAUDE.md` §9. St
 | Compatibility | `tests/compatibility` | Shared corpus, run by Python and Swift parsers | Every push (Phase 1+) |
 | Sync simulation | `backend/tests/sync_sim` | Seeded simulation, invariants I1–I6 of the sync protocol | 500 seeds per push; 10,000 nightly (Phase 1+) |
 | Web unit/component | `web/tests/unit` | Vitest, Testing Library | Every push |
-| Web end-to-end | `web/tests/e2e` | Playwright (Chromium, WebKit) against Compose stack | Every push to PR (Phase 3+) |
+| Web end-to-end | `web/tests/e2e` | Playwright with Chromium against the production build under `vite preview`; WebKit and runs against the Compose stack (Phase 3+) | Every push (Chromium, preview build); WebKit and the Compose stack: Phase 3+ |
 | Apple packages | `apple/Packages/*/Tests` | Swift Testing / XCTest; Core and Storage also on Linux | Every push (macOS runner; Core and Storage also in a Linux `swift:6.4.1` container) |
 | Apple UI | `apple/Tests` | XCUITest on simulators (iPhone, iPad, Mac) | PRs touching `apple/` (Phase 4+) |
 | Cross-client sync | `tests/e2e/sync` | Backend + headless Swift sync engine (`swift run opennote-sync-cli`) + Playwright web client editing one vault | Nightly (Phase 5+) |

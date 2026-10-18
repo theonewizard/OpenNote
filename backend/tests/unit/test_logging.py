@@ -3,6 +3,7 @@
 import io
 import json
 import logging
+from collections import namedtuple
 
 import pytest
 
@@ -130,6 +131,20 @@ def test_redaction_keeps_the_container_type_and_unchanged_objects():
     assert redacted == ({"token": "<redacted>"}, "kept")
     clean = Pair(({"user": "ada"}, "kept"))
     assert _redact(None, clean) is clean
+
+
+One = namedtuple("One", ["body"])
+Two = namedtuple("Two", ["body", "note"])
+
+
+def test_redaction_rebuilds_a_namedtuple_field_by_field():
+    # Fields are positional and carry no key, so the secret sits in a mapping in a field.
+    one = _redact(None, One({"password": "LEAK9"}))
+    assert type(one) is One
+    assert one == One({"password": "<redacted>"})
+    two = _redact(None, Two({"password": "LEAK10"}, "kept"))
+    assert type(two) is Two
+    assert two == Two({"password": "<redacted>"}, "kept")
 
 
 def test_uvicorn_color_message_is_left_out(capsys, restore_root_logger):

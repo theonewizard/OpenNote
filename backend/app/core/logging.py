@@ -69,7 +69,7 @@ def _redact_record(record: logging.LogRecord) -> bool:
 def _redact(key: object, value: Any, depth: int = 0) -> Any:
     """`value` with the values of sensitive keys replaced, or `value` itself when nothing in
     it is. A changed container is rebuilt with its own type where that type's constructor
-    takes the new items, else as a dict, list or tuple."""
+    (a namedtuple's `_make`) takes the new items, else as a dict, list or tuple."""
     if isinstance(key, str) and any(
         part in key.lower().replace("-", "_") for part in SENSITIVE_KEY_PARTS
     ):
@@ -90,8 +90,10 @@ def _redact(key: object, value: Any, depth: int = 0) -> Any:
         return value
     container_type: Any = type(value)  # a subclass's constructor may take anything
     try:
+        if hasattr(value, "_fields"):  # a namedtuple takes its fields as separate arguments
+            return container_type._make(items)
         return container_type(items)
-    except Exception:  # a constructor that takes other arguments, as a namedtuple's does
+    except Exception:  # a constructor that takes other arguments
         return items
 
 

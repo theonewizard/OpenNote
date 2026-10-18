@@ -50,6 +50,7 @@ make lint typecheck test       # backend and web checks
 | `make up` | Start the full stack with Docker Compose (`COMPOSE="podman compose"` for Podman, which is supported by design but untested; only Docker has been exercised) |
 | `make down` | Stop the full stack and the `up-deps` services |
 | `make openapi` | Regenerate the OpenAPI document and the TypeScript and Swift clients |
+| `make constraints` | Regenerate `backend/constraints.txt` from a clean install of `requirements.txt` |
 | `make apple-project` | Generate the Xcode project with XcodeGen (macOS) |
 
 ## Licence
