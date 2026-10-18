@@ -1,14 +1,14 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import js from "@eslint/js";
+import globals from "globals";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
+import tseslint from "typescript-eslint";
+import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -22,9 +22,9 @@ export default defineConfig([
   {
     // shadcn/ui components export their variant helpers (e.g. buttonVariants)
     // beside the component; upstream's templates/vite-app turns this rule off.
-    files: ['src/components/ui/**/*.tsx'],
+    files: ["src/components/ui/**/*.tsx"],
     rules: {
-      'react-refresh/only-export-components': 'off',
+      "react-refresh/only-export-components": "off",
     },
   },
-])
+]);

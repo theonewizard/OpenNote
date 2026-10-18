@@ -7,6 +7,14 @@ test("app loads at phone width without horizontal scroll", async ({ page }) => {
 });
 
 test("app renders the main pane", async ({ page }) => {
+  const problems: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") problems.push(message.text());
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 400) problems.push(`${response.status()} ${response.url()}`);
+  });
   await page.goto("/");
   await expect(page.getByRole("main")).toBeVisible();
+  expect(problems).toEqual([]);
 });

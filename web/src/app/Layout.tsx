@@ -1,9 +1,14 @@
+import { Button } from "@/components/ui/button";
+
 export function Layout() {
   return (
     <div className="flex min-h-svh flex-col">
       <div className="flex flex-1 flex-col md:flex-row">
-        <nav className="border-b p-4 md:w-60 md:shrink-0 md:border-r md:border-b-0">
+        <nav className="flex flex-col items-start gap-2 border-b p-4 md:w-60 md:shrink-0 md:border-r md:border-b-0">
           Vaults
+          <Button variant="outline" size="sm" disabled>
+            New note
+          </Button>
         </nav>
         <section
           aria-label="Note list"

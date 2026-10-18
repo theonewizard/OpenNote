@@ -18,7 +18,7 @@ How to read the rows:
 | PostgreSQL | 18.6 | — | `postgres:18.6` `sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336` | Not verified from this environment: https://www.postgresql.org/support/versioning/ is blocked. Read instead: https://hub.docker.com/v2/repositories/library/postgres/tags?page_size=100 (`latest` = `18` = `18.6`; 19 is at `19rc1`) | 2026-10-17 |
 | pgvector | 0.8.7 | 2026-10-01 | `pgvector/pgvector:0.8.7-pg18` `sha256:2358fcba361ed2233a5ed81b5fe4ca779ccb304120ce531a3bf51c0ed7e2bc11` | Not verified from this environment: https://github.com/pgvector/pgvector/tags is blocked. Read instead: the upstream changelog https://raw.githubusercontent.com/pgvector/pgvector/master/CHANGELOG.md ("0.8.7 (2026-10-01)") and https://hub.docker.com/v2/repositories/pgvector/pgvector/tags?page_size=100 (`pg18` = `0.8.7-pg18`; no newer version in any of the 201 tags) | 2026-10-17 |
 | Valkey | 9.1.2 | 2026-08-31 | `valkey/valkey:9.1.2` `sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd` | Not verified from this environment: https://github.com/valkey-io/valkey/releases is blocked. Read instead: the upstream release notes https://raw.githubusercontent.com/valkey-io/valkey/9.1/00-RELEASENOTES ("Valkey 9.1.2 - Released Mon 31 August 2026"; the 9.2 branch is at 9.2.0-rc1) and https://hub.docker.com/v2/repositories/valkey/valkey/tags?page_size=100 (`latest` = `9.1.2`) | 2026-10-17 |
-| Node.js (LTS) | v24.22.0 "Krypton" | 2026-10-14 | — | https://nodejs.org/dist/index.json (current release v26.12.0 is not LTS) | 2026-10-17 |
+| Node.js (LTS) | v24.22.0 "Krypton" | 2026-10-14 | — | https://nodejs.org/dist/index.json (current release v26.12.0 is not LTS). Pinned in the root `.nvmrc`; `web/package.json` declares `engines` `node >=24.22.0 <25`, `npm >=11` | 2026-10-17 |
 | npm | 11.19.1, the npm bundled with Node.js 24.22.0 | 2026-08-26 | — | https://nodejs.org/dist/index.json (`npm` field of v24.22.0). Chosen on purpose: the bundled npm is what `make bootstrap` and CI get without a second install. Newer release not adopted: npm `latest` 12.2.0 (2026-09-30, engines `node ^22.22.2 \|\| ^24.15.0 \|\| >=26.0.0`), https://registry.npmjs.org/npm | 2026-10-17 |
 | UBI 9 minimal | `registry.access.redhat.com/ubi9/ubi-minimal:9.8` (RHEL 9.8) | — | `sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661` | Not verified from this environment: https://registry.access.redhat.com/v2/ubi9/ubi-minimal/tags/list is blocked. Read instead: Docker Hub's Red Hat mirror https://hub.docker.com/v2/repositories/redhat/ubi9-minimal/tags/9.8. The CI probe pulled the Red Hat registry tag with the same digest | 2026-10-17 |
 | UBI 9 | `registry.access.redhat.com/ubi9/ubi:9.8` | — | `sha256:16e9e43d99e181463513cc84a514859b1abb9460f1c4d9e208da4b4e51cd5cc3` (Docker Hub mirror) | Not verified from this environment: https://registry.access.redhat.com/v2/ubi9/ubi/tags/list is blocked. Read instead: https://hub.docker.com/v2/repositories/redhat/ubi9/tags/9.8 | 2026-10-17 |
@@ -58,7 +58,7 @@ None of these excludes Python 3.13 or 3.14 through `requires-python` (highest fl
 | eslint | 10.13.0 | 2026-10-16 | https://registry.npmjs.org/eslint | 2026-10-17 |
 | tailwindcss | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/tailwindcss | 2026-10-17 |
 | @tailwindcss/vite | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/@tailwindcss%2fvite | 2026-10-17 |
-| shadcn (shadcn/ui CLI) | 4.22.0 | 2026-10-16 | https://registry.npmjs.org/shadcn. Also a `web/` dependency: `src/index.css` imports `shadcn/tailwind.css` | 2026-10-17 |
+| shadcn (shadcn/ui CLI) | 4.22.0 | 2026-10-16 | https://registry.npmjs.org/shadcn. Run with `npx shadcn@4.22.0` only; not a dependency of `web/`. As a dependency it brought seven high `npm audit --audit-level=high` advisories (braces <= 3.0.3, GHSA-vfj7-8cjw-p6xm, no fixed release; via micromatch, fast-glob, @shadcn/registry and ts-morph), so a `shadcn add` that re-adds the package must be checked against them | 2026-10-17 |
 | vitest | 5.0.5 | 2026-10-15 | https://registry.npmjs.org/vitest | 2026-10-17 |
 | @playwright/test | 1.64.1 | 2026-10-14 | https://registry.npmjs.org/@playwright%2ftest | 2026-10-17 |
 | openapi-typescript | 7.13.0 | 2026-02-11 | https://registry.npmjs.org/openapi-typescript | 2026-10-17 |
@@ -74,9 +74,8 @@ None of these excludes Python 3.13 or 3.14 through `requires-python` (highest fl
 | @testing-library/jest-dom | 7.0.1 | 2026-08-09 | https://registry.npmjs.org/@testing-library%2fjest-dom | 2026-10-18 |
 | @base-ui/react | 1.9.0 | 2026-10-09 | https://registry.npmjs.org/@base-ui%2freact. Primitive library of the shadcn `base` base (button.tsx) | 2026-10-18 |
 | class-variance-authority | 0.7.1 | 2024-11-26 | https://registry.npmjs.org/class-variance-authority. Declared by the shadcn base-nova init item | 2026-10-18 |
-| cn | 0.5.0 | 2026-10-16 | https://registry.npmjs.org/cn. shadcn's class-name merger (repository shadcn-ui/cn, maintainer shadcn); `src/lib/utils.ts` re-exports it in place of clsx + tailwind-merge. The name dates from 2013 (0.1.x by another author); shadcn publishes it since 0.2.0 (2026-09-01); no dependencies | 2026-10-18 |
-| lucide-react | 1.59.0 | 2026-10-17 | https://registry.npmjs.org/lucide-react. Icon library of the Nova preset (`iconLibrary: lucide`); no component uses it yet | 2026-10-18 |
-| tw-animate-css | 1.4.0 | 2025-09-24 | https://registry.npmjs.org/tw-animate-css. Imported by `src/index.css` | 2026-10-18 |
+| clsx | 2.1.1 | 2024-04-23 | https://registry.npmjs.org/clsx. With tailwind-merge, behind `cn` in `src/lib/utils.ts` | 2026-10-18 |
+| tailwind-merge | 3.7.0 | 2026-09-12 | https://registry.npmjs.org/tailwind-merge | 2026-10-18 |
 
 All rows except typescript and @types/node are the `latest` dist-tag.
 
@@ -92,13 +91,19 @@ All rows except typescript and @types/node are the `latest` dist-tag.
 
 ### shadcn/ui files
 
-`web/components.json`, `web/src/lib/utils.ts`, `web/src/components/ui/button.tsx` and the theme in `web/src/index.css` are the output of `npx shadcn@4.22.0 init -b base -p nova --no-monorepo` followed by `npx shadcn@4.22.0 add button` (checked 2026-10-18). ui.shadcn.com is blocked from the Phase 0 environment, so the CLI ran with `REGISTRY_URL` pointing at a local mirror of the registry built from https://github.com/shadcn-ui/ui at commit `d2fba50ee5b9113008b5bb908563527b7efd2f27`:
+`web/components.json`, `web/src/components/ui/button.tsx` and the theme in `web/src/index.css` come from `npx shadcn@4.22.0 init -b base -p nova --no-monorepo` followed by `npx shadcn@4.22.0 add button` (checked 2026-10-18). ui.shadcn.com is blocked from the Phase 0 environment, so the CLI ran with `REGISTRY_URL` pointing at a local mirror of the registry built from https://github.com/shadcn-ui/ui at commit `d2fba50ee5b9113008b5bb908563527b7efd2f27`:
 
 - `apps/v4/public/r/styles/base-nova/*` and `styles/new-york-v4/*` were built with that commit's `apps/v4/scripts/build-registry.mts --registry <style>`. The commit's `packages/shadcn` is version 4.22.0, so the npm 4.22.0 package stood in for it.
 - The `/init` response was produced with the commit's `apps/v4/app/(app)/(create)/init/route.ts` logic (`parseDesignSystemConfig`, `buildRegistryBase`, `registryItemSchema`) for the query the CLI sent.
-- The CLI ran in a scratch copy of `web/`; the generated files were copied into `web/` unchanged, except that the Geist font (`@fontsource-variable/geist` and its `--font-sans` override) was removed so the system font stack applies.
+- The CLI ran in a scratch copy of `web/`, and its files were copied into `web/`.
 
-Re-running the two commands against ui.shadcn.com from an unrestricted network should produce the same files, plus the Geist font lines.
+Changes from the CLI output:
+
+- `src/lib/utils.ts` is the classic `cn` (clsx + tailwind-merge) from the same commit's `apps/v4/public/r/styles/new-york/utils.json`, not the generated `export { cn } from "cn"`; `button.tsx` imports `cn` from `@/lib/utils` instead of the `cn` package.
+- `src/index.css` drops the Geist font (`@fontsource-variable/geist` and its `--font-sans` override, so the system font stack applies) and the `tw-animate-css` and `shadcn/tailwind.css` imports (nothing uses their variants, utilities or animations). It restricts Tailwind's source scan with `@import "tailwindcss" source("../src")` and is indented with two spaces.
+- The packages `shadcn`, `cn`, `tw-animate-css`, `lucide-react` and `@fontsource-variable/geist` that `init` added are not installed.
+
+When a component needs `shadcn/tailwind.css` (its `data-open` and similar variants), vendor that file as `web/src/styles/shadcn.css` with its upstream path and commit recorded here, rather than adding the `shadcn` package. Re-running the two commands against ui.shadcn.com from an unrestricted network should reproduce `components.json`, `button.tsx` (apart from the `cn` import) and the theme variables.
 
 ## Apple
 
