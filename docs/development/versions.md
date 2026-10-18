@@ -64,7 +64,7 @@ The pins in the requirement files and the constraints are name and version only,
 | react, react-dom | 19.3.1 | 2026-10-14 | https://registry.npmjs.org/react | 2026-10-17 |
 | vite | 8.3.4 | 2026-10-08 | https://registry.npmjs.org/vite | 2026-10-17 |
 | @vitejs/plugin-react | 6.1.2 | 2026-10-05 | https://registry.npmjs.org/@vitejs%2fplugin-react | 2026-10-17 |
-| typescript | 5.9.3 | 2025-09-30 | https://registry.npmjs.org/typescript. Newest release `npm ci` accepts with openapi-typescript 7.13.0 (peer `^5.x`) and typescript-eslint 8.71.2 (peer `<6.1.0`). Checked 2026-10-18 on Node.js 26.12.0: with 7.0.2 (latest, 2026-07-08; the native compiler, which ships no `lib/typescript.js`) `tsc -b`, vitest and `vite build` pass, but `npm run lint` stops with "typescript-eslint does not support TS 7.0" and openapi-typescript crashes on `ts.factory`. With 6.0.3 (the newest release typescript-eslint accepts) every check passes and the generated `schema.d.ts` is byte-identical, but `npm ci` fails with `ERESOLVE` on openapi-typescript's peer (`npm install typescript@6.0.3` only warns). Neither tool has a newer line (typescript-eslint `canary` 8.71.3-alpha.13, openapi-typescript `next` 7.0.0-rc.1) | 2026-10-18 |
+| typescript | 6.0.3 | 2026-04-16 | https://registry.npmjs.org/typescript. The bridge release before 7, chosen by Flemming on 2026-10-18 (decision card; `.conversations/2026-10-18-node-26-typescript.md`, R109) over 5.9.3, the newest release every peer range accepts, and 7.0.2 (latest, 2026-07-08; the native compiler, which ships no `lib/typescript.js`), with which `tsc -b`, vitest and `vite build` pass but `npm run lint` stops with "typescript-eslint does not support TS 7.0" and openapi-typescript crashes on `ts.factory`. 6.0.3 is inside typescript-eslint 8.71.2's peer `<6.1.0` and outside openapi-typescript 7.13.0's `^5.x`, so `web/package.json` overrides that one peer edge (`"overrides": {"openapi-typescript": {"typescript": "$typescript"}}`; `npm explain typescript` reports it as "peer overridden"). Checked 2026-10-18 on Node.js 26.12.0: `npm ci` without a warning, lint, typecheck, vitest, `vite build`, Playwright and `scripts/gen-clients.sh` pass, and the generated `schema.d.ts` is byte-identical. Neither tool has a newer line (typescript-eslint `canary` 8.71.3-alpha.14, openapi-typescript `next` 7.0.0-rc.1) | 2026-10-18 |
 | typescript-eslint | 8.71.2 | 2026-10-12 | https://registry.npmjs.org/typescript-eslint | 2026-10-17 |
 | eslint | 10.13.0 | 2026-10-16 | https://registry.npmjs.org/eslint | 2026-10-17 |
 | tailwindcss | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/tailwindcss | 2026-10-17 |
@@ -92,13 +92,13 @@ All rows except typescript are the `latest` dist-tag.
 
 ### Known peer constraints
 
-- openapi-typescript 7.13.0: peer `typescript ^5.x`.
+- openapi-typescript 7.13.0: peer `typescript ^5.x`, overridden to the pinned typescript by the `overrides` entry in `web/package.json` (the only override in `web/`; drop it once the peer range covers the pinned release).
 - typescript-eslint 8.71.2: peers `typescript >=4.8.4 <6.1.0` and `eslint ^8.57.0 || ^9.0.0 || ^10.0.0`.
 - @vitejs/plugin-react 6.1.2: peer `vite ^8.0.0`. @tailwindcss/vite 4.3.3: peer `vite ^5.2.0 || ^6 || ^7 || ^8`. vitest 5.0.5: peer `vite ^6.4.0 || ^7.0.0 || ^8.0.0`.
 - react-dom 19.3.1: peer `react ^19.3.1`.
 - Node.js engines: vitest 5.0.5 needs `^22.12.0 || ^24.0.0 || >=26.0.0`, eslint 10.13.0 needs `^20.19.0 || ^22.13.0 || >=24`; Node.js 26.12.0 satisfies both.
-- The whole set above resolves on Node.js 26.12.0 and npm 11.20.0 (checked 2026-10-18: `npm ci` installs the committed lock without a peer warning, one copy each of typescript and vite). With typescript 6.0.3 or 7.0.2 `npm ci` and `npm install --package-lock-only` fail with `ERESOLVE` (`peer typescript@"^5.x" from openapi-typescript@7.13.0`). `--legacy-peer-deps`, `--force` and `overrides` are not used.
-- Revisit TypeScript when both openapi-typescript and typescript-eslint accept 6.x or 7.x.
+- The whole set above resolves on Node.js 26.12.0 and npm 11.20.0 (checked 2026-10-18: `npm ci` installs the committed lock without a peer warning, one copy each of typescript and vite). Without the override, `npm ci` and `npm install --package-lock-only` fail with `ERESOLVE` (`peer typescript@"^5.x" from openapi-typescript@7.13.0`) for typescript 6.0.3 and 7.0.2. `--legacy-peer-deps` and `--force` are not used: either switches peer checks off for every package, and as an `.npmrc` setting the first would not reach the `opennote-web` builder, which copies only `package.json` and `package-lock.json` before `npm ci`.
+- Revisit TypeScript 7 when typescript-eslint accepts it and openapi-typescript runs on the native compiler.
 
 ### shadcn/ui files
 

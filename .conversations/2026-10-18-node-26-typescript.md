@@ -9,11 +9,13 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 | 17:26 | Flemming | "go", answering "ready for your squash merge" on the Phase 0 pull request (#3) → squash-merged as `ad3d007` |
 | 17:49 | Flemming | Chose "Drop swift" on the decision card "Handle Dependabot's Swift updater, which cannot read tools version 6.4, how?" → pull request #7, squash-merged as `f8aa89a` |
 | 17:50 | Flemming | "Bunp to node 26 and ts 7" |
+| 20:48 | Flemming | Chose "6.0.3 with override" on the decision card "Ship which TypeScript in the Node 26 pull request?", two hours after merging pull request #8 with 5.9.3 → branch `chore/typescript-6`, a second pull request |
 
 ## How the prompt was read
 
 - "node 26": move the whole web toolchain to Node.js 26.12.0 in one change (`.nvmrc`, `engines`, `@types/node`, the `opennote-web` builder image, the docs) instead of merging Dependabot's separate pull requests #4 (`@types/node` 26.6.5) and #6 (builder image `node:26.12.0-trixie-slim`), which Dependabot closes itself once `main` carries the versions.
 - "ts 7": TypeScript 7.0.2 (Dependabot #5) and the bridge release 6.0.3 were both tried on the branch and neither could ship; see R105. The choice is put to Flemming on a decision card, with 5.9.3 kept meanwhile.
+- "6.0.3 with override": the card's option said `legacy-peer-deps=true` in `web/.npmrc`, so npm would stop checking peer ranges for every package. The change uses an npm `overrides` entry on the one conflicting peer edge instead (R109): the same outcome, TypeScript 6.0.3 installed by `npm ci`, with less switched off than the card described.
 
 ## Rulings
 
@@ -21,7 +23,9 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 - R106: the lockfile is `main`'s lock plus one direct change (`npm install --save-exact @types/node@26.6.5` on npm 11.20.0), not a regenerated one, so no transitive pin moves. `npm install --package-lock-only` on npm 11.20.0 would also add `inBundle` entries for `@tailwindcss/oxide-wasm32-wasi`'s bundled dependencies; that churn is left out.
 - R107: the builder image digest `sha256:0d1e3358…` was read from the Docker Hub tag API on 2026-10-18; Dependabot's pull request #6 carries the same digest.
 - R108: Node.js 26 is adopted ten days before it enters Active LTS (2026-10-28 in the nodejs/Release schedule); v24 enters Maintenance on 2026-10-20, so waiting would leave the project on a maintenance line. versions.md records both dates.
+- R109: TypeScript 6.0.3 ships with `"overrides": {"openapi-typescript": {"typescript": "$typescript"}}` in `web/package.json`, not `legacy-peer-deps`. Both make `npm ci` accept 6.0.3 (checked in a scratch copy on npm 11.20.0), but the override relaxes only openapi-typescript's `^5.x` edge, keeps every other peer check (typescript-eslint's `<6.1.0` still blocks 6.1 until it is supported), follows the pinned release through `$typescript`, and lives in `package.json`, which the `opennote-web` builder copies; `legacy-peer-deps` in `web/.npmrc` would not reach that builder (its `npm ci` failed with `ERESOLVE` without the file in the same scratch test) and switches peer checks off for every package. Supersedes R21's "no overrides". Cost if wrong: one entry in `web/package.json`.
+- R110: pull request #8 was merged by Flemming as merge commit `0268014`, not squash-merged as the Output line below first said (CodeRabbit flagged the wording while the pull request was open); the line now records what happened.
 
 ## Output
 
-Branch `chore/node-26-ts-7` in `.worktrees/toolchain/`, one pull request to `main`, squash-merged after review and green CI.
+Branch `chore/node-26-ts-7` in `.worktrees/toolchain/`: pull request #8 (Node.js 26.12.0, TypeScript 5.9.3), merged by Flemming on 2026-10-18 at 18:44 UTC as merge commit `0268014`. Branch `chore/typescript-6` in the same worktree: a second pull request to `main` (TypeScript 6.0.3 with the override, R109), to be merged after review and green CI.
