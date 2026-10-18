@@ -15,20 +15,27 @@ LABEL org.opencontainers.image.title="opennote-postgres" \
       org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
       org.opencontainers.image.licenses="PostgreSQL"
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Packages are signature-checked against the PGDG key, fetched over HTTPS and imported only
 # if its fingerprint is D4BF 08AE 67A0 B4C7 A1DB  CCD2 40BC A2B4 08B4 0D20 ("PostgreSQL RPM
-# Repository", created 2023-12-19, no expiry; rpm lists it as gpg-pubkey-08b40d20-6581afc1).
-# An OpenPGP v4 fingerprint is the SHA-1 of the key's public-key packet, which for this key is
-# the first 400 bytes of the decoded file (header 0x99, length 397), so no gpg is needed.
+# Repository", created 2023-12-19, no expiry; rpm lists it as gpg-pubkey-08b40d20-6581afc1)
+# and the whole decoded key (1774 bytes: the key, its user ID, a subkey and their signatures)
+# has the pinned SHA-256, so nothing can be appended behind the right primary key. An
+# OpenPGP v4 fingerprint is the SHA-1 of the key's public-key packet, which for this key is
+# the first 400 decoded bytes (header 0x99, length 397), so no gpg is needed.
 # $basearch is expanded by microdnf, not the shell.
 # hadolint ignore=SC2016
 RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
     && curl --fail --silent --show-error --location --output "$key" \
         https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL \
-    && fingerprint=$(sed -n '/^$/,/^=/p' "$key" | grep -v '^=' | base64 -d | head -c 400 \
-        | sha1sum | cut -d ' ' -f 1) \
-    && echo "PGDG key fingerprint: $fingerprint" \
+    && sed -n '/^$/,/^=/p' "$key" | grep -v '^=' | base64 -d > /tmp/pgdg-key.bin \
+    && fingerprint=$(head -c 400 /tmp/pgdg-key.bin | sha1sum | cut -d ' ' -f 1) \
+    && payload=$(sha256sum < /tmp/pgdg-key.bin | cut -d ' ' -f 1) \
+    && rm /tmp/pgdg-key.bin \
+    && echo "PGDG key fingerprint: $fingerprint, decoded key sha256: $payload" \
     && test "$fingerprint" = d4bf08ae67a0b4c7a1dbccd240bca2b408b40d20 \
+    && test "$payload" = 0f206e45758cfc3d926aab50fd1d4f2f13571a26dc1393097c8db91fec0ef3bd \
     && rpm --import "$key" \
     && printf '%s\n' '[pgdg18]' \
         'name=PostgreSQL 18 for RHEL 9 - $basearch' \
