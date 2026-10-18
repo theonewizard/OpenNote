@@ -1,5 +1,6 @@
 # Containers: build the images, run the full stack and the dev stack with smoke tests,
-# run them as an arbitrary UID, and scan the images with Trivy
+# run them as an arbitrary UID, and scan the images with Trivy; weekly as well as on every
+# push and pull request, so new fixes in the base images and packages are picked up
 # (docs/development/setup.md, "Continuous integration").
 name: containers
 
@@ -8,6 +9,8 @@ on:
   push:
     branches: [main, "feature/**", "fix/**", "security/**"]
   workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
