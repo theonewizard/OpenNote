@@ -69,8 +69,9 @@ jobs:
             -e OPENNOTE_DATABASE_URL=postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote \
             -e OPENNOTE_VALKEY_URL=redis://127.0.0.1:6379/0 -e OPENNOTE_VAULT_ROOT=/var/lib/opennote/vaults \
             -e OPENNOTE_HISTORY_ROOT=/var/lib/opennote/history -e OPENNOTE_ENVIRONMENT=test opennote-api:dev
-          # /healthz needs no database.
-          curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 \
+          # /healthz needs no database. Until uvicorn listens, docker's port proxy accepts the
+          # connection and resets it (curl exit 56), which only --retry-all-errors retries.
+          curl --fail --silent --show-error --max-time 5 --retry 30 --retry-all-errors --retry-delay 1 \
             http://127.0.0.1:18000/healthz
           echo
           docker rm -f api-uid
