@@ -1,0 +1,79 @@
+# Dependabot version updates: weekly on Monday, minor and patch updates grouped into one pull
+# request per ecosystem, majors one by one. Versions are recorded in
+# docs/development/versions.md; a pull request that changes a pin updates its row there.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      pip-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      github-actions-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories:
+      - /infrastructure/containers/api
+      - /infrastructure/containers/postgres
+      - /infrastructure/containers/valkey
+      - /infrastructure/containers/web
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      docker-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: swift
+    directories:
+      - /apple/Packages/OpenNoteAPI
+      - /apple/Packages/OpenNoteCore
+      - /apple/Packages/OpenNoteEditor
+      - /apple/Packages/OpenNoteStorage
+      - /apple/Packages/OpenNoteSync
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      swift-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker-compose
+    directory: /infrastructure/compose
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies]
+    groups:
+      docker-compose-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]

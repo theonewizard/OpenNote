@@ -1,0 +1,6 @@
+# Reviewed gitleaks false positives, one finding fingerprint per line
+# (<commit>:<file>:<rule>:<line>). Add one only after checking that the finding is no secret.
+#
+# The spec's risk table, row R10: the word for registry authentication followed by the
+# PGDG and pgvector package names matches the generic-api-key rule. It is prose.
+217a00a970a23abbda0e428df0da64625ef53ada:docs/superpowers/specs/2026-10-17-opennote-architecture-design.md:generic-api-key:89

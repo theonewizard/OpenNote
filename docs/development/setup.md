@@ -144,6 +144,27 @@ scripts/gen-openapi.sh && scripts/gen-clients.sh && git diff --exit-code docs/ap
 
 It exits 1 and prints the difference when a committed file no longer matches the backend.
 
+## 9. Continuous integration
+
+GitHub Actions runs five workflows from `.github/workflows/` on every pull request, on pushes to `main`, `feature/**`, `fix/**` and `security/**`, and on demand (added in Phase 0 Task 9). They need no secrets beyond the `GITHUB_TOKEN` GitHub provides, with read-only permissions. The pinned actions, tools and runner images are in [versions.md](versions.md#continuous-integration).
+
+| Workflow | Runs | Locally |
+|---|---|---|
+| `backend` | The backend lines of `make bootstrap`, `make lint` and `make typecheck`, and `pytest` (unit and integration), on Python 3.13 and 3.14, against PostgreSQL 18 with pgvector and Valkey service containers; a separate job runs `make bootstrap`, `make openapi` and the drift check of section 8 | `make up-deps`, then `make lint typecheck test` |
+| `web` | `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, then the Playwright tests in Chromium | In `web/`: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, then `npx playwright install chromium` once and `npm run test:e2e` |
+| `apple` | On macOS with Xcode 27.1: `swift test` for each package, `xcodegen generate` and unsigned builds of both schemes. On Linux, in the Swift 6.4.1 image: `swift test` for `OpenNoteCore` and `OpenNoteStorage`. Both jobs fail when `swift test` changes or adds a `Package.resolved` file | Section 7 |
+| `containers` | Builds the images, starts the full stack with migrations and runs both smoke tests, checks the migration, runs the api image and the full stack as an arbitrary UID in group 0, starts the dev stack and checks the test database's extensions, then scans each image with Trivy (HIGH and CRITICAL with a fix fail the job) | Section 6 |
+| `security` | gitleaks over the pushed or pull-request commits (the whole history when run on demand or on schedule), `pip-audit --strict` over both requirements files, `bandit -r backend/app`, `npm audit --audit-level=high` in `web/`, and a Trivy scan of the repository for vulnerable dependencies, misconfigurations and secrets; also every Monday at 06:00 UTC | `.venv/bin/pip-audit -r backend/requirements.txt -r backend/requirements-dev.txt --strict`, `.venv/bin/bandit -r backend/app -q`, `cd web && npm audit --audit-level=high` |
+
+A gitleaks finding that is not a secret is recorded by its fingerprint in `.gitleaksignore`, with the reason. Dependabot (`.github/dependabot.yml`) proposes updates every Monday for the pip, npm, GitHub Actions, container image, Swift and Compose dependencies, minor and patch updates grouped into one pull request per ecosystem; a pull request that changes a pin also updates its row in versions.md.
+
+Optional local hooks run checks on each commit: large files, merge-conflict markers, YAML syntax, final newlines, trailing whitespace, private keys, ruff on `backend/`, and gitleaks on the staged changes (`.pre-commit-config.yaml`):
+
+```bash
+.venv/bin/pre-commit install          # once per clone
+.venv/bin/pre-commit run --all-files  # every file, not only the staged ones
+```
+
 ## Other targets
 
 | Target | What it does |

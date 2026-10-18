@@ -9,6 +9,15 @@ Status: Proposed (2026-10-17). `CLAUDE.md` is authoritative; this page applies i
 - `.worktrees/` is git-ignored.
 - Completed work is squash-merged into `main` through a pull request after CI is green and the diff is reviewed. `main` is never force-pushed.
 
+### Branch protection
+
+Recommended settings for `main` (repository settings, "Branches"; the repository owner sets them, CI cannot):
+
+- Require a pull request before merging.
+- Require these status checks to pass: the jobs of the five workflows `backend`, `web`, `apple`, `containers` and `security` (`.github/workflows/`; docs/development/setup.md, "Continuous integration").
+- Block force pushes (and deletion of `main`).
+- Allow squash merging only.
+
 ## Per feature
 
 For each significant feature (design §15.6):

@@ -47,6 +47,9 @@ How to read the rows:
 | mypy | 2.4.0 | 2026-10-01 | https://pypi.org/pypi/mypy/json | 2026-10-17 |
 | starlette | 1.8.0 | 2026-10-13 | https://pypi.org/pypi/starlette/json. Imported directly by the backend, so pinned explicitly; the version fastapi 0.143.3 resolves | 2026-10-17 |
 | httpx2 | 2.13.1 | 2026-09-23 | https://pypi.org/pypi/httpx2/json. Test client behind Starlette's `TestClient`; Starlette 1.8.0 deprecates `httpx` there in favour of `httpx2` (https://github.com/pydantic/httpx2) | 2026-10-17 |
+| pip-audit | 2.10.1 | 2026-06-10 | https://pypi.org/pypi/pip-audit/json. Audits both requirements files against the PyPI vulnerability data in `security.yml` | 2026-10-18 |
+| bandit | 1.9.4 | 2026-02-25 | https://pypi.org/pypi/bandit/json. `bandit -r backend/app` in `security.yml`, alongside ruff's `S` rules | 2026-10-18 |
+| pre-commit | 4.7.0 | 2026-10-12 | https://pypi.org/pypi/pre-commit/json. Runs the optional local hooks in `.pre-commit-config.yaml` | 2026-10-18 |
 
 None of these excludes Python 3.13 or 3.14 through `requires-python` (highest floor: `>=3.11`, SQLAlchemy and pydantic-settings).
 
@@ -128,6 +131,47 @@ When a component needs `shadcn/tailwind.css` (its `data-open` and similar varian
 | Helm | v4.3.1 | 2026-10-15 | Not verified from this environment: https://github.com/helm/helm/releases and https://get.helm.sh are blocked. Read instead: the Go module proxy, https://proxy.golang.org/helm.sh/helm/v4/@latest (v3 line: v3.22.1) | 2026-10-17 |
 | Docker Compose | v5.6.0 | 2026-10-02 | Not verified from this environment: https://github.com/docker/compose/releases is blocked. Read instead: https://proxy.golang.org/github.com/docker/compose/v5/@latest (no v6 module) | 2026-10-17 |
 | Podman | v6.1.4 | 2026-10-12 | Not verified from this environment: https://github.com/containers/podman/releases is blocked. Read instead: https://proxy.golang.org/go.podman.io/podman/v6/@latest (no v7 module at go.podman.io) | 2026-10-17 |
+
+## Continuous integration
+
+### GitHub Actions
+
+Every `uses:` in `.github/workflows/` names the full commit SHA of a release tag, with the tag as a comment; Dependabot's `github-actions` updates keep them current. Each SHA was resolved with `git ls-remote --tags https://github.com/<owner>/<repo>` (the peeled commit of an annotated tag) and checked to lie on the repository's default branch. Release pages on github.com are blocked from this environment, so "Released" is the date of the tagged commit.
+
+| Action | Version | Commit | Released | Checked |
+|---|---|---|---|---|
+| actions/checkout | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | 2026-07-17 | 2026-10-18 |
+| actions/setup-python | v7.0.0 | `5fda3b95a4ea91299a34e894583c3862153e4b97` | 2026-07-19 | 2026-10-18 |
+| actions/setup-node | v7.1.0 | `949feb2413d6458794dcd2491c4babbbce0c15c1` | 2026-10-07 | 2026-10-18 |
+| aquasecurity/trivy-action | v0.36.0 | `ed142fd0673e97e23eac54620cfb913e5ce36c25` (annotated, signed tag) | 2026-04-22 | 2026-10-18 |
+| gitleaks/gitleaks-action | v3.0.0 | `e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e` | 2026-05-30 | 2026-10-18 |
+
+### Tools the actions install
+
+| Tool | Version | Released | Source | Checked |
+|---|---|---|---|---|
+| Trivy | v0.76.0 | 2026-10-14 | Set with the action's `version` input in `containers.yml` and `security.yml`; trivy-action v0.36.0 defaults to v0.70.0, and its `master` already defaults to v0.76.0. `git ls-remote --tags https://github.com/aquasecurity/trivy` (commit `531360e5d2a88e732373f1614ba99a38738538b8`), the same as https://proxy.golang.org/github.com/aquasecurity/trivy/@v/v0.76.0.info | 2026-10-18 |
+| gitleaks | 8.30.1 | 2026-03-12 (tagged commit) | Set with `GITLEAKS_VERSION` in `security.yml`; gitleaks-action v3.0.0 defaults to 8.24.3. `git ls-remote --tags https://github.com/gitleaks/gitleaks`: the tag points to `83d9cd684c87d95d656c1458ef04895a7f1cbd8e`, which is on no branch and changes only `.goreleaser.yml` on top of `8d1f98c7967eb1e79cb44ac6241a124e145d2165` (2026-02-21), the commit the Go module proxy recorded for v8.30.1 (https://proxy.golang.org/github.com/zricethezav/gitleaks/v8/@latest). The tag was moved once to fix the release build; the source is the same | 2026-10-18 |
+| XcodeGen on the macOS runner | newest Homebrew formula (not pinned) | — | `brew install xcodegen` in `apple.yml`; the job prints `xcodegen --version`. `apple/project.yml` requires 2.46.0 or newer (XcodeGen row above) | 2026-10-18 |
+
+### CI runners
+
+| Label | Image | Source | Checked |
+|---|---|---|---|
+| `ubuntu-latest` | Ubuntu 24.04 (x64) | https://raw.githubusercontent.com/actions/runner-images/main/README.md | 2026-10-18 |
+| `xcode-27` | macOS 27.0.1, arm64, image 20261012.0260.1, a public preview. Xcode 27.1 (27A9275) is at `/Applications/Xcode_27.1.app` (a link to `Xcode_27.1_Release_Candidate.app`, the same build as the release); the image default is 27.0 and 27.2 is a beta, so `apple.yml` selects 27.1 explicitly. Simulator runtimes: iOS 27.0 only | https://raw.githubusercontent.com/actions/runner-images/main/images/macos/xcode-27-arm64-Readme.md. `macos-latest` and `macos-26` carry Xcode 26.x only (https://raw.githubusercontent.com/actions/runner-images/main/images/macos/macos-26-arm64-Readme.md) | 2026-10-18 |
+
+The service and job containers are the pgvector, Valkey and Swift images of the rows above, by tag and digest.
+
+### pre-commit hooks
+
+`.pre-commit-config.yaml` pins each hook repository to the commit its tag pointed to on the check date (`git ls-remote --tags`), with the tag in a `# frozen:` comment.
+
+| Hook repository | Version | Commit | Released | Checked |
+|---|---|---|---|---|
+| pre-commit/pre-commit-hooks | v6.0.0 | `3e8a8703264a2f4a69428a0aa4dcb512790b2c8c` | 2025-08-09 | 2026-10-18 |
+| astral-sh/ruff-pre-commit | v0.17.1 (ruff 0.17.1, as in `requirements-dev.txt`) | `38bfb07c0c64c304f47eb52090f8288150c77730` | 2026-10-15 | 2026-10-18 |
+| gitleaks/gitleaks | v8.30.1 (see Tools the actions install) | `83d9cd684c87d95d656c1458ef04895a7f1cbd8e` | 2026-03-12 | 2026-10-18 |
 
 ## Python decision
 

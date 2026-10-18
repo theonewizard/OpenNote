@@ -1,0 +1,153 @@
+# Containers: build the images, run the full stack and the dev stack with smoke tests,
+# run them as an arbitrary UID, and scan the images with Trivy
+# (docs/development/setup.md, "Continuous integration").
+name: containers
+
+on:
+  pull_request:
+  push:
+    branches: [main, "feature/**", "fix/**", "security/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  FULL: infrastructure/compose/compose.yaml
+  DEV: infrastructure/compose/compose.dev.yaml
+
+jobs:
+  images:
+    name: build, run, scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the images with the tags compose.yaml expects
+        id: build
+        run: docker compose -f "$FULL" build
+
+      - name: Versions installed in the images
+        run: |
+          docker run --rm --entrypoint rpm opennote-api:dev -q python3.14
+          docker run --rm --entrypoint rpm opennote-web:dev -q nginx-core
+          docker run --rm --entrypoint rpm opennote-postgres:dev -q \
+            postgresql18-server postgresql18-contrib pgvector_18
+          docker run --rm --entrypoint rpm opennote-postgres:dev -q gpg-pubkey \
+            --queryformat '%{NAME}-%{VERSION}-%{RELEASE} %{SUMMARY}\n'
+          docker run --rm --entrypoint valkey-server opennote-valkey:dev --version
+
+      # .env from the template: without it the stack refuses to start, by design.
+      - name: Full stack, smoke tests, migration
+        run: |
+          cp infrastructure/compose/.env.example infrastructure/compose/.env
+          OPENNOTE_MIGRATE_ON_START=true docker compose -f "$FULL" up -d --wait --wait-timeout 300
+          scripts/smoke-test.sh http://localhost:8080
+          scripts/smoke-test.sh --api-only http://localhost:8000
+          version=$(docker compose -f "$FULL" exec -T postgres \
+            psql -h /tmp -U opennote -d opennote -Atc 'select version_num from alembic_version')
+          echo "alembic_version: $version"
+          [[ $version == 0001 ]]
+          # Volumes created by UID 1001 must not carry over to the arbitrary-UID run.
+          docker compose -f "$FULL" down -v
+
+      - name: Arbitrary UID, api image
+        run: |
+          docker run --rm --user 1000870000:0 --read-only --tmpfs /tmp opennote-api:dev python -c "import app"
+          docker run -d --name api-uid --user 123456:0 --read-only --tmpfs /tmp -p 127.0.0.1:18000:8000 \
+            -e OPENNOTE_DATABASE_URL=postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote \
+            -e OPENNOTE_VALKEY_URL=redis://127.0.0.1:6379/0 -e OPENNOTE_VAULT_ROOT=/var/lib/opennote/vaults \
+            -e OPENNOTE_HISTORY_ROOT=/var/lib/opennote/history -e OPENNOTE_ENVIRONMENT=test opennote-api:dev
+          # /healthz needs no database.
+          curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 \
+            http://127.0.0.1:18000/healthz
+          echo
+          docker rm -f api-uid
+
+      - name: Arbitrary UID, full stack
+        run: |
+          cat > "$RUNNER_TEMP/compose.uid.yaml" <<'YAML'
+          services:
+            api: {user: "1000870000:0"}
+            worker: {user: "1000870000:0"}
+            web: {user: "1000870000:0"}
+            postgres: {user: "1000870000:0"}
+            valkey: {user: "1000870000:0"}
+          YAML
+          OPENNOTE_MIGRATE_ON_START=true docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" \
+            up -d --wait --wait-timeout 300
+          scripts/smoke-test.sh http://localhost:8080
+          docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" down -v
+
+      - name: Dev stack (make up-deps) with the test database
+        run: |
+          docker compose -f "$DEV" up -d --wait --wait-timeout 300 postgres valkey
+          extensions=$(docker compose -f "$DEV" exec -T postgres psql -h /tmp -U opennote -d opennote_test \
+            -Atc "select string_agg(extname, ',' order by extname) from pg_extension")
+          echo "opennote_test extensions: $extensions"
+          [[ $extensions == pg_trgm,plpgsql,vector ]]
+          docker compose -f "$DEV" down -v
+
+      - name: Logs
+        if: failure()
+        run: |
+          docker compose -f "$FULL" logs --no-color
+          docker compose -f "$DEV" logs --no-color
+          docker logs api-uid || true
+
+      - name: Teardown
+        if: always()
+        run: |
+          docker rm -f api-uid || true
+          docker compose -f "$FULL" down -v
+          docker compose -f "$DEV" down -v
+          rm -f infrastructure/compose/.env
+
+      # The scans run whenever the images were built, also after a failed stack step.
+      - name: Trivy opennote-api:dev
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: opennote-api:dev
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Trivy opennote-web:dev
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: opennote-web:dev
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Trivy opennote-postgres:dev
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: opennote-postgres:dev
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: Trivy opennote-valkey:dev
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.0
+          image-ref: opennote-valkey:dev
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
