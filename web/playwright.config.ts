@@ -7,6 +7,8 @@ const executablePath = process.env.OPENNOTE_PW_EXECUTABLE;
 export default defineConfig({
   testDir: "tests/e2e",
   reporter: "list",
+  // A test.only left in a commit fails CI instead of skipping every other test.
+  forbidOnly: !!process.env.CI,
   use: {
     browserName: "chromium",
     baseURL: "http://127.0.0.1:4173",

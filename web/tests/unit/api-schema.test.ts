@@ -20,6 +20,12 @@ describe("generated API types", () => {
     >().toEqualTypeOf<Schemas["ServerMeta"]>();
   });
 
+  it("type /readyz's 503 body as ProbeStatus", () => {
+    expectTypeOf<
+      Get<"/readyz">["responses"][503]["content"]["application/json"]
+    >().toEqualTypeOf<Schemas["ProbeStatus"]>();
+  });
+
   it("type every operation's errors as problem details", () => {
     type ProblemContent = { "application/problem+json": Schemas["ProblemDetails"] };
     expectTypeOf<
