@@ -8,7 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from app.core.config import Settings, SettingsError, get_settings, load_settings
+from app.core.config import (
+    Settings,
+    SettingsError,
+    get_settings,
+    load_database_url,
+    load_settings,
+)
 from tests.conftest import PLACEHOLDER_ENV
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -109,6 +115,40 @@ def test_secret_file_that_is_a_directory_or_not_utf8_is_invalid(monkeypatch, tmp
     with pytest.raises(SettingsError, match="database_url") as e:
         load_settings()
     assert str(path) not in full_traceback(e.value)
+
+
+def only_database_url_set(monkeypatch):
+    for name in [n for n in os.environ if n.startswith("OPENNOTE_")]:
+        if name != "OPENNOTE_DATABASE_URL":
+            monkeypatch.delenv(name)
+
+
+def test_database_url_alone_is_enough_for_migrations(monkeypatch):
+    only_database_url_set(monkeypatch)
+    assert load_database_url() == PLACEHOLDER_ENV["OPENNOTE_DATABASE_URL"]
+
+
+def test_database_url_for_migrations_is_read_from_file(monkeypatch, tmp_path):
+    only_database_url_set(monkeypatch)
+    url = "postgresql+psycopg://opennote:from-file@db.internal:5432/opennote"
+    secret = tmp_path / "database_url"
+    secret.write_text(url + "\n")
+    monkeypatch.delenv("OPENNOTE_DATABASE_URL")
+    monkeypatch.setenv("OPENNOTE_DATABASE_URL_FILE", str(secret))
+    assert load_database_url() == url
+
+
+@pytest.mark.parametrize("value", [None, "", "postgresql://u:hunter2@/"])
+def test_missing_or_invalid_database_url_names_only_the_field(monkeypatch, value):
+    only_database_url_set(monkeypatch)
+    if value is None:
+        monkeypatch.delenv("OPENNOTE_DATABASE_URL")
+    else:
+        monkeypatch.setenv("OPENNOTE_DATABASE_URL", value)
+    with pytest.raises(SettingsError) as e:
+        load_database_url()
+    assert str(e.value) == "invalid or missing settings: database_url"
+    assert "hunter2" not in full_traceback(e.value)
 
 
 def test_settings_repr_and_str_hide_the_connection_urls():

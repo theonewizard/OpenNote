@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+from starlette.datastructures import State
 
 from app.core.config import Settings
 
@@ -33,19 +34,30 @@ async def readyz(request: Request, response: Response) -> ProbeStatus:
     """Ready when PostgreSQL and Valkey answer and both data directories are writable.
 
     The checks run concurrently, each under its own timeout, so the probe answers in
-    about one timeout even when a host is unreachable.
+    about one timeout even when a host is unreachable. The route is keyless, so probes
+    that arrive while checks are running share them instead of opening more connections;
+    a finished run is never reused, so there is no cached result.
     """
-    settings: Settings = request.app.state.settings
-    checks = await asyncio.gather(
-        check_database(request.app.state.engine),
+    state = request.app.state
+    checks: asyncio.Task[bool] | None = getattr(state, "readiness_checks", None)
+    if checks is None or checks.done():
+        checks = state.readiness_checks = asyncio.create_task(_run_checks(state))
+    # shield: one probe that goes away must not cancel the checks others are awaiting.
+    if await asyncio.shield(checks):
+        return ProbeStatus(status="ok")
+    response.status_code = 503
+    return ProbeStatus(status="fail")
+
+
+async def _run_checks(state: State) -> bool:
+    settings: Settings = state.settings
+    results = await asyncio.gather(
+        check_database(state.engine),
         check_valkey(str(settings.valkey_url)),
         check_directory("vault_root", settings.vault_root),
         check_directory("history_root", settings.history_root),
     )
-    if all(checks):
-        return ProbeStatus(status="ok")
-    response.status_code = 503
-    return ProbeStatus(status="fail")
+    return all(results)
 
 
 # Each check owns its timeout (hence noqa ASYNC109): readyz runs them side by side and a
@@ -57,8 +69,7 @@ async def check_database(engine: AsyncEngine, timeout: float = 2.0) -> bool:  # 
 
 async def check_valkey(url: str, timeout: float = 2.0) -> bool:  # noqa: ASYNC109
     """True when Valkey answers PING within `timeout` seconds; the client lives for one call."""
-    async with Redis.from_url(url, socket_connect_timeout=timeout) as client:
-        return await _passes("valkey", client.ping(), timeout)
+    return await _passes("valkey", _ping(url, timeout), timeout)
 
 
 async def check_directory(check: str, path: Path, timeout: float = 2.0) -> bool:  # noqa: ASYNC109
@@ -72,8 +83,14 @@ async def _select_one(engine: AsyncEngine) -> bool:
     return True
 
 
+async def _ping(url: str, seconds: float) -> bool:
+    # Building and closing the client are guarded too: errors there mean not ready.
+    async with Redis.from_url(url, socket_connect_timeout=seconds) as client:
+        return await client.ping()
+
+
 def _is_writable_directory(path: Path) -> bool:
-    # Runs in a thread: a stat on a hung network mount must not block the event loop.
+    # In a thread so a hung network mount cannot block the loop; wait_for cannot stop it.
     return path.is_dir() and os.access(path, os.W_OK | os.X_OK)
 
 

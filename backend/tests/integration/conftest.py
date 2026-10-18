@@ -2,10 +2,13 @@
 
 The services are found through OPENNOTE_TEST_DATABASE_URL and OPENNOTE_TEST_VALKEY_URL,
 which default to the dev Compose addresses; opennote/opennote is a throwaway placeholder.
+The test database's name must end in _test: the migration tests downgrade it to base,
+which drops the vector and pg_trgm extensions, so the run refuses any other database.
 """
 
 import os
-from collections.abc import AsyncIterator, Callable
+import socket
+from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -13,6 +16,7 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
+from sqlalchemy import make_url
 
 from app.api.main import create_app
 from app.core.config import Settings
@@ -22,6 +26,15 @@ DEFAULT_VALKEY_URL = "redis://127.0.0.1:6379/0"
 # Nothing listens on port 9, so connecting is refused at once. The password is a marker
 # that tests look for in logs.
 DEAD_DATABASE_URL = "postgresql+psycopg://opennote:dead-db-password@127.0.0.1:9/opennote_test"
+TEST_DATABASE_URL = os.environ.get("OPENNOTE_TEST_DATABASE_URL", DEFAULT_DATABASE_URL)
+
+
+def pytest_collection_modifyitems() -> None:
+    """Stop before any test runs unless the test database is named *_test."""
+    if not (make_url(TEST_DATABASE_URL).database or "").endswith("_test"):
+        raise pytest.UsageError(
+            "OPENNOTE_TEST_DATABASE_URL must name a database whose name ends in _test"
+        )
 
 
 @pytest.fixture
@@ -31,7 +44,7 @@ def anyio_backend() -> str:
 
 @pytest.fixture
 def pg_url() -> str:
-    return os.environ.get("OPENNOTE_TEST_DATABASE_URL", DEFAULT_DATABASE_URL)
+    return TEST_DATABASE_URL
 
 
 @pytest.fixture
@@ -57,6 +70,13 @@ def make_settings(pg_url: str, valkey_url: str, tmp_path: Path) -> Callable[...,
         return Settings(**(values | overrides))
 
     return make
+
+
+@pytest.fixture
+def silent_port() -> Iterator[int]:
+    """A local port that accepts connections and never answers, like a hung server."""
+    with socket.create_server(("127.0.0.1", 0)) as server:
+        yield server.getsockname()[1]
 
 
 @asynccontextmanager

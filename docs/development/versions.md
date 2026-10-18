@@ -35,7 +35,7 @@ How to read the rows:
 | pydantic-settings | 2.16.0 | 2026-10-14 | https://pypi.org/pypi/pydantic-settings/json | 2026-10-17 |
 | SQLAlchemy | 2.1.5 | 2026-10-16 | https://pypi.org/pypi/sqlalchemy/json | 2026-10-17 |
 | alembic | 1.20.0 | 2026-09-11 | https://pypi.org/pypi/alembic/json | 2026-10-17 |
-| psycopg | 3.3.6 | 2026-09-18 | https://pypi.org/pypi/psycopg/json | 2026-10-17 |
+| psycopg | 3.3.6 | 2026-09-18 | https://pypi.org/pypi/psycopg/json. Pinned as `psycopg[binary]==3.3.6`: the extra installs `psycopg-binary` 3.3.6, so local venvs and the image need no libpq build | 2026-10-17 |
 | redis (redis-py) | 8.1.0 | 2026-07-30 | https://pypi.org/pypi/redis/json. The Valkey client (Valkey speaks RESP): the readiness check now, Dramatiq's Redis broker later; one client library for both | 2026-10-17 |
 | dramatiq | 2.2.1 | 2026-09-02 | https://pypi.org/pypi/dramatiq/json | 2026-10-17 |
 | pytest | 9.1.1 | 2026-06-19 | https://pypi.org/pypi/pytest/json | 2026-10-17 |

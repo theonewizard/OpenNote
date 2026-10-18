@@ -1,18 +1,37 @@
-"""Alembic environment: runs the migrations over a synchronous psycopg 3 connection.
+"""Alembic environment: migrations run over a synchronous psycopg 3 connection, or are
+printed as SQL without connecting (`--sql`).
 
-The URL comes from `alembic -x url=...` or else from the app's settings
-(OPENNOTE_DATABASE_URL or OPENNOTE_DATABASE_URL_FILE); it is never written to a file.
+The URL comes from `alembic -x url=...` or else from OPENNOTE_DATABASE_URL (or
+OPENNOTE_DATABASE_URL_FILE); no other setting is needed and the URL is never written to
+a file. From the command line, Alembic's progress is logged as the app's JSON lines.
 """
 
 from alembic import context
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
-from app.core.config import load_settings
+from app.core.config import load_database_url
+from app.core.logging import configure_logging
 
-url = context.get_x_argument(as_dictionary=True).get("url") or str(load_settings().database_url)
 
-with create_engine(url, poolclass=NullPool).connect() as connection:
-    context.configure(connection=connection)
+def run_migrations_offline(url: str) -> None:
+    context.configure(url=url, literal_binds=True)
     with context.begin_transaction():
         context.run_migrations()
+
+
+def run_migrations_online(url: str) -> None:
+    with create_engine(url, poolclass=NullPool).connect() as connection:
+        context.configure(connection=connection)
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+# Callers that run Alembic in-process keep their own logging (Alembic's convention).
+if context.config.attributes.get("configure_logger", True):
+    configure_logging("INFO")
+url = context.get_x_argument(as_dictionary=True).get("url") or load_database_url()
+if context.is_offline_mode():
+    run_migrations_offline(url)
+else:
+    run_migrations_online(url)

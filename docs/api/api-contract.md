@@ -28,7 +28,7 @@ The complete initial `KEYLESS_ROUTES` list. Adding to it needs review.
 | Route | Why |
 |---|---|
 | `GET /healthz` | Liveness probe |
-| `GET /readyz` | Readiness probe (no details in the body beyond `ok`/`fail`) |
+| `GET /readyz` | Readiness probe: 200 `{"status": "ok"}` when PostgreSQL (`SELECT 1`) and Valkey (`PING`) answer and `vault_root` and `history_root` are writable directories, otherwise 503 `{"status": "fail"}`; no details in the body |
 | `GET /api/v1/meta` | Server version, API and sync protocol versions, enabled login methods |
 | `GET /api/v1/meta/path-rules` | Shared filename rules for clients |
 | `GET /api/v1/auth/authorize`, `POST /api/v1/auth/token`, `GET /api/v1/auth/oidc/{provider}/callback`, `POST /api/v1/auth/login` | Login and token exchange (protected by PKCE, CSRF state and rate limits) |

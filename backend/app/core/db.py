@@ -10,10 +10,17 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engin
 
 from app.core.config import Settings
 
+# A server that accepts TCP but never answers must not hold a request forever.
+DB_CONNECT_TIMEOUT_SECONDS = 5
+
 
 def engine_from_settings(settings: Settings) -> AsyncEngine:
     """Build the engine. No I/O: the pool connects on first use."""
-    return create_async_engine(str(settings.database_url), pool_pre_ping=True)
+    return create_async_engine(
+        str(settings.database_url),
+        pool_pre_ping=True,
+        connect_args={"connect_timeout": DB_CONNECT_TIMEOUT_SECONDS},
+    )
 
 
 async def session_scope(request: Request) -> AsyncIterator[AsyncSession]:

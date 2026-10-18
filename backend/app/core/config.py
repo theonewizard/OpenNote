@@ -2,11 +2,12 @@
 
 import logging
 import os
+from collections.abc import Iterable
 from functools import cache
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import Field, PostgresDsn, RedisDsn, ValidationError, field_validator
+from pydantic import Field, PostgresDsn, RedisDsn, TypeAdapter, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PREFIX = "OPENNOTE_"
@@ -47,9 +48,9 @@ class Settings(BaseSettings):
         return level
 
 
-def _secrets_from_files() -> dict[str, Any]:
+def _secrets_from_files(fields: Iterable[str] = SECRET_FIELDS) -> dict[str, Any]:
     secrets: dict[str, Any] = {}
-    for field in SECRET_FIELDS:
+    for field in fields:
         variable = ENV_PREFIX + field.upper()
         path = os.environ.get(variable + "_FILE")
         if path and not os.environ.get(variable):
@@ -80,6 +81,20 @@ def load_settings() -> Settings:
         fields = sorted({".".join(map(str, error["loc"])) for error in exc.errors()})
     # Raised outside the except block: pydantic's error echoes input values (passwords).
     raise SettingsError("invalid or missing settings: " + ", ".join(fields))
+
+
+def load_database_url() -> str:
+    """Only the database URL, for migrations: OPENNOTE_DATABASE_URL or its _FILE, validated
+    as Settings.database_url is; raise SettingsError naming the field, never the value."""
+    value = _secrets_from_files(["database_url"]).get("database_url") or os.environ.get(
+        ENV_PREFIX + "DATABASE_URL"
+    )
+    try:
+        return str(TypeAdapter(PostgresDsn).validate_python(value))
+    except ValidationError:
+        pass
+    # Raised outside the except block: pydantic's error echoes input values (passwords).
+    raise SettingsError("invalid or missing settings: database_url")
 
 
 @cache

@@ -50,7 +50,7 @@ The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); V
 make up-deps
 ```
 
-Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` (added in Phase 0 Task 6) on `127.0.0.1:5432` and `127.0.0.1:6379`. Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps` (added in Phase 0 Task 3). Use `COMPOSE="podman compose"` with any Compose target to use Podman.
+Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` (added in Phase 0 Task 6) on `127.0.0.1:5432` and `127.0.0.1:6379`. Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps` (added in Phase 0 Task 3). The test database's name must end in `_test` (default `opennote_test`): the migration tests upgrade it and downgrade it to base, dropping the `vector` and `pg_trgm` extensions, so the integration tests refuse to run against any other database. Use `COMPOSE="podman compose"` with any Compose target to use Podman.
 
 ## 4. Lint, type-check, test
 
