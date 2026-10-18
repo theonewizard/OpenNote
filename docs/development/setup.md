@@ -8,7 +8,7 @@ How to set up a working copy and run the checks CI runs. Describes the repositor
 |---|---|
 | Git, GNU Make | everything |
 | Python 3.13 or 3.14 (the versions CI tests) | backend, worker |
-| Node.js 24 LTS with npm (`web/.npmrc` sets `engine-strict`, so npm refuses to install with a Node.js or npm outside `web/package.json`'s `engines`) | web app |
+| Node.js 26 with npm (`web/.npmrc` sets `engine-strict`, so npm refuses to install with a Node.js or npm outside `web/package.json`'s `engines`) | web app |
 | Docker with Compose, or Podman with `podman compose` (supported by design but untested; only Docker has been exercised) | PostgreSQL and Valkey for integration tests; the full stack |
 | macOS with Xcode and XcodeGen | Apple apps only |
 
