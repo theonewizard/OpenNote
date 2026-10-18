@@ -7,7 +7,7 @@ name: apple
 on:
   pull_request:
   push:
-    branches: [main, "feature/**", "fix/**", "security/**"]
+    branches: [main, "feature/**", "fix/**", "security/**", "docs/**"]
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  # A newer push cancels a branch's running run; runs on main and scheduled runs finish.
+  # A newer push cancels a branch's running run; runs on main finish.
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.event_name != 'schedule' }}
 
 defaults:

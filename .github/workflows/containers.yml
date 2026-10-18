@@ -1,14 +1,15 @@
 # Containers: build the images, run the full stack and the dev stack with smoke tests,
-# run them as an arbitrary UID, and scan the images with Trivy; weekly as well as on every
-# push and pull request, so new fixes in the base images and packages are picked up. A
-# second job, manifests, lints, renders and validates the Kubernetes, Helm and OpenShift
-# manifests (docs/development/setup.md, "Continuous integration").
+# run them as an arbitrary UID, and scan the images with Trivy; on every push and pull
+# request, and on Mondays to pick up findings published since the last run and newer
+# unpinned RPMs (the base images are pinned by digest). A second job, manifests, lints,
+# renders and validates the Kubernetes, Helm and OpenShift manifests
+# (docs/development/setup.md, "Continuous integration").
 name: containers
 
 on:
   pull_request:
   push:
-    branches: [main, "feature/**", "fix/**", "security/**"]
+    branches: [main, "feature/**", "fix/**", "security/**", "docs/**"]
   workflow_dispatch:
   schedule:
     - cron: "0 6 * * 1"
@@ -53,16 +54,35 @@ jobs:
             --queryformat '%{NAME}-%{VERSION}-%{RELEASE} %{SUMMARY}\n'
           docker run --rm --entrypoint valkey-server opennote-valkey:dev --version
 
-      # .env from the template: without it the stack refuses to start, by design.
-      - name: Full stack, smoke tests, migration
+      # .env from the template: without it the stack refuses to start, by design. After each
+      # start the worker must be running and never restarted. The second start finds
+      # PostgreSQL's data directory initialised and the database migrated.
+      - name: Full stack, smoke tests, migration, second start
         run: |
           cp infrastructure/compose/.env.example infrastructure/compose/.env
           OPENNOTE_MIGRATE_ON_START=true docker compose -f "$FULL" up -d --wait --wait-timeout 300
           scripts/smoke-test.sh http://localhost:8080
           scripts/smoke-test.sh --api-only http://localhost:8000
+          docker compose -f "$FULL" logs --tail 5 worker
+          worker=$(docker compose -f "$FULL" ps -q worker)
+          state=$(docker inspect -f '{{.State.Running}} {{.RestartCount}}' "$worker")
+          echo "worker running, restart count: $state"
+          [[ $state == "true 0" ]]
           version=$(docker compose -f "$FULL" exec -T postgres \
             psql -h /tmp -U opennote -d opennote -Atc 'select version_num from alembic_version')
           echo "alembic_version: $version"
+          [[ $version == 0001 ]]
+          docker compose -f "$FULL" stop
+          OPENNOTE_MIGRATE_ON_START=true docker compose -f "$FULL" up -d --wait --wait-timeout 300
+          scripts/smoke-test.sh http://localhost:8080
+          docker compose -f "$FULL" logs --tail 5 worker
+          worker=$(docker compose -f "$FULL" ps -q worker)
+          state=$(docker inspect -f '{{.State.Running}} {{.RestartCount}}' "$worker")
+          echo "worker running, restart count: $state"
+          [[ $state == "true 0" ]]
+          version=$(docker compose -f "$FULL" exec -T postgres \
+            psql -h /tmp -U opennote -d opennote -Atc 'select version_num from alembic_version')
+          echo "alembic_version after the second start: $version"
           [[ $version == 0001 ]]
           # Volumes created by UID 1001 must not carry over to the arbitrary-UID run.
           docker compose -f "$FULL" down -v
@@ -94,6 +114,11 @@ jobs:
           OPENNOTE_MIGRATE_ON_START=true docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" \
             up -d --wait --wait-timeout 300
           scripts/smoke-test.sh http://localhost:8080
+          docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" logs --tail 5 worker
+          worker=$(docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" ps -q worker)
+          state=$(docker inspect -f '{{.State.Running}} {{.RestartCount}}' "$worker")
+          echo "worker running, restart count: $state"
+          [[ $state == "true 0" ]]
           docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" down -v
 
       - name: Dev stack (make up-deps) with the test database
@@ -167,30 +192,36 @@ jobs:
           docker pull --quiet "$KUBECONFORM"
           docker run --rm "$KUBECONFORM" -v
 
+      # At the chart's kubeVersion floor, 1.29.0; a render for 1.28 must fail.
       - name: helm lint
         run: |
-          helm lint --strict "$CHART"
-          helm lint --strict "$CHART" --set openshift.enabled=true
-          helm lint --strict "$CHART" --set ingress.enabled=true --set ingress.host=opennote.example.com \
-            --set ingress.tlsSecretName=opennote-tls
+          helm lint --strict "$CHART" --kube-version 1.29.0
+          helm lint --strict "$CHART" --kube-version 1.29.0 --set openshift.enabled=true
+          helm lint --strict "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
+            --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls
+          ! helm template opennote "$CHART" --kube-version 1.28.9 >/dev/null 2>&1 || { echo "kubeVersion floor not enforced"; exit 1; }
 
       - name: Render the chart and the kustomizations
         run: |
           out=$RUNNER_TEMP/manifests
           mkdir "$out"
-          helm template opennote "$CHART" > "$out/helm-defaults.yaml"
-          helm template opennote "$CHART" --set openshift.enabled=true > "$out/helm-openshift.yaml"
-          helm template opennote "$CHART" --set ingress.enabled=true --set ingress.host=opennote.example.com \
-            --set ingress.tlsSecretName=opennote-tls > "$out/helm-ingress.yaml"
+          helm template opennote "$CHART" --kube-version 1.29.0 > "$out/helm-defaults.yaml"
+          helm template opennote "$CHART" --kube-version 1.29.0 --set openshift.enabled=true \
+            > "$out/helm-openshift.yaml"
+          helm template opennote "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
+            --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
+            > "$out/helm-ingress.yaml"
           kubectl kustomize infrastructure/kubernetes/base > "$out/kustomize-base.yaml"
           kubectl kustomize infrastructure/openshift > "$out/kustomize-openshift.yaml"
 
-      # What kubeconform cannot see, in every render: no Secret object and no secretKeyRef
-      # (the URLs are mounted as files); fsGroup 1001 on the four pods on Kubernetes and on
-      # none on OpenShift, whose restricted SCC assigns the group; fsGroupChangePolicy
-      # OnRootMismatch on all four pods; web's API upstream is the api Service's fully
-      # qualified name on port 80, since nginx ignores the resolv.conf search list.
-      - name: Secrets, fsGroup and the web upstream
+      # What kubeconform cannot see, in every render: no Secret object, secretKeyRef or
+      # secretRef (the URLs are mounted as files); fsGroup 1001 on the four pods on Kubernetes
+      # and on none on OpenShift, whose restricted SCC assigns the group; fsGroupChangePolicy
+      # OnRootMismatch and a read-only root filesystem on all four pods; no service account
+      # token (turned off on the chart's ServiceAccount and its migration Job, and on all four
+      # pods by kustomize); web's API upstream is the api Service's fully qualified name on
+      # port 80, since nginx ignores the resolv.conf search list.
+      - name: Secrets, fsGroup, read-only root, service account token, web upstream
         run: |
           cd "$RUNNER_TEMP/manifests"
           status=0
@@ -205,10 +236,13 @@ jobs:
           }
           all=(helm-defaults.yaml helm-ingress.yaml helm-openshift.yaml kustomize-base.yaml kustomize-openshift.yaml)
           want 0 '^kind: Secret$' "${all[@]}"
-          want 0 'secretKeyRef' "${all[@]}"
+          want 0 'secretKeyRef|secretRef' "${all[@]}"
           want 4 '^ *fsGroup: 1001$' helm-defaults.yaml helm-ingress.yaml kustomize-base.yaml
           want 0 'fsGroup:' helm-openshift.yaml kustomize-openshift.yaml
           want 4 '^ *fsGroupChangePolicy: OnRootMismatch$' "${all[@]}"
+          want 4 '^ *readOnlyRootFilesystem: true$' "${all[@]}"
+          want 2 '^ *automountServiceAccountToken: false$' helm-defaults.yaml helm-ingress.yaml helm-openshift.yaml
+          want 4 '^ *automountServiceAccountToken: false$' kustomize-base.yaml kustomize-openshift.yaml
           want 1 '^ *OPENNOTE_API_UPSTREAM: "?([a-z0-9-]+-)?api\.[a-z0-9-]+\.svc\.cluster\.local:80"?$' "${all[@]}"
           exit "$status"
 
