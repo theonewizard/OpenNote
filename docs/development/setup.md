@@ -146,7 +146,7 @@ It exits 1 and prints the difference when a committed file no longer matches the
 
 ## 9. Continuous integration
 
-GitHub Actions runs five workflows from `.github/workflows/` on every pull request, on pushes to `main`, `feature/**`, `fix/**` and `security/**`, and on demand (added in Phase 0 Task 9). They need no secrets beyond the `GITHUB_TOKEN` GitHub provides, with read-only permissions. The pinned actions, tools and runner images are in [versions.md](versions.md#continuous-integration).
+GitHub Actions runs five workflows from `.github/workflows/` on every pull request, on pushes to `main`, `feature/**`, `fix/**` and `security/**`, and on demand (added in Phase 0 Task 9). They need no secrets beyond the `GITHUB_TOKEN` GitHub provides, with read-only permissions. The pinned actions, tools and runner images are in [versions.md](versions.md#continuous-integration). A newer push to a branch cancels that branch's running workflows; a run on `main` or from the schedule is never cancelled once it has started (GitHub still replaces a queued, not yet started run of the same workflow and branch with a newer one). A pull request from a `feature/**`, `fix/**` or `security/**` branch runs every workflow twice, once for the push and once for the pull request: CI on a branch before its pull request exists is worth the extra minutes.
 
 | Workflow | Runs | Locally |
 |---|---|---|
