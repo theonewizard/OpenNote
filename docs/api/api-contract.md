@@ -1,6 +1,6 @@
 # API Contract
 
-Status: Proposed (2026-10-17), API version `v1`. Decisions: [ADR-0012](../architecture/adr/0012-authentication-and-tokens.md), [ADR-0013](../architecture/adr/0013-api-style-and-client-generation.md). The machine-readable contract is `docs/api/openapi.json`, generated from code from Phase 2 onward; where it and this document disagree after Phase 2, the OpenAPI file wins and this document is corrected.
+Status: Proposed (2026-10-17), API version `v1`. Decisions: [ADR-0012](../architecture/adr/0012-authentication-and-tokens.md), [ADR-0013](../architecture/adr/0013-api-style-and-client-generation.md). The machine-readable contract is `docs/api/openapi.json`, generated from code and committed from Phase 0 onward (`make openapi`), and CI fails a push whose committed file differs from the code (added in Phase 0 Task 9); where it and this document disagree after Phase 2, the OpenAPI file wins and this document is corrected.
 
 ## 1. Conventions
 

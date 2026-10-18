@@ -148,7 +148,7 @@
     },
     "/readyz": {
       "get": {
-        "description": "Ready when PostgreSQL and Valkey answer and both data directories are writable.\n\nThe checks run concurrently, each under its own timeout, so the probe answers in\nabout one timeout even when a host is unreachable. The route is keyless, so probes\nthat arrive while checks are running share them instead of opening more connections;\na finished run is never reused, so there is no cached result.",
+        "description": "Whether the server can take traffic: 200 `ok`, or 503 `fail` when a dependency is down.",
         "operationId": "readyz",
         "responses": {
           "200": {

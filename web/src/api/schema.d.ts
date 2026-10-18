@@ -49,12 +49,7 @@ export interface paths {
         };
         /**
          * Readyz
-         * @description Ready when PostgreSQL and Valkey answer and both data directories are writable.
-         *
-         *     The checks run concurrently, each under its own timeout, so the probe answers in
-         *     about one timeout even when a host is unreachable. The route is keyless, so probes
-         *     that arrive while checks are running share them instead of opening more connections;
-         *     a finished run is never reused, so there is no cached result.
+         * @description Whether the server can take traffic: 200 `ok`, or 503 `fail` when a dependency is down.
          */
         get: operations["readyz"];
         put?: never;

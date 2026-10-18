@@ -31,13 +31,12 @@ async def healthz() -> ProbeStatus:
 
 @router.get("/readyz", responses={503: {"model": ProbeStatus}})
 async def readyz(request: Request, response: Response) -> ProbeStatus:
-    """Ready when PostgreSQL and Valkey answer and both data directories are writable.
-
-    The checks run concurrently, each under its own timeout, so the probe answers in
-    about one timeout even when a host is unreachable. The route is keyless, so probes
-    that arrive while checks are running share them instead of opening more connections;
-    a finished run is never reused, so there is no cached result.
-    """
+    """Whether the server can take traffic: 200 `ok`, or 503 `fail` when a dependency is down."""
+    # Ready when PostgreSQL and Valkey answer and both data directories are writable.
+    # The checks run concurrently, each under its own timeout, so the probe answers in
+    # about one timeout even when a host is unreachable. The route is keyless, so probes
+    # that arrive while checks are running share them instead of opening more connections;
+    # a finished run is never reused, so there is no cached result.
     state = request.app.state
     checks: asyncio.Task[bool] | None = getattr(state, "readiness_checks", None)
     if checks is None or checks.done():
