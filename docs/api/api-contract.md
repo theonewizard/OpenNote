@@ -15,7 +15,7 @@ Status: Proposed (2026-10-17), API version `v1`. Decisions: [ADR-0012](../archit
 | Concurrency | Every mutable resource has `revision`. Responses carry `ETag: "<revision>"`. `PUT`, `PATCH`, `DELETE` require `If-Match`; missing → `428 Precondition Required`, stale → `412 Precondition Failed` with the current resource in the problem's `current` extension |
 | Idempotency | `POST` accepts `Idempotency-Key` (UUID); repeat within 24 h returns the original response |
 | Errors | RFC 9457 `application/problem+json`; `type` URIs under `https://opennote.dev/problems/<slug>`; `detail` is generic and safe; internals logged server-side only (`CLAUDE.md` §13). Validation errors add `errors: [{ "pointer": "/path", "message": "…" }]` |
-| Auth | `Authorization: Bearer <access token>` for native and automation clients; httpOnly session cookie + `X-CSRF-Token` for web. Deny by default: `assert_routes_authenticated()` at startup, exceptions only in `KEYLESS_ROUTES` |
+| Auth | `Authorization: Bearer <access token>` for native clients; `X-API-Key: <automation token>` for automation clients (what `get_api_key` reads); httpOnly session cookie + `X-CSRF-Token` for web. Deny by default: `assert_routes_authenticated()` at startup, exceptions only in `KEYLESS_ROUTES` |
 | Authorization | Every resource resolves to a vault; caller needs `viewer` (read), `editor` (write) or `owner` (admin) on it. Unauthorized vaults return `404`, not `403`, to avoid leaking existence |
 | Rate limits | Per principal and per IP; `429` with `Retry-After` and `RateLimit-*` headers |
 | Limits | JSON body ≤ 1 MiB; note content ≤ 16 MiB; blob ≤ configurable (default 512 MiB), chunked above 8 MiB |

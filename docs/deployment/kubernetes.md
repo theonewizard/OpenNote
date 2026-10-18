@@ -40,7 +40,7 @@ PostgreSQL and Valkey are not part of these manifests: point OpenNote at a Postg
      --from-literal=OPENNOTE_VALKEY_URL=<valkey-url>
    ```
 
-   `<database-url>` has the form `postgresql+psycopg://<user>:<password>@<host>:5432/<database>`, and `<valkey-url>` the form `redis://<host>:6379/0`; put a URL that contains shell metacharacters such as `$`, `&` or `!` in single quotes (`--from-literal='OPENNOTE_DATABASE_URL=<database-url>'`). `--from-literal` leaves the values in your shell history; `--from-file=OPENNOTE_DATABASE_URL=<file>` reads one from a file instead. Another Secret name is set with `existingSecret` (chart only). The pods mount the Secret read-only as files under `/run/secrets/opennote` and read them through `OPENNOTE_DATABASE_URL_FILE` and `OPENNOTE_VALKEY_URL_FILE` (the migration Job only the first), the `*_FILE` convention described in `infrastructure/compose/.env.example`, so the URLs never appear in a process's environment.
+   `<database-url>` has the form `postgresql+psycopg://<user>:<password>@<host>:5432/<database>`, and `<valkey-url>` the form `redis://<host>:6379/0`; put a URL that contains shell metacharacters such as `$`, `&` or `!` in single quotes (`--from-literal='OPENNOTE_DATABASE_URL=<database-url>'`). `--from-literal` leaves the values in your shell history; `--from-file=OPENNOTE_DATABASE_URL=<file>` reads one from a file instead. Another Secret name is set with `existingSecret` (chart only). The api and worker pods mount the Secret read-only as files under `/run/secrets/opennote` and read them through `OPENNOTE_DATABASE_URL_FILE` and `OPENNOTE_VALKEY_URL_FILE` (the migration Job mounts only the `OPENNOTE_DATABASE_URL` key and reads only the first), the `*_FILE` convention described in `infrastructure/compose/.env.example`, so the URLs never appear in a process's environment.
 
 ### Images
 
@@ -53,7 +53,7 @@ docker push <registry>/opennote-api:0.1.0
 docker push <registry>/opennote-web:0.1.0
 ```
 
-The defaults name `ghcr.io/theonewizard/opennote-api` and `ghcr.io/theonewizard/opennote-web` with the tag `0.1.0` (the chart's `appVersion`); those images do not exist yet. A private registry needs a pull secret: `imagePullSecrets` in the chart.
+The defaults name `ghcr.io/theonewizard/opennote-api` and `ghcr.io/theonewizard/opennote-web` with the tag `0.1.0`, the chart's `appVersion` and the version string, which the tag in the commands above follows; those images do not exist yet. A private registry needs a pull secret: `imagePullSecrets` in the chart.
 
 ## Install with Helm
 
@@ -72,8 +72,8 @@ The values (`infrastructure/helm/opennote/values.yaml` describes each one; `valu
 | `image.apiRepository`, `image.webRepository`, `image.tag`, `image.pullPolicy` | `ghcr.io/theonewizard/opennote-api`, `…/opennote-web`, the chart's `appVersion`, `IfNotPresent` | |
 | `imagePullSecrets` | `[]` | |
 | `existingSecret` | `opennote` | Keys `OPENNOTE_DATABASE_URL`, `OPENNOTE_VALKEY_URL` |
-| `logLevel` | `INFO` | `OPENNOTE_LOG_LEVEL`; `OPENNOTE_ENVIRONMENT` is always `production` |
-| `clusterDomain` | `cluster.local` | Used for web's `OPENNOTE_API_UPSTREAM`, `<release>-api.<namespace>.svc.<clusterDomain>:80`. nginx's resolver ignores the resolv.conf search list, so the name must be fully qualified |
+| `logLevel` | `INFO` | `OPENNOTE_LOG_LEVEL`, one of CRITICAL, ERROR, WARNING, INFO, DEBUG; `OPENNOTE_ENVIRONMENT` is always `production` |
+| `clusterDomain` | `cluster.local` | Used for web's `OPENNOTE_API_UPSTREAM`, `<fullname>-api.<namespace>.svc.<clusterDomain>:80`, where `<fullname>` is the release name if it contains `opennote`, else `<release>-opennote`. nginx's resolver ignores the resolv.conf search list, so the name must be fully qualified |
 | `fsGroup` | `1001` | Left out when `openshift.enabled` is true. `fsGroupChangePolicy: OnRootMismatch` is not a value: every pod sets it, on OpenShift too |
 | `openshift.enabled`, `openshift.route.host` | `false`, empty (the router generates a host) | |
 | `ingress.enabled`, `ingress.className`, `ingress.annotations`, `ingress.host`, `ingress.tlsSecretName` | `false`, empty, `{}`, empty (any host), empty (no TLS) | |
@@ -123,26 +123,27 @@ The cluster must run Kubernetes 1.29 or newer (OpenShift 4.16 or newer), the cha
 
 The `manifests` job of `.github/workflows/containers.yml` runs whenever that workflow does (docs/development/setup.md, "Continuous integration"):
 
-- `helm lint --strict` for the defaults, `openshift.enabled=true`, and an Ingress with a host and TLS;
-- `helm template` of the same three variants, and `kubectl kustomize` of the base and the OpenShift overlay;
-- a check of what kubeconform cannot see: no render contains a Secret or a `secretKeyRef`; the four pods set `fsGroup: 1001` on Kubernetes and none does on OpenShift, and all four set `fsGroupChangePolicy: OnRootMismatch` in every render; web's `OPENNOTE_API_UPSTREAM` is the api Service's fully qualified name on port 80;
+- `helm lint --strict --kube-version 1.29.0` for the defaults, `openshift.enabled=true`, and an Ingress with a host and TLS, and a `helm template --kube-version 1.28.9` that must fail (the chart's `kubeVersion` floor);
+- `helm template --kube-version 1.29.0` of the same three variants, and `kubectl kustomize` of the base and the OpenShift overlay;
+- a check of what kubeconform cannot see: no render contains a Secret, `secretKeyRef` or `secretRef`; the four pods set `fsGroup: 1001` on Kubernetes and none does on OpenShift, and all four set `fsGroupChangePolicy: OnRootMismatch` and `readOnlyRootFilesystem: true` (on their containers) in every render; `automountServiceAccountToken: false` appears twice in each chart render (the ServiceAccount and the migration Job) and on all four pods in each kustomize render; web's `OPENNOTE_API_UPSTREAM` is the api Service's fully qualified name on port 80;
 - `kubeconform -strict` of all five renders against the Kubernetes 1.29.0 schemas and the newest ones, with the Route schema from the community CRD catalog (`datreeio/CRDs-catalog`, OpenShift 4.15).
 
-The same locally, with Helm, kustomize and kubeconform installed:
+The same locally, with Helm 4.3.1, kustomize and kubeconform installed (Helm 3 needs `--kube-version` too: without it Helm 3 renders for Kubernetes 1.20, which the chart refuses):
 
 ```bash
-helm lint --strict infrastructure/helm/opennote
-helm lint --strict infrastructure/helm/opennote --set openshift.enabled=true
+set -o pipefail   # a failed render fails the line, not only kubeconform
+helm lint --strict infrastructure/helm/opennote --kube-version 1.29.0
+helm lint --strict infrastructure/helm/opennote --kube-version 1.29.0 --set openshift.enabled=true
 route='https://raw.githubusercontent.com/datreeio/CRDs-catalog/501527ab9c40c827144c8f45945b25a023e344ce/openshift/v4.15-strict/{{.ResourceKind}}_{{.Group}}_{{.ResourceAPIVersion}}.json'
-helm template opennote infrastructure/helm/opennote | kubeconform -strict -summary -kubernetes-version 1.29.0
-helm template opennote infrastructure/helm/opennote --set openshift.enabled=true |
+helm template opennote infrastructure/helm/opennote --kube-version 1.29.0 | kubeconform -strict -summary -kubernetes-version 1.29.0
+helm template opennote infrastructure/helm/opennote --kube-version 1.29.0 --set openshift.enabled=true |
   kubeconform -strict -summary -kubernetes-version 1.29.0 -schema-location default -schema-location "$route"
 kustomize build infrastructure/kubernetes/base | kubeconform -strict -summary -kubernetes-version 1.29.0
 kustomize build infrastructure/openshift |
   kubeconform -strict -summary -kubernetes-version 1.29.0 -schema-location default -schema-location "$route"
 ```
 
-The job also lints and renders the Ingress variant, runs the check of the third item on the saved renders, and repeats kubeconform with `-kubernetes-version master`.
+The job also lints and renders the Ingress variant, checks that the 1.28.9 render fails, runs the check of the third item on the saved renders, and repeats kubeconform with `-kubernetes-version master`.
 
 Neither the job nor the repository checks the Pod Security `restricted` profile: in Phase 0 it was checked by hand with a throwaway Go program, not committed, that runs the evaluator of `k8s.io/pod-security-admission` v0.37.1 at level `restricted` (versions v1.30 and latest) on every Deployment and Job pod template of the five renders, and found none forbidden; a repeatable check is an open item in [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md#open-items).
 

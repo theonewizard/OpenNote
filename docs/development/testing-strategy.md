@@ -14,18 +14,18 @@ Status: Proposed (2026-10-17). Implements design §15.13 and `CLAUDE.md` §9. St
 
 | Layer | Location | Tools | Runs |
 |---|---|---|---|
-| Backend unit | `backend/tests/unit` | pytest, Hypothesis | Every push |
+| Backend unit | `backend/tests/unit` | pytest, Hypothesis (Phase 1+) | Every push |
 | Backend integration | `backend/tests/integration` | pytest + real PostgreSQL/pgvector + Valkey + temp vault dirs; Alembic upgrade from empty and downgrade one step | Every push |
-| API contract | `tests/integration/contract` | Schemathesis against the running API and committed `docs/api/openapi.json` (Phase 2+); OpenAPI drift check (`make openapi`, then `git diff --exit-code` on the generated files; `docs/api/openapi.json` is generated and committed from Phase 0) | Every push (drift check; Schemathesis: Phase 2+) |
+| API contract | `scripts/` + CI (drift check); `tests/integration/contract` (Schemathesis, Phase 2+) | Schemathesis against the running API and committed `docs/api/openapi.json` (Phase 2+); OpenAPI drift check (`make openapi`, then `git diff --exit-code` on the generated files; `docs/api/openapi.json` is generated and committed from Phase 0) | Every push (drift check; Schemathesis: Phase 2+) |
 | Compatibility | `tests/compatibility` | Shared corpus, run by Python and Swift parsers | Every push (Phase 1+) |
-| Sync simulation | `backend/tests/sync_sim` | Seeded simulation, invariants I1–I6 of the sync protocol | 500 seeds per push; 10,000 nightly |
+| Sync simulation | `backend/tests/sync_sim` | Seeded simulation, invariants I1–I6 of the sync protocol | 500 seeds per push; 10,000 nightly (Phase 1+) |
 | Web unit/component | `web/tests/unit` | Vitest, Testing Library | Every push |
-| Web end-to-end | `tests/e2e/web` | Playwright (Chromium, WebKit) against Compose stack | Every push to PR (Phase 3+) |
+| Web end-to-end | `web/tests/e2e` | Playwright (Chromium, WebKit) against Compose stack | Every push to PR (Phase 3+) |
 | Apple packages | `apple/Packages/*/Tests` | Swift Testing / XCTest; Core and Storage also on Linux | Every push (macOS runner; Core and Storage also in a Linux `swift:6.4.1` container) |
 | Apple UI | `apple/Tests` | XCUITest on simulators (iPhone, iPad, Mac) | PRs touching `apple/` (Phase 4+) |
 | Cross-client sync | `tests/e2e/sync` | Backend + headless Swift sync engine (`swift run opennote-sync-cli`) + Playwright web client editing one vault | Nightly (Phase 5+) |
-| Performance | `tests/performance` | Generated 100k-note vault; pytest-benchmark for backend, k6 for API; Swift `measure` for local save/open | Nightly, compared against baseline |
-| Security | CI jobs | ruff security rules + bandit, pip-audit, npm audit, Trivy (images and filesystem), gitleaks (Semgrep: a later phase); path-traversal and upload fuzz tests in integration suite | Every push and pull request, and every Monday from `main`; the image scans run in the containers workflow, which rebuilds the images each time |
+| Performance | `tests/performance` | Generated 100k-note vault; pytest-benchmark for backend, k6 for API; Swift `measure` for local save/open | Nightly, compared against baseline (planned, P8-01) |
+| Security | CI jobs | ruff security rules + bandit, pip-audit, npm audit, Trivy (images and filesystem), gitleaks (Semgrep: a later phase); path-traversal (Phase 1) and upload (Phase 2) fuzz tests in the integration suite | Every push and pull request; the security and containers workflows also every Monday from `main` (the image scans run in the containers workflow, which rebuilds the images each time) |
 | Container | CI job | Build all images, start Compose, wait for health, run smoke tests, run as random UID (`--user 1000870000:0`) with read-only root FS | Every push and pull request, and every Monday from `main` |
 
 ## 3. Compatibility corpus
@@ -56,9 +56,9 @@ Implemented with the P1-12 prototype and kept for the life of the project.
 
 ## 5. CI gates (required to merge)
 
-1. Lint and format: ruff, eslint, prettier, swift-format.
+1. Lint and format: ruff, eslint; prettier and swift-format are not set up yet.
 2. Type check: mypy `--strict`, `tsc --noEmit`, Swift 6 strict concurrency.
-3. Unit + integration + compatibility + 500-seed simulation.
+3. Unit + integration; compatibility and the 500-seed simulation from Phase 1.
 4. Web build; Apple packages `swift build` + `swift test` on macOS; generated Xcode project builds for macOS and iOS Simulator (Phase 0 onward).
 5. Container build + Compose smoke test.
 6. Security scans with no critical/high findings without a recorded exception.

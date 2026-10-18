@@ -1,15 +1,4 @@
-# Dependabot version updates: weekly on Monday, minor and patch updates grouped into one pull
-# request per ecosystem, majors one by one, with Dependabot's default `dependencies` label.
-# Covered: the pip requirements in backend/, npm in web/, the actions in .github/workflows,
-# the base images of the four Containerfiles and the five Swift packages. Not covered, and
-# updated by hand: the service and job container images in the workflows (Dependabot's
-# github-actions updater skips `services:`, `container:` and `docker://` images), the
-# Trivy and gitleaks versions the workflows install, the manifests job's kubeconform image,
-# Helm release (setup-helm's `version` input), CRD-catalog commit and Kubernetes schema
-# versions, the pre-commit hook revs, the Node.js release in .nvmrc, and the packages and
-# source releases installed inside the Containerfiles.
-# Versions are recorded in docs/development/versions.md; whoever merges a Dependabot pull
-# request updates the rows it changes.
+# Dependabot version updates: docs/development/setup.md, "Continuous integration".
 version: 2
 updates:
   - package-ecosystem: pip

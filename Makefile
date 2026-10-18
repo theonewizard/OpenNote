@@ -33,7 +33,7 @@ test: ## Run backend and web tests
 build: ## Production build of the web app
 	cd web && npm run build
 
-up: ## Start the full stack (COMPOSE="podman compose" for Podman)
+up: ## Start the full stack (COMPOSE="podman compose" for Podman, untested)
 	$(COMPOSE) -f $(COMPOSE_DIR)/compose.yaml up -d --wait --build
 
 up-deps: ## Start only PostgreSQL and Valkey for local development

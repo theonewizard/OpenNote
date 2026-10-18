@@ -10,7 +10,7 @@ Deciders: Flemming (pending review)
 ## Decision
 - Repository-root `.venv` (as in `CLAUDE.md` §3) created with `python -m venv`; dependency files live in `backend/` (design §15.4): `requirements.txt` (runtime) and `requirements-dev.txt` (`-r requirements.txt` + test/lint tools) with exact `==` pins.
 - `pyproject.toml` holds project metadata and tool configuration only.
-- Tools: `ruff` (lint + format), `mypy --strict`, `pytest` (+ the `anyio` pytest plugin that Starlette already installs, for async tests; `hypothesis`, `schemathesis`), `pip-audit`, `bandit`.
+- Tools: `ruff` (lint + format), `mypy --strict`, `pytest` (+ the `anyio` pytest plugin that Starlette already installs, for async tests; `hypothesis` from Phase 1, `schemathesis` from Phase 2), `pip-audit`, `bandit`.
 - Upgrades: a scheduled CI job (Dependabot/Renovate) opens PRs; no broad upgrades inside feature work (`CLAUDE.md` §20).
 
 ## Consequences

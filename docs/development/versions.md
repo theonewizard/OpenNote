@@ -1,6 +1,6 @@
 # Tool Versions
 
-Resolved 2026-10-17 for Phase 0 (`CLAUDE.md` §1.8: latest stable release; design §6 versions are floors). Later tasks pin these versions in `backend/requirements*.txt`, `web/package.json`, Containerfiles and CI unless a peer constraint recorded here says otherwise. Re-check a row before upgrading it.
+Resolved 2026-10-17 for Phase 0 (`CLAUDE.md` §1.8: latest stable release; design §6 versions are floors). The Phase 0 tasks pinned these versions in `backend/requirements*.txt`, `web/package.json`, Containerfiles and CI, except where a peer constraint recorded here says otherwise. Re-check a row before upgrading it.
 
 How to read the rows:
 
@@ -34,10 +34,10 @@ How to read the rows:
 | Package | Version | Released | Source | Checked |
 |---|---|---|---|---|
 | fastapi | 0.143.3 | 2026-10-16 | https://pypi.org/pypi/fastapi/json | 2026-10-17 |
-| uvicorn | 0.54.0 | 2026-09-25 | https://pypi.org/pypi/uvicorn/json | 2026-10-17 |
+| uvicorn | 0.54.0 | 2026-09-25 | https://pypi.org/pypi/uvicorn/json. Pinned as `uvicorn[standard]==0.54.0`: the extra installs httptools, python-dotenv, PyYAML, uvloop, watchfiles and websockets | 2026-10-17 |
 | pydantic | 2.14.1 | 2026-10-11 | https://pypi.org/pypi/pydantic/json | 2026-10-17 |
 | pydantic-settings | 2.16.0 | 2026-10-14 | https://pypi.org/pypi/pydantic-settings/json | 2026-10-17 |
-| SQLAlchemy | 2.1.5 | 2026-10-16 | https://pypi.org/pypi/sqlalchemy/json | 2026-10-17 |
+| SQLAlchemy | 2.1.5 | 2026-10-16 | https://pypi.org/pypi/sqlalchemy/json. Pinned as `sqlalchemy[asyncio]==2.1.5`: the extra installs greenlet | 2026-10-17 |
 | alembic | 1.20.0 | 2026-09-11 | https://pypi.org/pypi/alembic/json | 2026-10-17 |
 | psycopg | 3.3.6 | 2026-09-18 | https://pypi.org/pypi/psycopg/json. Pinned as `psycopg[binary]==3.3.6`: the extra installs `psycopg-binary` 3.3.6, so local venvs and the image need no libpq build | 2026-10-17 |
 | redis (redis-py) | 8.1.0 | 2026-07-30 | https://pypi.org/pypi/redis/json. The Valkey client (Valkey speaks RESP): the readiness check and Dramatiq's Redis broker; one client library for both | 2026-10-17 |
@@ -47,11 +47,15 @@ How to read the rows:
 | mypy | 2.4.0 | 2026-10-01 | https://pypi.org/pypi/mypy/json | 2026-10-17 |
 | starlette | 1.8.0 | 2026-10-13 | https://pypi.org/pypi/starlette/json. Imported directly by the backend, so pinned explicitly; the version fastapi 0.143.3 resolves | 2026-10-17 |
 | httpx2 | 2.13.1 | 2026-09-23 | https://pypi.org/pypi/httpx2/json. Test client behind Starlette's `TestClient`; Starlette 1.8.0 deprecates `httpx` there in favour of `httpx2` (https://github.com/pydantic/httpx2) | 2026-10-17 |
-| pip-audit | 2.10.1 | 2026-06-10 | https://pypi.org/pypi/pip-audit/json. Audits both requirements files against the PyPI vulnerability data in `security.yml` | 2026-10-18 |
+| pip-audit | 2.10.1 | 2026-06-10 | https://pypi.org/pypi/pip-audit/json. Audits both requirements files and `backend/constraints.txt` against the PyPI vulnerability data in `security.yml` | 2026-10-18 |
 | bandit | 1.9.4 | 2026-02-25 | https://pypi.org/pypi/bandit/json. `bandit -r backend/app` in `security.yml`, alongside ruff's `S` rules | 2026-10-18 |
 | pre-commit | 4.7.0 | 2026-10-12 | https://pypi.org/pypi/pre-commit/json. Runs the optional local hooks in `.pre-commit-config.yaml` | 2026-10-18 |
 
-None of these excludes Python 3.13 or 3.14 through `requires-python` (highest floor: `>=3.11`, SQLAlchemy and pydantic-settings).
+None of these excludes Python 3.13 or 3.14 through `requires-python` (highest floor: `>=3.11`, SQLAlchemy, pydantic-settings, starlette and pre-commit).
+
+`backend/constraints.txt` pins every package a clean install of `backend/requirements.txt` brings in, transitive dependencies included; the api image, `make bootstrap` and the backend CI jobs install with `-c backend/constraints.txt`. Regenerate it by hand whenever `requirements.txt` changes, a Dependabot pull request included (otherwise the `-c` install fails on the old pin): in a new virtual environment outside the repository, `pip install -r backend/requirements.txt`, then replace the pins below the file's header with the output of `pip freeze`, and update the header's date and interpreter.
+
+The pins in the requirement files and the constraints are name and version only, without hashes: pip does not check what it downloads against a recorded hash. `pip-compile --generate-hashes` (with pip's `--require-hashes`) is a Phase 1 candidate.
 
 ## Web (npm)
 
@@ -107,10 +111,10 @@ All rows except typescript and @types/node are the `latest` dist-tag.
 Changes from the CLI output:
 
 - `src/lib/utils.ts` is the classic `cn` (clsx + tailwind-merge) from the same commit's `apps/v4/public/r/styles/new-york/utils.json`, not the generated `export { cn } from "cn"`; `button.tsx` imports `cn` from `@/lib/utils` instead of the `cn` package.
-- `src/index.css` drops the Geist font (`@fontsource-variable/geist` and its `--font-sans` override, so the system font stack applies) and the `tw-animate-css` and `shadcn/tailwind.css` imports (nothing uses their variants, utilities or animations). It restricts Tailwind's source scan with `@import "tailwindcss" source("../src")` and is indented with two spaces.
+- `src/index.css` drops the Geist font (`@fontsource-variable/geist` and its `--font-sans` override, so the system font stack applies) and the `tw-animate-css` and `shadcn/tailwind.css` imports (nothing uses their variants, utilities or animations). It restricts Tailwind's source scan with `@import "tailwindcss" source("../src")`, is indented with two spaces and ends with a newline.
 - The packages `shadcn`, `cn`, `tw-animate-css`, `lucide-react` and `@fontsource-variable/geist` that `init` added are not installed.
 
-When a component needs `shadcn/tailwind.css` (its `data-open` and similar variants), vendor that file as `web/src/styles/shadcn.css` with its upstream path and commit recorded here, rather than adding the `shadcn` package. Re-running the two commands against ui.shadcn.com from an unrestricted network should reproduce `components.json`, `button.tsx` (apart from the `cn` import) and the theme variables.
+When a component needs `shadcn/tailwind.css` (its `data-open` and similar variants), vendor that file as `web/src/styles/shadcn.css` with its upstream path and commit recorded here, rather than adding the `shadcn` package. Re-running the two commands against ui.shadcn.com from an unrestricted network should reproduce `components.json`, `button.tsx` (apart from the `cn` import and the blank line before it) and the theme variables.
 
 ## Apple
 
@@ -137,7 +141,7 @@ When a component needs `shadcn/tailwind.css` (its `data-open` and similar varian
 
 ### GitHub Actions
 
-Every `uses:` in `.github/workflows/` names the full commit SHA of a release tag, with the tag as a comment; Dependabot's `github-actions` updates keep them current. Each SHA was resolved with `git ls-remote --tags https://github.com/<owner>/<repo>` (the peeled commit of an annotated tag) and checked to lie on the repository's default branch, except where a row says otherwise. Release pages on github.com are blocked from this environment, so "Released" is the date of the tagged commit.
+Every `uses:` in `.github/workflows/` names the full commit SHA of a release tag, with the tag as a comment; Dependabot's `github-actions` updates keep them current. Each SHA was resolved with `git ls-remote --tags https://github.com/<owner>/<repo>` (the commit the tag points to; every tag below is lightweight) and checked to lie on the repository's default branch, except where a row says otherwise. Release pages on github.com are blocked from this environment, so "Released" is the date of the tagged commit.
 
 | Action | Version | Commit | Released | Checked |
 |---|---|---|---|---|
@@ -180,7 +184,7 @@ The containers workflow prints what the images actually installed (`rpm -q` in e
 | `opennote-web` | `nginx-core` (module stream `nginx:1.26`, UBI 9.8 AppStream) | `2:1.26.3-9.module+el9.8.0+24845+a897661e.4` |
 | `opennote-postgres` | `postgresql18-server`, `postgresql18-contrib` (PGDG) | `18.6-1PGDG.rhel9.8` |
 | `opennote-postgres` | `pgvector_18` (PGDG) | `0.8.7-1PGDG.rhel9.8` |
-| `opennote-postgres` | PGDG signing key | `gpg-pubkey-08b40d20-6581afc1`, "PostgreSQL RPM Repository", fingerprint `D4BF 08AE 67A0 B4C7 A1DB  CCD2 40BC A2B4 08B4 0D20` (created 2023-12-19, no expiry); the whole decoded key (1774 bytes) has SHA-256 `0f206e45758cfc3d926aab50fd1d4f2f13571a26dc1393097c8db91fec0ef3bd`. The Containerfile imports the key only if both match |
+| `opennote-postgres` | PGDG signing key | `gpg-pubkey-08b40d20-6581afc1`, "PostgreSQL RPM Repository", fingerprint `D4BF 08AE 67A0 B4C7 A1DB  CCD2 40BC A2B4 08B4 0D20` (created 2023-12-19, no expiry); the whole decoded key (1774 bytes) has SHA-256 `0f206e45758cfc3d926aab50fd1d4f2f13571a26dc1393097c8db91fec0ef3bd`. The Containerfile imports the key only if both match; run https://github.com/theonewizard/OpenNote/actions/runs/39116135741 printed the digest it computed, which matched |
 | `opennote-valkey` | Valkey, built from the 9.1.2 source release | `9.1.2`, jemalloc 5.3.0 |
 
 ### pre-commit hooks
@@ -204,24 +208,8 @@ The [architecture specification](../superpowers/specs/2026-10-17-opennote-archit
 
 The same run pulled `ubi9/ubi-minimal:9.8` (RHEL 9.8) and `ubi10/ubi-minimal:10.2` (RHEL 10.2) with the digests recorded above; neither image has `python3` installed.
 
-**Verified since (Phase 0 Task 9).** The containers workflow's image build installs `python3.14` 3.14.8-1.el9_8 with `microdnf` in `ubi9/ubi-minimal:9.8` ([Packages the image builds installed](#packages-the-image-builds-installed)).
+**Verified since (Phase 0 Task 9).** The containers workflow's image build installs `python3.14` 3.14.8-1.el9_8 with `microdnf` in `ubi9/ubi-minimal:9.8`, the API and worker image ([Packages the image builds installed](#packages-the-image-builds-installed)).
 
-**Evidence only (CentOS Stream, the upstream of RHEL).**
+**Gap.** The runtime Python (3.14) is one minor release behind the latest stable release (3.15.0).
 
-- `python3.12`: branches c8s, c9s and c10s at 3.12.15 (https://gitlab.com/redhat/centos-stream/rpms/python3.12). It is the main `python3` of c10s: its spec builds the main package when 3.12 is the distribution default, and c10s sets `%__default_python3_version 3.12` (https://gitlab.com/redhat/centos-stream/rpms/python-rpm-macros/-/raw/c10s/macros.python-srpm).
-- `python3.14`: the "Python 3.14 stack in RHEL" (imported 2025-11-25), an AppStream component built as the separate `python3.14` package (`%bcond main_python 0`), branches c9s and c10s at 3.14.8 since 2026-10-12. https://gitlab.com/redhat/centos-stream/rpms/python3.14
-- `python3.13`: no python3.13 project is visible to an anonymous GitLab API lookup (https://gitlab.com/api/v4/projects/redhat%2Fcentos-stream%2Frpms%2Fpython3.13 answers "404 Project Not Found", which GitLab also returns for private projects).
-- `python3.15`: live only on c11s; its c10s branch is retired. https://gitlab.com/redhat/centos-stream/rpms/python3.15
-
-**Unknowns and the checks that settle them.**
-
-- Tags and digest of `ubi9/python-314`: https://catalog.redhat.com/software/containers/ubi9/python-314 and https://registry.access.redhat.com/v2/ubi9/python-314/tags/list (both blocked from this environment).
-- Python 3.15 images, not probed: `ubi9/python-315` (https://registry.access.redhat.com/v2/ubi9/python-315/tags/list) and `ubi10/python-315` (https://registry.access.redhat.com/v2/ubi10/python-315/tags/list).
-- Minimal Python images, not probed: sclorg upstream builds, among others, `ubi9/python-314-minimal`, `ubi10/python-312-minimal` and `ubi10/python-314-minimal` (https://raw.githubusercontent.com/sclorg/s2i-python-container/master/3.14-minimal/Dockerfile.rhel9, `3.14-minimal/Dockerfile.rhel10`, `3.12-minimal/Dockerfile.rhel10`). Check https://registry.access.redhat.com/v2/ubi9/python-314-minimal/tags/list, https://registry.access.redhat.com/v2/ubi10/python-312-minimal/tags/list and https://registry.access.redhat.com/v2/ubi10/python-314-minimal/tags/list.
-
-**Decision.**
-
-- Python 3.14 on UBI 9 is the newest of the probed UBI Python images (3.12 to 3.14). The probe found no `ubi10/python-312`, `-313` or `-314` image; the `-minimal` variants that sclorg upstream builds (among them `ubi9/python-314-minimal`, `ubi10/python-312-minimal`, `ubi10/python-314-minimal`) and any `python-315` image were not probed. UBI 10 is not used for Python images (see the runtime image and floor bullets below).
-- The API and worker runtime image is `registry.access.redhat.com/ubi9/ubi-minimal:9.8` plus `microdnf install python3.14`, verified by the containers workflow's image build (Phase 0 Task 9; see "Verified since" above). If that package is absent, the runtime base becomes `registry.access.redhat.com/ubi9/python-314`. `ubi9/python-314-minimal` is a candidate fallback to probe in Task 6 (not probed).
-- The backend declares `requires-python = ">=3.13"` (the design floor). CI tests Python 3.13 and 3.14. Local development uses Python 3.13 or 3.14.
-- Gap: the runtime Python (3.14) is one minor release behind the latest stable release (3.15.0). CentOS Stream has no live python3.15 branch for c9s or c10s (evidence only; `ubi9/python-315` and `ubi10/python-315` were not probed).
+- Not probed: the `python-315` images (`ubi9/python-315`, `ubi10/python-315`) and the `-minimal` images sclorg upstream builds (among them `ubi9/python-314-minimal`, `ubi10/python-312-minimal` and `ubi10/python-314-minimal`).
