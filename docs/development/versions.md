@@ -143,14 +143,14 @@ Every `uses:` in `.github/workflows/` names the full commit SHA of a release tag
 | actions/checkout | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | 2026-07-17 | 2026-10-18 |
 | actions/setup-python | v7.0.0 | `5fda3b95a4ea91299a34e894583c3862153e4b97` | 2026-07-19 | 2026-10-18 |
 | actions/setup-node | v7.1.0 | `949feb2413d6458794dcd2491c4babbbce0c15c1` | 2026-10-07 | 2026-10-18 |
-| aquasecurity/trivy-action | v0.36.0 | `ed142fd0673e97e23eac54620cfb913e5ce36c25` (annotated, signed tag) | 2026-04-22 | 2026-10-18 |
+| aquasecurity/setup-trivy | v0.3.1 | `81e514348e19b6112ce2a7e3ecbafe19c1e1f567` (lightweight tag; the action's own steps pin `actions/checkout` and `actions/cache` by SHA, and the Trivy install script to a commit of aquasecurity/trivy) | 2026-06-03 | 2026-10-18 |
 | gitleaks/gitleaks-action | v3.0.0 | `e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e` | 2026-05-30 | 2026-10-18 |
 
 ### Tools the actions install
 
 | Tool | Version | Released | Source | Checked |
 |---|---|---|---|---|
-| Trivy | v0.76.0 | 2026-10-14 | Set with the action's `version` input in `containers.yml` and `security.yml`; trivy-action v0.36.0 defaults to v0.70.0, and its `master` already defaults to v0.76.0. `git ls-remote --tags https://github.com/aquasecurity/trivy` (commit `531360e5d2a88e732373f1614ba99a38738538b8`), the same as https://proxy.golang.org/github.com/aquasecurity/trivy/@v/v0.76.0.info | 2026-10-18 |
+| Trivy | v0.76.0 | 2026-10-14 | Installed by setup-trivy (its `version` input, once in `containers.yml` and once in `security.yml`; the default would be `latest`); the workflows then run `trivy image` and `trivy fs` directly. `git ls-remote --tags https://github.com/aquasecurity/trivy` (commit `531360e5d2a88e732373f1614ba99a38738538b8`), the same as https://proxy.golang.org/github.com/aquasecurity/trivy/@v/v0.76.0.info | 2026-10-18 |
 | gitleaks | 8.30.1 | 2026-03-12 (tagged commit) | Set with `GITLEAKS_VERSION` in `security.yml`; gitleaks-action v3.0.0 defaults to 8.24.3. `git ls-remote --tags https://github.com/gitleaks/gitleaks`: the tag points to `83d9cd684c87d95d656c1458ef04895a7f1cbd8e`, which is on no branch and changes only `.goreleaser.yml` on top of `8d1f98c7967eb1e79cb44ac6241a124e145d2165` (2026-02-21), the commit the Go module proxy recorded for v8.30.1 (https://proxy.golang.org/github.com/zricethezav/gitleaks/v8/@latest). The tag was moved once to fix the release build; the source is the same | 2026-10-18 |
 | XcodeGen on the macOS runner | newest Homebrew formula (not pinned) | — | `brew install xcodegen` in `apple.yml`; the job prints `xcodegen --version`. `apple/project.yml` requires 2.46.0 or newer (XcodeGen row above) | 2026-10-18 |
 

@@ -120,39 +120,19 @@ jobs:
           rm -f infrastructure/compose/.env
 
       # The scans run whenever the images were built, also after a failed stack step.
-      - name: Trivy opennote-api:dev
+      - name: Install Trivy
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
         with:
           version: v0.76.0
-          image-ref: opennote-api:dev
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-      - name: Trivy opennote-web:dev
+      # Every image is scanned even when an earlier one has findings; any finding fails the step.
+      - name: Trivy image scans (HIGH and CRITICAL with a fix fail the job)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          version: v0.76.0
-          image-ref: opennote-web:dev
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-      - name: Trivy opennote-postgres:dev
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          version: v0.76.0
-          image-ref: opennote-postgres:dev
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-      - name: Trivy opennote-valkey:dev
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          version: v0.76.0
-          image-ref: opennote-valkey:dev
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
+        run: |
+          trivy --version
+          status=0
+          for image in opennote-api:dev opennote-web:dev opennote-postgres:dev opennote-valkey:dev; do
+            echo "trivy image $image"
+            trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$image" || status=1
+          done
+          exit "$status"
