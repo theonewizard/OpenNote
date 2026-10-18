@@ -1,7 +1,12 @@
 OpenNote {{ .Chart.AppVersion }} is installed as "{{ .Release.Name }}" in namespace {{ .Release.Namespace }}.
 
-The migration Job ran before the pods started. The pods need the Secret
-"{{ .Values.existingSecret }}" with OPENNOTE_DATABASE_URL and OPENNOTE_VALKEY_URL:
+The migration Job ran before the pods started. The pods read OPENNOTE_DATABASE_URL and
+OPENNOTE_VALKEY_URL from the Secret "{{ .Values.existingSecret }}", mounted as files.
+The Secret must exist in the namespace:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ .Values.existingSecret }}
+
+The release's pods:
 
   kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }}
 

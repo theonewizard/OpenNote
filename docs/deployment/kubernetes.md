@@ -14,7 +14,7 @@ OpenNote ships a Helm chart (`infrastructure/helm/opennote`), a kustomize base (
 | Service | `opennote-api`, `opennote-web` | `api`, `web` | Port 80 to the containers' `http` port |
 | PersistentVolumeClaim | `opennote-vaults`, `opennote-history` | `vaults`, `history` | `ReadWriteMany`, 10 GiB each by default; mounted by api and worker at `/var/lib/opennote/vaults` and `/var/lib/opennote/history`. The chart keeps them on `helm uninstall` |
 | ConfigMap | `opennote`, `opennote-web` | `opennote`, `web` | The non-secret settings: `OPENNOTE_ENVIRONMENT=production`, `OPENNOTE_LOG_LEVEL`, the two volume paths, `OPENNOTE_MIGRATE_ON_START=false`; for web, `OPENNOTE_API_UPSTREAM` |
-| Job | `opennote-migrate` | `migrate` | `alembic upgrade head` with only `OPENNOTE_DATABASE_URL`. In the chart it is a `pre-install,pre-upgrade` hook |
+| Job | `opennote-migrate` | `migrate` | `alembic upgrade head`, reading only the database URL from the Secret. In the chart it is a `pre-install,pre-upgrade` hook |
 | ServiceAccount | `opennote` | (the namespace's `default`) | No API token is mounted into any pod |
 | Ingress | `opennote` (off by default) | — | To web |
 | Route | `opennote-web` (with `openshift.enabled=true`) | `web` (overlay) | Edge TLS to web, HTTP redirected to HTTPS |
@@ -23,8 +23,8 @@ PostgreSQL and Valkey are not part of these manifests: point OpenNote at a Postg
 
 ## Before you install
 
-1. **Kubernetes 1.30 or newer.** The chart declares `kubeVersion: ">=1.30.0-0"` and Helm refuses older clusters.
-2. **A `ReadWriteMany` storage class** (for example NFS, CephFS, Azure Files or EFS), the cluster default or named with `persistence.storageClassName`. The api and the worker mount both volumes at the same time, possibly on different nodes. The images run as UID 1001 in group 0; on Kubernetes every pod sets `fsGroup: 1001`, so the volumes are group-writable for it. A storage driver that ignores `fsGroup` (some NFS drivers) needs the export writable by that UID or group instead.
+1. **Kubernetes 1.29 or newer (OpenShift 4.16 or newer).** The chart declares `kubeVersion: ">=1.29.0-0"` and Helm refuses older clusters.
+2. **A `ReadWriteMany` storage class** (for example NFS, CephFS, Azure Files or EFS), the cluster default or named with `persistence.storageClassName`. The api and the worker mount both volumes at the same time, possibly on different nodes. The images run as UID 1001 in group 0; on Kubernetes every pod sets `fsGroup: 1001`, so the volumes are group-writable for it. Every pod also sets `fsGroupChangePolicy: OnRootMismatch`, so the kubelet changes the group of a volume's files only when the volume's root does not already have it, instead of at every start of a pod with a large vault. A storage driver that ignores `fsGroup` (some NFS drivers) needs the export writable by that UID or group instead.
 3. **A namespace that enforces the Pod Security `restricted` profile**, which the manifests are written for: non-root, no privilege escalation, all capabilities dropped, `RuntimeDefault` seccomp. Beyond that profile, every container has a read-only root filesystem with an `emptyDir` at `/tmp`, and no pod sets `runAsUser`:
 
    ```bash
@@ -40,7 +40,7 @@ PostgreSQL and Valkey are not part of these manifests: point OpenNote at a Postg
      --from-literal=OPENNOTE_VALKEY_URL=<valkey-url>
    ```
 
-   `<database-url>` has the form `postgresql+psycopg://<user>:<password>@<host>:5432/<database>`, and `<valkey-url>` the form `redis://<host>:6379/0`. `--from-literal` leaves the values in your shell history; `--from-file=OPENNOTE_DATABASE_URL=<file>` reads one from a file instead. Another Secret name is set with `existingSecret` (chart only).
+   `<database-url>` has the form `postgresql+psycopg://<user>:<password>@<host>:5432/<database>`, and `<valkey-url>` the form `redis://<host>:6379/0`; put a URL that contains shell metacharacters such as `$`, `&` or `!` in single quotes (`--from-literal='OPENNOTE_DATABASE_URL=<database-url>'`). `--from-literal` leaves the values in your shell history; `--from-file=OPENNOTE_DATABASE_URL=<file>` reads one from a file instead. Another Secret name is set with `existingSecret` (chart only). The pods mount the Secret read-only as files under `/run/secrets/opennote` and read them through `OPENNOTE_DATABASE_URL_FILE` and `OPENNOTE_VALKEY_URL_FILE` (the migration Job only the first), the `*_FILE` convention described in `infrastructure/compose/.env.example`, so the URLs never appear in a process's environment.
 
 ### Images
 
@@ -65,7 +65,7 @@ helm install opennote infrastructure/helm/opennote --namespace opennote \
 
 Helm runs the migration Job first and creates the other objects only after it succeeds; `helm upgrade` does the same. The last Job is kept until the next upgrade, so its logs stay readable (`kubectl -n opennote logs job/opennote-migrate`); `helm uninstall` leaves it, and the two volumes, in place. Without an Ingress or Route, reach the web app with `kubectl -n opennote port-forward service/opennote-web 8080:80` and http://127.0.0.1:8080.
 
-The values (`infrastructure/helm/opennote/values.yaml` describes each one):
+The values (`infrastructure/helm/opennote/values.yaml` describes each one; `values.schema.json` beside it makes Helm refuse an unknown value or one of the wrong type):
 
 | Value | Default | |
 |---|---|---|
@@ -74,7 +74,7 @@ The values (`infrastructure/helm/opennote/values.yaml` describes each one):
 | `existingSecret` | `opennote` | Keys `OPENNOTE_DATABASE_URL`, `OPENNOTE_VALKEY_URL` |
 | `logLevel` | `INFO` | `OPENNOTE_LOG_LEVEL`; `OPENNOTE_ENVIRONMENT` is always `production` |
 | `clusterDomain` | `cluster.local` | Used for web's `OPENNOTE_API_UPSTREAM`, `<release>-api.<namespace>.svc.<clusterDomain>:80`. nginx's resolver ignores the resolv.conf search list, so the name must be fully qualified |
-| `fsGroup` | `1001` | Left out when `openshift.enabled` is true |
+| `fsGroup` | `1001` | Left out when `openshift.enabled` is true. `fsGroupChangePolicy: OnRootMismatch` is not a value: every pod sets it, on OpenShift too |
 | `openshift.enabled`, `openshift.route.host` | `false`, empty (the router generates a host) | |
 | `ingress.enabled`, `ingress.className`, `ingress.annotations`, `ingress.host`, `ingress.tlsSecretName` | `false`, empty, `{}`, empty (any host), empty (no TLS) | |
 | `persistence.accessMode`, `persistence.storageClassName`, `persistence.vaults.size`, `persistence.history.size` | `ReadWriteMany`, empty (the default class), `10Gi`, `10Gi` | |
@@ -90,13 +90,19 @@ helm upgrade opennote infrastructure/helm/opennote --namespace opennote --reuse-
   --set ingress.tlsSecretName=<tls-secret>
 ```
 
+Without `ingress.tlsSecretName` the Ingress serves plain HTTP: set it, or terminate TLS at the ingress controller, before exposing OpenNote.
+
 ## Apply with kustomize
 
 ```bash
 kubectl apply -k infrastructure/kubernetes/base
 ```
 
-The base deploys into the namespace `opennote` and uses the default image names; change them in an overlay (`images:`). Another namespace must also change `OPENNOTE_API_UPSTREAM` in the `web` ConfigMap (`api.opennote.svc.cluster.local:80` in the base), for the reason given for `clusterDomain` above. kustomize has no ordering: the migration Job runs alongside the Deployments. A Job's pod template cannot change, so delete the Job before applying a new image: `kubectl -n opennote delete job migrate --ignore-not-found`.
+The base deploys into the namespace `opennote` and uses the default image names; change them in an overlay (`images:`). Another namespace must also change `OPENNOTE_API_UPSTREAM` in the `web` ConfigMap (`api.opennote.svc.cluster.local:80` in the base), for the reason given for `clusterDomain` above. Unlike the chart, the base:
+
+- **does not keep the volumes:** `kubectl delete -k` deletes the `vaults` and `history` PersistentVolumeClaims too (there is no `helm.sh/resource-policy: keep`), and with a `Delete` reclaim policy the data on them;
+- **does not restart the pods after a ConfigMap change** (there is no checksum annotation): run `kubectl -n opennote rollout restart deployment` after changing one;
+- **has no ordering:** the migration Job runs alongside the Deployments. A Job's pod template cannot change, so delete the Job before applying a new image: `kubectl -n opennote delete job migrate --ignore-not-found`.
 
 ## OpenShift
 
@@ -108,10 +114,10 @@ oc apply -k infrastructure/openshift
 
 Both differ from plain Kubernetes in two ways:
 
-- **No `fsGroup`.** The `restricted-v2` SCC assigns each pod a UID and an `fsGroup` from the namespace's ranges and refuses a fixed `fsGroup` outside them. The images run with any UID in group 0, and the volumes get the SCC's group.
+- **No `fsGroup`.** The `restricted-v2` SCC assigns each pod a UID and an `fsGroup` from the namespace's ranges and refuses a fixed `fsGroup` outside them. The images run with any UID in group 0, and the volumes get the SCC's group. The pods leave out only `fsGroup` and keep `fsGroupChangePolicy: OnRootMismatch`.
 - **A Route to web** with edge TLS (the router's default certificate) and HTTP redirected to HTTPS: `oc -n opennote get route`. With the chart, `openshift.route.host` sets a host name.
 
-The cluster must run Kubernetes 1.30 or newer (the chart's `kubeVersion`).
+The cluster must run Kubernetes 1.29 or newer (OpenShift 4.16 or newer), the chart's `kubeVersion`.
 
 ## Validation
 
@@ -119,15 +125,23 @@ The `manifests` job of `.github/workflows/containers.yml` runs whenever that wor
 
 - `helm lint --strict` for the defaults, `openshift.enabled=true`, and an Ingress with a host and TLS;
 - `helm template` of the same three variants, and `kubectl kustomize` of the base and the OpenShift overlay;
-- a check that nothing renders a Secret, that each of the four pods sets `fsGroup: 1001` on Kubernetes and that none does on OpenShift;
-- `kubeconform -strict` of all five renders against the Kubernetes 1.30.0 schemas and the newest ones, with the Route schema from the community CRD catalog (`datreeio/CRDs-catalog`, OpenShift 4.15).
+- a check of what kubeconform cannot see: no render contains a Secret or a `secretKeyRef`; the four pods set `fsGroup: 1001` on Kubernetes and none does on OpenShift, and all four set `fsGroupChangePolicy: OnRootMismatch` in every render; web's `OPENNOTE_API_UPSTREAM` is the api Service's fully qualified name on port 80;
+- `kubeconform -strict` of all five renders against the Kubernetes 1.29.0 schemas and the newest ones, with the Route schema from the community CRD catalog (`datreeio/CRDs-catalog`, OpenShift 4.15).
 
 The same locally, with Helm, kustomize and kubeconform installed:
 
 ```bash
 helm lint --strict infrastructure/helm/opennote
-helm template opennote infrastructure/helm/opennote | kubeconform -strict -summary
-kustomize build infrastructure/kubernetes/base | kubeconform -strict -summary
+helm lint --strict infrastructure/helm/opennote --set openshift.enabled=true
+route='https://raw.githubusercontent.com/datreeio/CRDs-catalog/501527ab9c40c827144c8f45945b25a023e344ce/openshift/v4.15-strict/{{.ResourceKind}}_{{.Group}}_{{.ResourceAPIVersion}}.json'
+helm template opennote infrastructure/helm/opennote | kubeconform -strict -summary -kubernetes-version 1.29.0
+helm template opennote infrastructure/helm/opennote --set openshift.enabled=true |
+  kubeconform -strict -summary -kubernetes-version 1.29.0 -schema-location default -schema-location "$route"
+kustomize build infrastructure/kubernetes/base | kubeconform -strict -summary -kubernetes-version 1.29.0
+kustomize build infrastructure/openshift |
+  kubeconform -strict -summary -kubernetes-version 1.29.0 -schema-location default -schema-location "$route"
 ```
+
+The job also lints and renders the Ingress variant, runs the check of the third item on the saved renders, and repeats kubeconform with `-kubernetes-version master`.
 
 None of this proves that the manifests work on a cluster: the probes, the migration hook, volume permissions, the SCC and the Route are only exercised by a real deployment.

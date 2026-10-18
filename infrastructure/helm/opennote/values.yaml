@@ -15,7 +15,8 @@ image:
 imagePullSecrets: []
 
 # The Secret, created before installing, with the keys OPENNOTE_DATABASE_URL and
-# OPENNOTE_VALKEY_URL (api and worker; the migration Job reads only the database URL).
+# OPENNOTE_VALKEY_URL. Mounted as files at /run/secrets/opennote and read through
+# OPENNOTE_*_FILE (api and worker; the migration Job reads only the database URL).
 existingSecret: opennote
 
 # OPENNOTE_LOG_LEVEL, a Python log level name. OPENNOTE_ENVIRONMENT is always production.

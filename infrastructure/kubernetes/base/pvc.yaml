@@ -1,6 +1,6 @@
 # The vaults and the note history, mounted by api and worker. ReadWriteMany, because both
 # Deployments (and any extra replicas) mount them at once, on any node: the cluster needs a
-# storage class that offers RWX (docs/deployment/kubernetes.md, "Storage").
+# storage class that offers RWX (docs/deployment/kubernetes.md, "Before you install").
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

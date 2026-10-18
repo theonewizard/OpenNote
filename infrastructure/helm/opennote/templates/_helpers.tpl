@@ -26,12 +26,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- .Values.image.tag | default .Chart.AppVersion -}}
 {{- end -}}
 
-{{/* Pod Security "restricted"; no runAsUser, so OpenShift can assign one. */}}
+{{/*
+Pod Security "restricted"; no runAsUser, so OpenShift can assign one. OnRootMismatch: the
+kubelet changes a volume's group only when its root does not match, not at every start of a
+large vault (OpenShift's SCC injects an fsGroup too, so the policy is set everywhere).
+*/}}
 {{- define "opennote.podSecurityContext" -}}
 runAsNonRoot: true
 {{- if not .Values.openshift.enabled }}
 fsGroup: {{ .Values.fsGroup }}
 {{- end }}
+fsGroupChangePolicy: OnRootMismatch
 seccompProfile:
   type: RuntimeDefault
 {{- end -}}
@@ -43,26 +48,27 @@ capabilities:
   drop: [ALL]
 {{- end -}}
 
-{{/* The URLs from the existing Secret, for api and worker. */}}
+{{/*
+api and worker read the URLs from the existing Secret's files (OPENNOTE_*_FILE), not from
+environment variables, which leak through /proc/<pid>/environ, child processes and crash
+reports.
+*/}}
 {{- define "opennote.secretEnv" -}}
-- name: OPENNOTE_DATABASE_URL
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.existingSecret }}
-      key: OPENNOTE_DATABASE_URL
-- name: OPENNOTE_VALKEY_URL
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.existingSecret }}
-      key: OPENNOTE_VALKEY_URL
+- name: OPENNOTE_DATABASE_URL_FILE
+  value: /run/secrets/opennote/OPENNOTE_DATABASE_URL
+- name: OPENNOTE_VALKEY_URL_FILE
+  value: /run/secrets/opennote/OPENNOTE_VALKEY_URL
 {{- end -}}
 
-{{/* api and worker: the two volumes at the paths in the ConfigMap, and /tmp. */}}
+{{/* api and worker: the two volumes at the paths in the ConfigMap, the Secret, and /tmp. */}}
 {{- define "opennote.backendVolumeMounts" -}}
 - name: vaults
   mountPath: /var/lib/opennote/vaults
 - name: history
   mountPath: /var/lib/opennote/history
+- name: secrets
+  mountPath: /run/secrets/opennote
+  readOnly: true
 - name: tmp
   mountPath: /tmp
 {{- end -}}
@@ -74,6 +80,12 @@ capabilities:
 - name: history
   persistentVolumeClaim:
     claimName: {{ include "opennote.fullname" . }}-history
+- name: secrets
+  secret:
+    secretName: {{ .Values.existingSecret }}
+{{- /* A full /tmp evicts the pod instead of filling the node; revisit with attachments in
+Phase 1. */}}
 - name: tmp
-  emptyDir: {}
+  emptyDir:
+    sizeLimit: 256Mi
 {{- end -}}

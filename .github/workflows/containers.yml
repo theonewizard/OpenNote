@@ -1,7 +1,8 @@
 # Containers: build the images, run the full stack and the dev stack with smoke tests,
 # run them as an arbitrary UID, and scan the images with Trivy; weekly as well as on every
-# push and pull request, so new fixes in the base images and packages are picked up
-# (docs/development/setup.md, "Continuous integration").
+# push and pull request, so new fixes in the base images and packages are picked up. A
+# second job, manifests, lints, renders and validates the Kubernetes, Helm and OpenShift
+# manifests (docs/development/setup.md, "Continuous integration").
 name: containers
 
 on:
@@ -138,8 +139,8 @@ jobs:
           exit "$status"
 
   # The Helm chart (defaults, OpenShift, Ingress) and the kustomize base and OpenShift
-  # overlay: lint, render and validate against the Kubernetes 1.30.0 schemas (the chart's
-  # kubeVersion floor) and the newest ones. No cluster is involved
+  # overlay: lint, render and validate against the Kubernetes 1.29.0 schemas (the chart's
+  # kubeVersion floor, OpenShift 4.16) and the newest ones. No cluster is involved
   # (docs/deployment/kubernetes.md).
   manifests:
     name: manifests
@@ -184,23 +185,36 @@ jobs:
           kubectl kustomize infrastructure/kubernetes/base > "$out/kustomize-base.yaml"
           kubectl kustomize infrastructure/openshift > "$out/kustomize-openshift.yaml"
 
-      # What kubeconform cannot see: no Secret object anywhere, fsGroup on each of the four
-      # pods on Kubernetes and on none on OpenShift (its restricted SCC assigns the group).
-      - name: No Secret, fsGroup only off OpenShift
+      # What kubeconform cannot see, in every render: no Secret object and no secretKeyRef
+      # (the URLs are mounted as files); fsGroup 1001 on the four pods on Kubernetes and on
+      # none on OpenShift, whose restricted SCC assigns the group; fsGroupChangePolicy
+      # OnRootMismatch on all four pods; web's API upstream is the api Service's fully
+      # qualified name on port 80, since nginx ignores the resolv.conf search list.
+      - name: Secrets, fsGroup and the web upstream
         run: |
-          out=$RUNNER_TEMP/manifests
-          if grep -n '^kind: Secret$' "$out"/*.yaml; then echo "a Secret is rendered"; exit 1; fi
-          for file in helm-defaults helm-ingress kustomize-base; do
-            count=$(grep -c '^ *fsGroup: 1001$' "$out/$file.yaml") || true
-            [[ $count == 4 ]] || { echo "$file: fsGroup 1001 on $count pods, want 4"; exit 1; }
-          done
-          if grep -n fsGroup "$out/helm-openshift.yaml" "$out/kustomize-openshift.yaml"; then
-            echo "fsGroup in an OpenShift variant"; exit 1
-          fi
+          cd "$RUNNER_TEMP/manifests"
+          status=0
+          # want N PATTERN FILE...: each file has exactly N lines matching PATTERN.
+          want() {
+            local n=$1 pattern=$2 file got
+            shift 2
+            for file; do
+              got=$(grep -c -E -- "$pattern" "$file") || true
+              [[ $got == "$n" ]] || { echo "$file: $got lines match '$pattern', want $n"; status=1; }
+            done
+          }
+          all=(helm-defaults.yaml helm-ingress.yaml helm-openshift.yaml kustomize-base.yaml kustomize-openshift.yaml)
+          want 0 '^kind: Secret$' "${all[@]}"
+          want 0 'secretKeyRef' "${all[@]}"
+          want 4 '^ *fsGroup: 1001$' helm-defaults.yaml helm-ingress.yaml kustomize-base.yaml
+          want 0 'fsGroup:' helm-openshift.yaml kustomize-openshift.yaml
+          want 4 '^ *fsGroupChangePolicy: OnRootMismatch$' "${all[@]}"
+          want 1 '^ *OPENNOTE_API_UPSTREAM: "?([a-z0-9-]+-)?api\.[a-z0-9-]+\.svc\.cluster\.local:80"?$' "${all[@]}"
+          exit "$status"
 
       - name: kubeconform
         run: |
-          for version in 1.30.0 master; do
+          for version in 1.29.0 master; do
             echo "Kubernetes schemas: $version"
             docker run --rm -v "$RUNNER_TEMP/manifests:/manifests:ro" "$KUBECONFORM" -strict -summary \
               -kubernetes-version "$version" -schema-location default -schema-location "$OPENSHIFT_SCHEMAS" \

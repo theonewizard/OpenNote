@@ -101,7 +101,7 @@ D1, D7 and D8 were decided by Flemming on 2026-10-17. The others are not blockin
 | D1 | Project licence | **Decided: AGPL-3.0** (Flemming, 2026-10-17). Anyone who runs a modified OpenNote as a network service must offer its source to users. `LICENSE` holds the full text |
 | D2 | Tenancy in v1: single owner per server vs multi-user with per-vault ACL | Multi-user with owner/editor/viewer roles in the data model from day one; UI exposes owner only until Phase P2 sharing |
 | D3 | Minimum Apple OS versions | macOS 15, iOS/iPadOS 18 (SwiftUI and TextKit 2 maturity; Swift 6 strict concurrency) |
-| D4 | Minimum OpenShift/Kubernetes versions | OpenShift 4.16+, Kubernetes 1.30+ |
+| D4 | Minimum OpenShift/Kubernetes versions | OpenShift 4.16+ (Kubernetes 1.29+) |
 | D5 | Whether OpenNote may write an `id` into existing notes when the user edits (not opens) them | No. IDs are written only to notes OpenNote creates, or by an explicit per-vault "normalize" action |
 | D6 | Version-history retention default | Keep all revisions 30 days, then daily snapshots for 1 year; configurable per vault |
 | D7 | Whether `CLAUDE.md` §11–§14 (TrueNAS host, `get_api_key`, Zod `/api` proxy) apply to OpenNote as written | **Decided: adapt** (Flemming, 2026-10-17). §11 now names OpenNote production hosts, §12 the OpenNote dependencies and path, §14 the generated-client contract; the secret rules are unchanged |

@@ -27,6 +27,9 @@ spec:
         # The image runs as UID 1001, group 0. fsGroup makes the volumes writable on
         # Kubernetes; the OpenShift overlay removes it (the restricted SCC assigns one).
         fsGroup: 1001
+        # The kubelet changes a volume's group only when its root does not match, not at
+        # every start of a large vault. Kept on OpenShift, whose SCC injects an fsGroup.
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -39,17 +42,14 @@ spec:
           envFrom:
             - configMapRef:
                 name: opennote
+          # The URLs are read from the Secret's files (OPENNOTE_*_FILE), not from environment
+          # variables, which leak through /proc/<pid>/environ, child processes and crash
+          # reports.
           env:
-            - name: OPENNOTE_DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: opennote
-                  key: OPENNOTE_DATABASE_URL
-            - name: OPENNOTE_VALKEY_URL
-              valueFrom:
-                secretKeyRef:
-                  name: opennote
-                  key: OPENNOTE_VALKEY_URL
+            - name: OPENNOTE_DATABASE_URL_FILE
+              value: /run/secrets/opennote/OPENNOTE_DATABASE_URL
+            - name: OPENNOTE_VALKEY_URL_FILE
+              value: /run/secrets/opennote/OPENNOTE_VALKEY_URL
           startupProbe:
             httpGet:
               path: /healthz
@@ -85,6 +85,9 @@ spec:
               mountPath: /var/lib/opennote/vaults
             - name: history
               mountPath: /var/lib/opennote/history
+            - name: secrets
+              mountPath: /run/secrets/opennote
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -94,5 +97,11 @@ spec:
         - name: history
           persistentVolumeClaim:
             claimName: history
+        - name: secrets
+          secret:
+            secretName: opennote
+        # A full /tmp evicts the pod instead of filling the node; revisit with attachments
+        # in Phase 1.
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 256Mi

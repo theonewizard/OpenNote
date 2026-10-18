@@ -26,6 +26,7 @@ spec:
         runAsNonRoot: true
         # As in api.yaml.
         fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -36,17 +37,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: opennote
+          # As in api.yaml.
           env:
-            - name: OPENNOTE_DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: opennote
-                  key: OPENNOTE_DATABASE_URL
-            - name: OPENNOTE_VALKEY_URL
-              valueFrom:
-                secretKeyRef:
-                  name: opennote
-                  key: OPENNOTE_VALKEY_URL
+            - name: OPENNOTE_DATABASE_URL_FILE
+              value: /run/secrets/opennote/OPENNOTE_DATABASE_URL
+            - name: OPENNOTE_VALKEY_URL_FILE
+              value: /run/secrets/opennote/OPENNOTE_VALKEY_URL
           resources:
             requests:
               cpu: 250m
@@ -64,6 +60,9 @@ spec:
               mountPath: /var/lib/opennote/vaults
             - name: history
               mountPath: /var/lib/opennote/history
+            - name: secrets
+              mountPath: /run/secrets/opennote
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -73,5 +72,9 @@ spec:
         - name: history
           persistentVolumeClaim:
             claimName: history
+        - name: secrets
+          secret:
+            secretName: opennote
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 256Mi

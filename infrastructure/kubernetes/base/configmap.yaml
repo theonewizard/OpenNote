@@ -1,6 +1,6 @@
 # Settings that are not secret. api and worker read `opennote`, web reads `web`. The
-# database and Valkey URLs come from the Secret `opennote`, which these manifests reference
-# but never contain.
+# database and Valkey URLs come from the Secret `opennote`, mounted as files (api.yaml),
+# which these manifests reference but never contain.
 apiVersion: v1
 kind: ConfigMap
 metadata:
