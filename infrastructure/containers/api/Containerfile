@@ -41,7 +41,7 @@ WORKDIR /app
 COPY backend/alembic.ini ./
 COPY backend/app ./app
 COPY backend/migrations ./migrations
-COPY infrastructure/containers/api/entrypoint.sh ./
+COPY infrastructure/containers/api/entrypoint.sh infrastructure/containers/api/logging.json ./
 
 # The only writable paths besides /tmp: the vault and history volumes, owned by group 0 so
 # that any UID in group 0 can write them (OpenShift assigns an arbitrary UID).

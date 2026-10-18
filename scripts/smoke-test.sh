@@ -5,13 +5,14 @@
 #   scripts/smoke-test.sh http://localhost:8080             # full stack, through the web proxy
 #   scripts/smoke-test.sh --api-only http://localhost:8000  # the API alone
 #
-# While the stack starts, each check is retried with backoff; all checks share one
-# deadline of about 60 s. Exits 0 when every check passes, otherwise 1 with a line naming
-# the failing check (2 for bad usage).
+# While the stack starts, a check that gets no HTTP response or a 5xx is retried with
+# backoff; all checks share one deadline of about 60 s. Any other answer is final, so a
+# wrong route or body fails at once. Exits 0 when every check passes, otherwise 1 with a
+# line naming the failing check (2 for bad usage).
 set -euo pipefail
 
 usage() {
-  echo "usage: $0 [--api-only] <base_url>" >&2
+  echo "usage: $0 [--api-only] <base_url>   (base_url starts with http:// or https://)" >&2
   exit 2
 }
 
@@ -20,25 +21,36 @@ if [[ ${1:-} == --api-only ]]; then
   api_only=true
   shift
 fi
-[[ $# -eq 1 ]] || usage
+[[ $# -eq 1 && $1 =~ ^https?://[^/]+ ]] || usage
 base_url=${1%/}
 deadline=$((SECONDS + 60))
 
 # check <name> <path> <text the 200 body must contain>
 check() {
-  local name=$1 path=$2 expected=$3 delay=1 response code
+  local name=$1 path=$2 expected=$3 delay=1 response status code error problem rc
   while :; do
-    # The status code goes on a last line of its own, after the body.
-    response=$(curl --silent --show-error --max-time 5 --write-out '\n%{http_code}' \
-      "$base_url$path" 2>&1) || true
-    code=${response##*$'\n'}
-    if [[ $code == 200 && $response == *"$expected"* ]]; then
-      echo "ok    $name"
-      return
+    # The body, then a last line with the status code and curl's error text (empty when
+    # the response arrived complete).
+    rc=0
+    response=$(curl --silent --max-time 5 --write-out '\n%{http_code} %{errormsg}' \
+      "$base_url$path") || rc=$?
+    status=${response##*$'\n'}
+    code=${status%% *}
+    error=${status#* }
+    if ((rc != 0)); then
+      problem="gave no complete HTTP response ($error), want 200 with $expected"
+    elif [[ $code == 200 ]]; then
+      if [[ ${response%$'\n'*} == *"$expected"* ]]; then
+        echo "ok    $name"
+        return
+      fi
+      problem="gave 200 without $expected in the body"
+    else
+      problem="gave $code, want 200 with $expected"
     fi
-    if ((SECONDS + delay > deadline)); then
-      [[ $code != 000 ]] || code="no HTTP response"
-      echo "FAIL  $name: GET $base_url$path gave $code, want 200 with $expected" >&2
+    # Only a connection error, a timeout or a 5xx can change while the stack starts.
+    if { ((rc == 0)) && [[ $code != 5?? ]]; } || ((SECONDS + delay > deadline)); then
+      echo "FAIL  $name: GET $base_url$path $problem" >&2
       exit 1
     fi
     sleep "$delay"

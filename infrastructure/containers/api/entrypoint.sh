@@ -5,8 +5,9 @@
 # Enable it on one API instance only: concurrent upgrades are not coordinated.
 #
 # Runs in /app (the image's WORKDIR). uvicorn is exec'd so it runs as PID 1 and receives
-# SIGTERM directly. Its access log is off because those lines would bypass the app's JSON
-# logger and its redaction filter.
+# SIGTERM directly. logging.json takes uvicorn's own handlers away, so its startup and
+# shutdown lines reach the app's JSON handler and redaction filter on the root logger. Its
+# access log stays off: each line holds the query string, which the filter cannot redact.
 set -eu
 
 case "${OPENNOTE_MIGRATE_ON_START:-false}" in
@@ -18,4 +19,5 @@ case "${OPENNOTE_MIGRATE_ON_START:-false}" in
     ;;
 esac
 
-exec uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --no-access-log
+exec uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --no-access-log \
+  --log-config /app/logging.json

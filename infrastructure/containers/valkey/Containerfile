@@ -19,7 +19,8 @@ RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
 
 # The checksum of this release's source archive, as pinned by the upstream valkey-container
 # project and by Homebrew (docs/development/versions.md).
-RUN curl -fsSL -o /tmp/valkey.tar.gz \
+RUN curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
+        --retry 3 --output /tmp/valkey.tar.gz \
         https://github.com/valkey-io/valkey/archive/refs/tags/9.1.2.tar.gz \
     && echo "19c23908e7d57e8d91ef85b41f5646307582f10f4f0fb999bbf89ed24ec9c983  /tmp/valkey.tar.gz" \
         | sha256sum -c - \

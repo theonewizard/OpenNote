@@ -6,9 +6,11 @@
 #   make up     # docker compose -f infrastructure/compose/compose.yaml up -d --wait
 #   make down
 #
-# Settings come from .env next to this file. Without it api, worker and postgres refuse
-# to start and name the missing settings; `down` needs no .env. The published ports
-# listen on 127.0.0.1 only: put a TLS proxy in front of web to serve other hosts.
+# Settings come from .env next to this file (or the shell), and each service gets only its
+# own: api and worker the OPENNOTE_* variables, postgres the POSTGRES_* ones. Without .env
+# api, worker and postgres refuse to start and name the missing settings; `down` needs no
+# .env. The published ports listen on 127.0.0.1 only: put a TLS proxy in front of web to
+# serve other hosts (docs/development/setup.md, "Security posture of the default stack").
 
 name: opennote
 
@@ -26,10 +28,15 @@ x-backend: &backend
   build:
     context: ../..
     dockerfile: infrastructure/containers/api/Containerfile
-  env_file:
-    - path: .env
-      required: false
+  # A variable without a value is taken from .env or the shell and left unset if neither
+  # has it; an empty value would not fall back to the default (OPENNOTE_LOG_LEVEL=INFO).
   environment: &backend-environment
+    OPENNOTE_DATABASE_URL:
+    OPENNOTE_DATABASE_URL_FILE:
+    OPENNOTE_VALKEY_URL:
+    OPENNOTE_VALKEY_URL_FILE:
+    OPENNOTE_ENVIRONMENT:
+    OPENNOTE_LOG_LEVEL:
     OPENNOTE_VAULT_ROOT: /var/lib/opennote/vaults
     OPENNOTE_HISTORY_ROOT: /var/lib/opennote/history
   volumes:
@@ -92,9 +99,14 @@ services:
     build:
       context: ../..
       dockerfile: infrastructure/containers/postgres/Containerfile
-    env_file:
-      - path: .env
-        required: false
+    # Taken from .env or the shell as for the backend. Without a password the first start
+    # refuses to initialise (infrastructure/containers/postgres/entrypoint.sh).
+    environment:
+      POSTGRES_USER:
+      POSTGRES_PASSWORD:
+      POSTGRES_PASSWORD_FILE:
+      POSTGRES_DB:
+      POSTGRES_TEST_DB:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -106,6 +118,8 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    # The image stops with SIGINT (fast shutdown), which writes a checkpoint first.
+    stop_grace_period: 60s
 
   valkey:
     <<: *defaults

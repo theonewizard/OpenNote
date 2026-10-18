@@ -82,17 +82,27 @@ It validates every `OPENNOTE_*` setting at start and, if any is missing or inval
 With `infrastructure/compose/.env` created (section 2) and Docker or Podman running (added in Phase 0 Task 6):
 
 ```bash
-make up                                      # builds the images on the first run
+make up                                      # builds the images, then starts the stack
 scripts/smoke-test.sh http://localhost:8080
 make down
 ```
 
-`make up` starts `infrastructure/compose/compose.yaml` (web, api, worker, postgres, valkey) and waits until every service with a health check is healthy. The web app is on http://localhost:8080 and forwards `/api/`, `/healthz` and `/readyz` to the API, which is also on http://localhost:8000 (`scripts/smoke-test.sh --api-only http://localhost:8000`). Both ports listen on 127.0.0.1 only. Every container runs as a non-root user with a read-only root filesystem.
+`make up` rebuilds the images (unchanged layers come from the build cache), starts `infrastructure/compose/compose.yaml` (web, api, worker, postgres, valkey) and waits until every service with a health check is healthy. The web app is on http://localhost:8080 and forwards `/api/`, `/healthz` and `/readyz` to the API, which is also on http://localhost:8000 (`scripts/smoke-test.sh --api-only http://localhost:8000`). Both ports listen on 127.0.0.1 only. Every container runs as a non-root user with a read-only root filesystem.
 
-- Migrations are not applied on start by default. `OPENNOTE_MIGRATE_ON_START=true make up`, or that line in `.env`, makes the API run `alembic upgrade head` first; enable it for one API instance only.
+- Migrations are not applied on start by default. Apply them deliberately with `docker compose -f infrastructure/compose/compose.yaml run --rm api alembic upgrade head`. `OPENNOTE_MIGRATE_ON_START=true make up`, or that line in `.env`, makes the API run `alembic upgrade head` first instead; enable it for one API instance only.
 - The worker has no health check. When stopped it gets 60 s: it lets running jobs finish for up to 50 s, and a job still running after that is delivered again later (at-least-once).
 - Valkey keeps nothing on disk, so restarting it loses queued jobs.
 - Data lives in the volumes `opennote_vaults`, `opennote_history` and `opennote_pgdata`, which `make down` keeps (`docker compose -f infrastructure/compose/compose.yaml down -v` deletes them). PostgreSQL reads `POSTGRES_*` only when it initialises an empty volume, so a password changed in `.env` later must also be changed in the database.
+
+### Security posture of the default stack
+
+The stack is set up for local use. Before it serves anyone else, know what it does not do yet:
+
+- The API and the worker connect to PostgreSQL as the cluster's superuser (`POSTGRES_USER`) until a dedicated application role lands in Phase 1.
+- Valkey has no password. It is reachable only from the other containers, because compose.yaml publishes no port for it.
+- All five services share one Compose network, so each container can reach every other one.
+- `web` serves plain HTTP. Anything beyond local use needs a TLS proxy in front of it, with real secrets in `.env`.
+- nginx sets `X-Forwarded-Proto` from its own connection and rate-limits `/healthz` and `/readyz` per client address. Both assume `web` is the edge: behind a TLS proxy the API is told `http` although the client used HTTPS, and all clients share the proxy's address and so one rate limit, until a trusted-proxy configuration exists.
 
 ## Other targets
 

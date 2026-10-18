@@ -47,6 +47,8 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    # The image stops with SIGINT (fast shutdown), which writes a checkpoint first.
+    stop_grace_period: 60s
 
   valkey:
     <<: *defaults

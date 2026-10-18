@@ -34,7 +34,7 @@ build: ## Production build of the web app
 	cd web && npm run build
 
 up: ## Start the full stack (COMPOSE="podman compose" for Podman)
-	$(COMPOSE) -f $(COMPOSE_DIR)/compose.yaml up -d --wait
+	$(COMPOSE) -f $(COMPOSE_DIR)/compose.yaml up -d --wait --build
 
 up-deps: ## Start only PostgreSQL and Valkey for local development
 	$(COMPOSE) -f $(COMPOSE_DIR)/compose.dev.yaml up -d --wait postgres valkey
