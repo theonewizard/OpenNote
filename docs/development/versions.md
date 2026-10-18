@@ -53,17 +53,32 @@ None of these excludes Python 3.13 or 3.14 through `requires-python` (highest fl
 | react, react-dom | 19.3.1 | 2026-10-14 | https://registry.npmjs.org/react | 2026-10-17 |
 | vite | 8.3.4 | 2026-10-08 | https://registry.npmjs.org/vite | 2026-10-17 |
 | @vitejs/plugin-react | 6.1.2 | 2026-10-05 | https://registry.npmjs.org/@vitejs%2fplugin-react | 2026-10-17 |
-| typescript | 5.9.3 | 2025-09-30 | https://registry.npmjs.org/typescript. Newest release accepted by both openapi-typescript and typescript-eslint (see peer constraints). Latest stable is 7.0.2 (2026-07-08); not adoptable yet because openapi-typescript 7.13.0 requires `^5.x` and typescript-eslint 8.71.2 requires `<6.1.0` | 2026-10-17 |
+| typescript | 5.9.3 | 2025-09-30 | https://registry.npmjs.org/typescript. Newest release accepted by both openapi-typescript and typescript-eslint (see peer constraints). Latest stable is 7.0.2 (2026-07-08); not adoptable yet because openapi-typescript 7.13.0 requires `^5.x` and typescript-eslint 8.71.2 requires `<6.1.0`. create-vite 9.2.1 scaffolds `~6.0.2`; `web/` pins 5.9.3 for the same reason | 2026-10-17 |
 | typescript-eslint | 8.71.2 | 2026-10-12 | https://registry.npmjs.org/typescript-eslint | 2026-10-17 |
 | eslint | 10.13.0 | 2026-10-16 | https://registry.npmjs.org/eslint | 2026-10-17 |
 | tailwindcss | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/tailwindcss | 2026-10-17 |
 | @tailwindcss/vite | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/@tailwindcss%2fvite | 2026-10-17 |
-| shadcn (shadcn/ui CLI) | 4.22.0 | 2026-10-16 | https://registry.npmjs.org/shadcn | 2026-10-17 |
+| shadcn (shadcn/ui CLI) | 4.22.0 | 2026-10-16 | https://registry.npmjs.org/shadcn. Also a `web/` dependency: `src/index.css` imports `shadcn/tailwind.css` | 2026-10-17 |
 | vitest | 5.0.5 | 2026-10-15 | https://registry.npmjs.org/vitest | 2026-10-17 |
 | @playwright/test | 1.64.1 | 2026-10-14 | https://registry.npmjs.org/@playwright%2ftest | 2026-10-17 |
 | openapi-typescript | 7.13.0 | 2026-02-11 | https://registry.npmjs.org/openapi-typescript | 2026-10-17 |
+| @eslint/js | 10.0.1 | 2026-02-06 | https://registry.npmjs.org/@eslint%2fjs | 2026-10-18 |
+| eslint-plugin-react-hooks | 7.1.1 | 2026-04-17 | https://registry.npmjs.org/eslint-plugin-react-hooks | 2026-10-18 |
+| eslint-plugin-react-refresh | 0.5.7 | 2026-09-14 | https://registry.npmjs.org/eslint-plugin-react-refresh | 2026-10-18 |
+| globals | 17.13.0 | 2026-10-01 | https://registry.npmjs.org/globals | 2026-10-18 |
+| @types/react, @types/react-dom | 19.3.0 | 2026-09-09 | https://registry.npmjs.org/@types%2freact | 2026-10-18 |
+| @types/node | 24.19.2 | 2026-10-09 | https://registry.npmjs.org/@types%2fnode. Newest 24.x, matching the Node.js 24 LTS runtime; `latest` 26.6.5 describes Node.js 26 | 2026-10-18 |
+| jsdom | 30.1.3 | 2026-10-15 | https://registry.npmjs.org/jsdom. Vitest's DOM environment (chosen over happy-dom); engines `^22.22.2 \|\| ^24.15.0 \|\| >=26.0.0` | 2026-10-18 |
+| @testing-library/react | 16.3.3 | 2026-08-27 | https://registry.npmjs.org/@testing-library%2freact | 2026-10-18 |
+| @testing-library/dom | 10.4.2 | 2026-09-13 | https://registry.npmjs.org/@testing-library%2fdom. Peer of @testing-library/react and @testing-library/jest-dom, so pinned explicitly | 2026-10-18 |
+| @testing-library/jest-dom | 7.0.1 | 2026-08-09 | https://registry.npmjs.org/@testing-library%2fjest-dom | 2026-10-18 |
+| @base-ui/react | 1.9.0 | 2026-10-09 | https://registry.npmjs.org/@base-ui%2freact. Primitive library of the shadcn `base` base (button.tsx) | 2026-10-18 |
+| class-variance-authority | 0.7.1 | 2024-11-26 | https://registry.npmjs.org/class-variance-authority. Declared by the shadcn base-nova init item | 2026-10-18 |
+| cn | 0.5.0 | 2026-10-16 | https://registry.npmjs.org/cn. shadcn's class-name merger (repository shadcn-ui/cn, maintainer shadcn); `src/lib/utils.ts` re-exports it in place of clsx + tailwind-merge. The name dates from 2013 (0.1.x by another author); shadcn publishes it since 0.2.0 (2026-09-01); no dependencies | 2026-10-18 |
+| lucide-react | 1.59.0 | 2026-10-17 | https://registry.npmjs.org/lucide-react. Icon library of the Nova preset (`iconLibrary: lucide`); no component uses it yet | 2026-10-18 |
+| tw-animate-css | 1.4.0 | 2025-09-24 | https://registry.npmjs.org/tw-animate-css. Imported by `src/index.css` | 2026-10-18 |
 
-All rows except typescript are the `latest` dist-tag.
+All rows except typescript and @types/node are the `latest` dist-tag.
 
 ### Known peer constraints
 
@@ -74,6 +89,16 @@ All rows except typescript are the `latest` dist-tag.
 - Node.js engines: vitest 5.0.5 needs `^22.12.0 || ^24.0.0 || >=26.0.0`, eslint 10.13.0 needs `^20.19.0 || ^22.13.0 || >=24`; Node.js 24.22.0 satisfies both.
 - The whole set above resolves with `npm install --package-lock-only` on Node.js 24.22.0 and npm 11.19.1 (checked 2026-10-17, one copy each of typescript and vite). With typescript 7.0.2 it fails with `ERESOLVE` (`peer typescript@"^5.x" from openapi-typescript@7.13.0`). `--legacy-peer-deps`, `--force` and `overrides` are not used.
 - Revisit TypeScript when both openapi-typescript and typescript-eslint accept 6.x or 7.x.
+
+### shadcn/ui files
+
+`web/components.json`, `web/src/lib/utils.ts`, `web/src/components/ui/button.tsx` and the theme in `web/src/index.css` are the output of `npx shadcn@4.22.0 init -b base -p nova --no-monorepo` followed by `npx shadcn@4.22.0 add button` (checked 2026-10-18). ui.shadcn.com is blocked from the Phase 0 environment, so the CLI ran with `REGISTRY_URL` pointing at a local mirror of the registry built from https://github.com/shadcn-ui/ui at commit `d2fba50ee5b9113008b5bb908563527b7efd2f27`:
+
+- `apps/v4/public/r/styles/base-nova/*` and `styles/new-york-v4/*` were built with that commit's `apps/v4/scripts/build-registry.mts --registry <style>`. The commit's `packages/shadcn` is version 4.22.0, so the npm 4.22.0 package stood in for it.
+- The `/init` response was produced with the commit's `apps/v4/app/(app)/(create)/init/route.ts` logic (`parseDesignSystemConfig`, `buildRegistryBase`, `registryItemSchema`) for the query the CLI sent.
+- The CLI ran in a scratch copy of `web/`; the generated files were copied into `web/` unchanged, except that the Geist font (`@fontsource-variable/geist` and its `--font-sans` override) was removed so the system font stack applies.
+
+Re-running the two commands against ui.shadcn.com from an unrestricted network should produce the same files, plus the Geist font lines.
 
 ## Apple
 
