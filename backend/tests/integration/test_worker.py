@@ -8,13 +8,15 @@ FLUSHALL), so a value left by an earlier run cannot pass a test.
 
 import json
 import os
+import secrets
 import signal
 import subprocess
 import sys
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import cast
+from urllib.parse import urlsplit
 
 import dramatiq
 import pytest
@@ -48,6 +50,15 @@ def delete_worker_keys(client: Redis) -> None:
     for pattern in WORKER_KEY_PATTERNS:
         if keys := list(client.scan_iter(match=pattern)):
             client.delete(*keys)
+
+
+def wait_until(condition: Callable[[], bool], timeout: float) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if condition():
+            return True
+        time.sleep(0.05)
+    return False
 
 
 def job_is_queued(token: str) -> bool:
@@ -90,12 +101,9 @@ class WorkerProcess:
         ping.send(token, delay_seconds=seconds)
 
     def wait_job_started(self, token: str, timeout: float) -> bool:
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            if self.valkey.get(f"opennote:ping:{token}:started") == b"1":
-                return True
-            time.sleep(0.05)
-        return False
+        return wait_until(
+            lambda: self.valkey.get(f"opennote:ping:{token}:started") == b"1", timeout
+        )
 
     def sigterm(self) -> None:
         self.process.send_signal(signal.SIGTERM)
@@ -124,16 +132,22 @@ def worker(valkey: Redis) -> Iterator[InProcessWorker]:
     worker.stop()
 
 
+@pytest.fixture
+def worker_valkey_url(valkey_url: str) -> str:
+    """The worker process's OPENNOTE_VALKEY_URL; a test may parametrize it."""
+    return valkey_url
+
+
 @pytest.fixture(params=WORKER_COMMANDS.values(), ids=WORKER_COMMANDS.keys())
 def worker_process(
-    request: pytest.FixtureRequest, valkey: Redis, valkey_url: str, tmp_path: Path
+    request: pytest.FixtureRequest, valkey: Redis, worker_valkey_url: str, tmp_path: Path
 ) -> Iterator[WorkerProcess]:
     stdout, stderr = tmp_path / "stdout", tmp_path / "stderr"
     with stdout.open("wb") as out, stderr.open("wb") as err:
         process = subprocess.Popen(  # noqa: S603 - the commands are WORKER_COMMANDS
             [sys.executable, *request.param],
             cwd=BACKEND_DIR,
-            env=os.environ | {"OPENNOTE_VALKEY_URL": valkey_url},
+            env=os.environ | {"OPENNOTE_VALKEY_URL": worker_valkey_url},
             stdout=out,
             stderr=err,
             start_new_session=True,  # its own process group, for the kill below
@@ -161,6 +175,17 @@ def test_sigterm_during_job_exits_within_grace(worker_process, valkey):
     assert valkey.get("opennote:ping:t2") == b"1" or job_is_queued("t2")
 
 
+def test_ping_keys_expire_within_60_seconds(worker, valkey):
+    ping.send("t1")
+    worker.join()
+    assert 0 < valkey.ttl("opennote:ping:t1") <= 60
+    assert 0 < valkey.ttl("opennote:ping:t1:started") <= 60
+
+
+def test_test_broker_uses_the_opennote_namespace():
+    assert cast(RedisBroker, ping.broker).namespace == "opennote"
+
+
 def test_worker_logs_json_lines_on_stdout(worker_process, valkey_url):
     ping.send("t3")
     assert worker_process.wait_job_started("t3", timeout=10)
@@ -172,3 +197,52 @@ def test_worker_logs_json_lines_on_stdout(worker_process, valkey_url):
     assert {"dramatiq.MainProcess", "dramatiq.WorkerProcess(0)"} <= loggers
     assert err == ""
     assert valkey_url not in out
+
+
+# Nothing listens on port 9, so every connection is refused at once.
+@pytest.mark.parametrize(
+    "worker_valkey_url", [f"redis://:{secrets.token_hex(16)}@127.0.0.1:9/1"], ids=["dead"]
+)
+def test_worker_logs_no_valkey_password_when_valkey_is_unreachable(
+    worker_process, worker_valkey_url
+):
+    password = urlsplit(worker_valkey_url).password
+    assert wait_until(lambda: '"level": "CRITICAL"' in worker_process.output()[0], timeout=10)
+    worker_process.sigterm()
+    assert worker_process.wait(timeout=10) == 0
+    out, err = worker_process.output()
+    assert password
+    assert password not in out
+    assert password not in err
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["redis://127.0.0.1:6379/0", f"redis://:{secrets.token_hex(16)}@127.0.0.1:no-port/1"],
+    ids=["database-0", "invalid-with-password"],
+)
+def test_integration_tests_refuse_valkey_database_0_or_an_invalid_url(url):
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            "--collect-only",
+            "tests/integration",
+        ],
+        cwd=BACKEND_DIR,
+        env=os.environ | {"OPENNOTE_TEST_VALKEY_URL": url},
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == pytest.ExitCode.USAGE_ERROR
+    assert "OPENNOTE_TEST_VALKEY_URL must" in result.stderr
+    output = result.stdout + result.stderr
+    assert url not in output
+    password = urlsplit(url).password
+    assert password is None or password not in output

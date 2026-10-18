@@ -10,7 +10,7 @@ import sys
 
 from dramatiq import cli
 
-from app.core.config import get_settings
+from app.core.config import SettingsError, get_settings
 from app.core.logging import configure_logging
 from app.workers.broker import configure_broker
 
@@ -22,14 +22,19 @@ DRAMATIQ_ARGS = [
     "1",
     "--threads",
     "4",
+    # Wait at most 50 s for running jobs, inside the 60 s stop grace period the deployments
+    # give the worker. A job still running then is killed with the process and delivered
+    # again once the broker finds the worker dead (at-least-once).
+    "--worker-shutdown-timeout",
+    "50000",
     "--skip-logging",  # configure_logging, not Dramatiq's logging.basicConfig
 ]
 
 
 def setup_worker_process() -> None:
-    """Configure logging and the broker in a worker process. Since Python 3.14 Dramatiq
-    starts worker processes with forkserver, so they inherit neither from the main
-    process."""
+    """Configure logging and the broker in a worker process. Needed wherever Dramatiq's
+    start method is not fork (forkserver on Linux from Python 3.14, spawn on macOS): the
+    worker processes then inherit neither from the main process."""
     settings = get_settings()
     # Dramatiq points sys.stdout at a pipe that its main process copies to stderr; the
     # JSON lines go to the real stdout instead, as everywhere else.
@@ -40,7 +45,12 @@ def setup_worker_process() -> None:
 def main() -> None:
     # Settings are loaded here first, so invalid settings stop the worker before it starts
     # any process.
-    configure_logging(get_settings().log_level)
+    try:
+        settings = get_settings()
+    except SettingsError as exc:
+        # One line on stderr and exit status 1; the message names fields, never values.
+        sys.exit(f"OpenNote worker cannot start: {exc}")
+    configure_logging(settings.log_level)
     # dramatiq.cli has no type annotations.
     parser = cli.make_argument_parser()  # type: ignore[no-untyped-call]
     sys.exit(cli.main(parser.parse_args(DRAMATIQ_ARGS)))  # type: ignore[no-untyped-call]

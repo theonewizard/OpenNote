@@ -50,7 +50,7 @@ The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); V
 make up-deps
 ```
 
-Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` (added in Phase 0 Task 6) on `127.0.0.1:5432` and `127.0.0.1:6379`. Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps` (added in Phase 0 Task 3). The test database's name must end in `_test` (default `opennote_test`): the migration tests upgrade it and downgrade it to base, dropping the `vector` and `pg_trgm` extensions, so the integration tests refuse to run against any other database. Use `COMPOSE="podman compose"` with any Compose target to use Podman.
+Starts only the `postgres` (with pgvector) and `valkey` services of `infrastructure/compose/compose.dev.yaml` (added in Phase 0 Task 6) on `127.0.0.1:5432` and `127.0.0.1:6379`. Integration tests read `OPENNOTE_TEST_DATABASE_URL` and `OPENNOTE_TEST_VALKEY_URL`, whose defaults point at these services, so nothing needs to be set when you use `make up-deps` (added in Phase 0 Task 3). The test database's name must end in `_test` (default `opennote_test`): the migration tests upgrade it and downgrade it to base, dropping the `vector` and `pg_trgm` extensions, so the integration tests refuse to run against any other database. The test Valkey database defaults to 1 (`redis://127.0.0.1:6379/1`) and must not be 0, the dev stack's: the worker tests delete the ping keys and the broker's default-queue, ack and heartbeat keys in it (added in Phase 0 Task 4). Use `COMPOSE="podman compose"` with any Compose target to use Podman.
 
 ## 4. Lint, type-check, test
 
@@ -66,6 +66,16 @@ make lint typecheck test
 | `build` | `npm run build` in `web/` |
 
 Apple packages are tested with `swift test --package-path apple/Packages/<Package>` (added in Phase 0 Task 7).
+
+## 5. Run the worker
+
+With the variables of section 2 set and Valkey running (added in Phase 0 Task 4):
+
+```bash
+cd backend && ../.venv/bin/python -m app.workers
+```
+
+It validates every `OPENNOTE_*` setting at start and, if any is missing or invalid, exits with one line naming the fields; it uses `OPENNOTE_VALKEY_URL` and `OPENNOTE_LOG_LEVEL`. One worker process with four threads takes jobs from Valkey and logs JSON lines on stdout. On SIGTERM or Ctrl-C it lets running jobs finish, waiting at most 50 s, then exits. Do not point it at the test Valkey database (section 3): the worker tests' jobs and key cleanup would collide with it.
 
 ## Other targets
 

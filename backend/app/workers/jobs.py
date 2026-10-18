@@ -1,6 +1,5 @@
-"""Background jobs. Importing this module binds its actors to dramatiq's global broker,
-so configure_broker() must have run: app.workers.__main__ does it in each worker
-process."""
+"""Background jobs. Actors bind to whatever broker is set when this module is imported,
+so configure_broker() must run first (app.workers.__main__ and the tests do)."""
 
 import time
 from typing import cast

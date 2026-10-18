@@ -4,6 +4,9 @@ The services are found through OPENNOTE_TEST_DATABASE_URL and OPENNOTE_TEST_VALK
 which default to the dev Compose addresses; opennote/opennote is a throwaway placeholder.
 The test database's name must end in _test: the migration tests downgrade it to base,
 which drops the vector and pg_trgm extensions, so the run refuses any other database.
+Valkey database 0 is the dev stack's, so the run refuses it too and defaults to database 1:
+the worker tests delete the ping keys and the broker's default-queue, ack and heartbeat
+keys there.
 """
 
 import os
@@ -24,21 +27,33 @@ from app.core.config import Settings
 from app.workers.broker import configure_broker
 
 DEFAULT_DATABASE_URL = "postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote_test"
-DEFAULT_VALKEY_URL = "redis://127.0.0.1:6379/0"
+DEFAULT_VALKEY_URL = "redis://127.0.0.1:6379/1"
 # Nothing listens on port 9, so connecting is refused at once. The password is a marker
 # that tests look for in logs.
 DEAD_DATABASE_URL = "postgresql+psycopg://opennote:dead-db-password@127.0.0.1:9/opennote_test"
 TEST_DATABASE_URL = os.environ.get("OPENNOTE_TEST_DATABASE_URL", DEFAULT_DATABASE_URL)
 TEST_VALKEY_URL = os.environ.get("OPENNOTE_TEST_VALKEY_URL", DEFAULT_VALKEY_URL)
 
-# Actors bind to dramatiq's global broker when app.workers.jobs is imported, so the test
-# broker is set here, before any test module imports the jobs. The other settings are the
-# placeholders tests/conftest.py puts in the environment. Nothing connects yet.
-configure_broker(Settings(valkey_url=TEST_VALKEY_URL))
+
+def _configure_test_broker() -> int | None:
+    """Set the test broker and return the Valkey database it uses, or None when
+    OPENNOTE_TEST_VALKEY_URL is invalid. Actors bind to dramatiq's global broker when
+    app.workers.jobs is imported, so this runs before any test module imports the jobs.
+    The other settings are the placeholders tests/conftest.py puts in the environment.
+    Nothing connects yet."""
+    try:
+        broker = configure_broker(Settings(valkey_url=TEST_VALKEY_URL))
+    except ValueError:  # pydantic's message echoes the URL, password included
+        return None
+    return broker.client.connection_pool.connection_kwargs.get("db", 0)
+
+
+TEST_VALKEY_DB = _configure_test_broker()
 
 
 def pytest_collection_modifyitems() -> None:
-    """Stop before any test runs unless the test database is named *_test."""
+    """Stop before any test runs unless the test database is named *_test and the test
+    Valkey database is valid and not 0."""
     try:
         database = make_url(TEST_DATABASE_URL).database or ""
     except ArgumentError:  # empty or unparseable
@@ -46,6 +61,11 @@ def pytest_collection_modifyitems() -> None:
     if not database.endswith("_test"):
         raise pytest.UsageError(
             "OPENNOTE_TEST_DATABASE_URL must name a database whose name ends in _test"
+        )
+    if not TEST_VALKEY_DB:  # None (invalid URL) or 0
+        raise pytest.UsageError(
+            "OPENNOTE_TEST_VALKEY_URL must be a valid redis:// URL naming a database "
+            "other than 0, which is the dev stack's"
         )
 
 
