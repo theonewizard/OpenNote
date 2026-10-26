@@ -7,7 +7,7 @@
 # Runs as UID 1001 group 0 or any other UID, on a read-only root filesystem: it keeps no
 # data on disk (see CMD).
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661 AS builder
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:2d4c4551af6831dcd26bbf86108c4385de5183ec8fe6b5868f6f9640fe47f4ed AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -29,7 +29,7 @@ RUN curl --fail --silent --show-error --location --connect-timeout 20 --max-time
     && make -C /src -j"$(nproc)" BUILD_TLS=yes USE_SYSTEMD=no \
     && make -C /src install PREFIX=/opt/valkey
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:2d4c4551af6831dcd26bbf86108c4385de5183ec8fe6b5868f6f9640fe47f4ed
 
 LABEL org.opencontainers.image.title="opennote-valkey" \
       org.opencontainers.image.description="Valkey 9.1.2 for OpenNote background jobs" \
