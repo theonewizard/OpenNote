@@ -1,11 +1,11 @@
 # Runtime dependencies, pinned exactly (ADR-0014). Versions: docs/development/versions.md.
-alembic==1.20.0
+alembic==1.20.1
 dramatiq[redis]==2.2.1
-fastapi==0.143.3
+fastapi==0.161.1
 psycopg[binary]==3.3.6
 pydantic==2.14.1
-pydantic-settings==2.16.0
+pydantic-settings==2.16.1
 redis==8.1.0
-sqlalchemy[asyncio]==2.1.5
-starlette==1.8.0
+sqlalchemy[asyncio]==2.1.6
+starlette==1.9.0
 uvicorn[standard]==0.54.0
