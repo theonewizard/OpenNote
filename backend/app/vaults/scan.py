@@ -4,7 +4,6 @@ The scan reads only: no symlink is followed, nothing in a dot-folder is opened, 
 open goes through a directory fd with O_NOFOLLOW.
 """
 
-import hashlib
 import logging
 import os
 import stat
@@ -12,7 +11,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from app.vaults.fsio import open_root
+from app.vaults.fsio import hash_file, open_root
 from app.vaults.paths import FileKind, casefold_key, classify, normalize, validate
 
 log = logging.getLogger(__name__)
@@ -31,13 +30,6 @@ class ScannedFile:
     inode: int
     content_hash: str
     path_warning: bool
-
-
-def hash_file(dir_fd: int, name: str) -> str:
-    """`sha256:<hex>` of the file's bytes, streamed; a symlink is refused (ELOOP)."""
-    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=dir_fd)
-    with os.fdopen(fd, "rb", buffering=0) as fh:
-        return "sha256:" + hashlib.file_digest(fh, "sha256").hexdigest()
 
 
 def scan(root: Path) -> Iterator[ScannedFile]:
