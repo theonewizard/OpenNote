@@ -1,8 +1,8 @@
 # ADR-0013: REST + WebSocket hints, OpenAPI-first clients
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §15.2.6: versioned documented API, OpenAPI, typed clients, no duplicated rules.

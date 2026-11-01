@@ -1,8 +1,8 @@
 # ADR-0014: Python tooling: venv, pip, pinned requirements
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 `CLAUDE.md` §3 mandates a repository-local `.venv` used through `.venv/bin/python|pip|pytest` and dependencies in `requirements.txt`; §20 discourages new tools without need.

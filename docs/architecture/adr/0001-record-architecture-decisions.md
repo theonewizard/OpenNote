@@ -1,8 +1,8 @@
 # ADR-0001: Record architecture decisions
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 The design document asks for documented decisions (§15.3, §15.16, §16). Several of its sections contradict each other, so the resolution needs a durable record.

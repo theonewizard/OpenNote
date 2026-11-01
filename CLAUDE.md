@@ -95,7 +95,7 @@ If a new worktree does not contain `.venv`, create it before running backend cod
 ```bash
 python -m venv .venv
 .venv/bin/pip install --upgrade pip
-.venv/bin/pip install -r backend/requirements-dev.txt   # includes backend/requirements.txt
+.venv/bin/pip install -r backend/requirements-dev.txt -c backend/constraints.txt   # includes backend/requirements.txt
 ```
 
 ### Dependencies

@@ -1,8 +1,8 @@
 # ADR-0012: Authentication: OpenNote as OAuth 2.0 authorization server, OIDC upstream
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §12: local accounts, OIDC, OAuth 2.0, MFA via IdP, sessions, device registration. `CLAUDE.md` §12: deny-by-default, `assert_routes_authenticated` at startup, `KEYLESS_ROUTES` allow-list.

@@ -1,8 +1,8 @@
 # ADR-0005: Revision-based, server-authoritative synchronization
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §7 and §15.9 require revision preconditions, conflict preservation, tombstones, resumability and no reliance on timestamps; CRDTs are explicitly deferred.

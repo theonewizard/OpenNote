@@ -1,8 +1,8 @@
 # ADR-0017: Revision history in a content-addressed store outside PostgreSQL
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §10.4: version history must not depend solely on database backups. Sync merges need old revisions as merge bases.

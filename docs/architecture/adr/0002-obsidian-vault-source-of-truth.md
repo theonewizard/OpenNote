@@ -1,8 +1,8 @@
 # ADR-0002: Obsidian-compatible vault is the source of truth
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §3 and §15.2.2–2.3: Markdown files are authoritative; Obsidian is an application, not a server; indexes must be rebuildable.
