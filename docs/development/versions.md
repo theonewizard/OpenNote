@@ -33,19 +33,19 @@ How to read the rows:
 
 | Package | Version | Released | Source | Checked |
 |---|---|---|---|---|
-| fastapi | 0.143.3 | 2026-10-16 | https://pypi.org/pypi/fastapi/json | 2026-10-17 |
+| fastapi | 0.162.0 | 2026-10-23 | https://pypi.org/pypi/fastapi/json | 2026-11-01 |
 | uvicorn | 0.54.0 | 2026-09-25 | https://pypi.org/pypi/uvicorn/json. Pinned as `uvicorn[standard]==0.54.0`: the extra installs httptools, python-dotenv, PyYAML, uvloop, watchfiles and websockets | 2026-10-17 |
-| pydantic | 2.14.1 | 2026-10-11 | https://pypi.org/pypi/pydantic/json | 2026-10-17 |
-| pydantic-settings | 2.16.0 | 2026-10-14 | https://pypi.org/pypi/pydantic-settings/json | 2026-10-17 |
+| pydantic | 2.14.2 | 2026-10-29 | https://pypi.org/pypi/pydantic/json | 2026-11-01 |
+| pydantic-settings | 2.16.2 | 2026-10-28 | https://pypi.org/pypi/pydantic-settings/json | 2026-11-01 |
 | SQLAlchemy | 2.1.5 | 2026-10-16 | https://pypi.org/pypi/sqlalchemy/json. Pinned as `sqlalchemy[asyncio]==2.1.5`: the extra installs greenlet | 2026-10-17 |
 | alembic | 1.20.0 | 2026-09-11 | https://pypi.org/pypi/alembic/json | 2026-10-17 |
 | psycopg | 3.3.6 | 2026-09-18 | https://pypi.org/pypi/psycopg/json. Pinned as `psycopg[binary]==3.3.6`: the extra installs `psycopg-binary` 3.3.6, so local venvs and the image need no libpq build | 2026-10-17 |
 | redis (redis-py) | 8.1.0 | 2026-07-30 | https://pypi.org/pypi/redis/json. The Valkey client (Valkey speaks RESP): the readiness check and Dramatiq's Redis broker; one client library for both | 2026-10-17 |
 | dramatiq | 2.2.1 | 2026-09-02 | https://pypi.org/pypi/dramatiq/json. Pinned as `dramatiq[redis]==2.2.1`: the extra requires `redis>=4.0,<9.0`, which the redis pin satisfies. Maintenance re-checked for ADR-0009: five releases between 2025-11-18 (2.0.0) and 2026-09-02 (2.2.1), changelog https://raw.githubusercontent.com/Bogdanp/dramatiq/master/docs/source/changelog.rst | 2026-10-18 |
-| pytest | 9.1.1 | 2026-06-19 | https://pypi.org/pypi/pytest/json | 2026-10-17 |
-| ruff | 0.17.1 | 2026-10-15 | https://pypi.org/pypi/ruff/json | 2026-10-17 |
-| mypy | 2.4.0 | 2026-10-01 | https://pypi.org/pypi/mypy/json | 2026-10-17 |
-| starlette | 1.8.0 | 2026-10-13 | https://pypi.org/pypi/starlette/json. Imported directly by the backend, so pinned explicitly; the version fastapi 0.143.3 resolves | 2026-10-17 |
+| pytest | 9.2.0 | 2026-10-27 | https://pypi.org/pypi/pytest/json | 2026-11-01 |
+| ruff | 0.17.3 | 2026-10-27 | https://pypi.org/pypi/ruff/json | 2026-11-01 |
+| mypy | 2.4.1 | 2026-10-28 | https://pypi.org/pypi/mypy/json | 2026-11-01 |
+| starlette | 1.10.0 | 2026-10-24 | https://pypi.org/pypi/starlette/json. Imported directly by the backend, so pinned explicitly; the version fastapi 0.162.0 resolves (its requirement is `starlette>=0.46.0`) | 2026-11-01 |
 | httpx2 | 2.13.1 | 2026-09-23 | https://pypi.org/pypi/httpx2/json. Test client behind Starlette's `TestClient`; Starlette 1.8.0 deprecates `httpx` there in favour of `httpx2` (https://github.com/pydantic/httpx2) | 2026-10-17 |
 | pip-audit | 2.10.1 | 2026-06-10 | https://pypi.org/pypi/pip-audit/json. Audits both requirements files and `backend/constraints.txt` against the PyPI vulnerability data in `security.yml` | 2026-10-18 |
 | bandit | 1.9.4 | 2026-02-25 | https://pypi.org/pypi/bandit/json. `bandit -r backend/app` in `security.yml`, alongside ruff's `S` rules | 2026-10-18 |
