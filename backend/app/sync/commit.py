@@ -233,6 +233,7 @@ class Committer:
                         path=rev.path,
                         kind=rev.kind,
                         content_hash=rev.content_hash,
+                        size=rev.size,
                         deleted=rev.deleted,
                         device_id=device_id,
                         op=rev.op,

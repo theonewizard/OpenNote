@@ -1,53 +1,17 @@
 """The commit path: history, PostgreSQL, log, vault, in that order (sync protocol §2.3)."""
 
-import hashlib
-import os
 import threading
 import uuid
 from dataclasses import astuple
 
 import pytest
 from sqlalchemy import delete, select
-from sqlalchemy.orm import sessionmaker
 
 from app.notes.models import File
-from app.sync.commit import Committer, Create, Delete, Move, Restore, Update
-from app.sync.history import HistoryStore, RevisionLogEntry
+from app.sync.commit import Create, Delete, Move, Restore, Update
+from app.sync.history import RevisionLogEntry
 from app.sync.models import Revision
-from app.vaults.fsio import open_root
-from app.vaults.registry import open_vault
-
-BASE = b"one\ntwo\nthree\nfour\nfive\n"
-
-
-def sha(data: bytes) -> str:
-    return "sha256:" + hashlib.sha256(data).hexdigest()
-
-
-class SimulatedCrash(Exception):
-    pass
-
-
-@pytest.fixture
-def world(tmp_path, engine):
-    root = tmp_path / "vault"
-    root.mkdir()
-    factory = sessionmaker(engine)
-    with factory.begin() as s:
-        vault_id = open_vault(s, root)
-    history = HistoryStore(tmp_path / "history", vault_id)
-    root_fd = open_root(root)
-
-    def make(**kwargs):
-        return Committer(factory, history, root_fd, vault_id, **kwargs)
-
-    yield root, factory, history, vault_id, make
-    os.close(root_fd)
-
-
-def create(path="n.md", data=BASE, file_id=None):
-    op = Create(uuid.uuid7(), file_id or uuid.uuid7(), path, "note", sha(data))
-    return op, data
+from tests.integration.sync.conftest import BASE, SimulatedCrash, create, sha
 
 
 def assert_consistent(root, factory, history, vault_id):

@@ -36,6 +36,7 @@ def upgrade() -> None:
         sa.Column("path", sa.Text(), nullable=False),
         sa.Column("kind", sa.Text(), nullable=False),
         sa.Column("content_hash", sa.Text(), nullable=True),
+        sa.Column("size", sa.BigInteger(), nullable=False),
         sa.Column("deleted", sa.Boolean(), nullable=False),
         sa.Column("device_id", sa.Text(), nullable=False),
         sa.Column("op", sa.Text(), nullable=False),

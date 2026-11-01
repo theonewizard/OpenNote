@@ -35,6 +35,7 @@ class Revision(Base):
     path: Mapped[str]
     kind: Mapped[str]
     content_hash: Mapped[str | None]
+    size: Mapped[int] = mapped_column(BigInteger)
     deleted: Mapped[bool]
     device_id: Mapped[str]
     op: Mapped[str]
