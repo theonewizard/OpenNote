@@ -38,7 +38,7 @@ def _yaml() -> YAML:
     return yaml
 
 
-def _load(doc: NoteDocument) -> CommentedMap | None:
+def load_frontmatter(doc: NoteDocument) -> CommentedMap | None:
     """The frontmatter mapping (None when there is no frontmatter); FrontmatterInvalid when
     it is not a YAML mapping."""
     if doc.text is None or doc.frontmatter is None:
@@ -69,7 +69,7 @@ def read_properties(doc: NoteDocument) -> tuple[Properties | None, bool]:
     """(properties, frontmatter_error). `tags` and `aliases` are always lists; the legacy
     comma-separated string form is split."""
     try:
-        data = _load(doc)
+        data = load_frontmatter(doc)
     except FrontmatterInvalid:
         return None, True
     if data is None:
@@ -94,7 +94,7 @@ def splice_keys(doc: NoteDocument, changes: Mapping[str, Any]) -> bytes:
     merge calls this directly; user edits go through `edit_properties`."""
     if doc.text is None:
         return replace_span(doc, doc.body, "")  # raises ReadOnlyNote
-    data = _load(doc)
+    data = load_frontmatter(doc)
     if data is None:
         new = {k: v for k, v in changes.items() if v is not DELETE}
         if not new:
@@ -102,7 +102,7 @@ def splice_keys(doc: NoteDocument, changes: Mapping[str, Any]) -> bytes:
         block = "---\n" + "".join(_render(k, v, None, "") for k, v in new.items()) + "---\n"
         return replace_span(doc, slice(0, 0), with_newlines(block, doc.newline))
     span = doc.frontmatter
-    if span is None:  # _load returned a mapping, so there is a block; satisfies mypy
+    if span is None:  # load_frontmatter returned a mapping, so there is a block; satisfies mypy
         raise FrontmatterInvalid("frontmatter span missing")
     yaml_text = doc.text[span]
     lines = yaml_text.splitlines(keepends=True)
@@ -154,17 +154,14 @@ def _key_lines(data: CommentedMap, keys: list[Any], key: str, lines: list[str]) 
 
 def _render(key: str, value: Any, old: Any, yaml_text: str) -> str:
     """`key: value` as YAML text ending in a newline, in the block's list style, keeping
-    flow style when the old value was a flow sequence or mapping."""
+    flow style when the old or the new value is a flow sequence or mapping."""
+    flow = any(getattr(v, "fa", None) is not None and v.fa.flow_style() for v in (old, value))
     if isinstance(value, list):
-        seq = CommentedSeq(value)
-        if getattr(old, "fa", None) is not None and old.fa.flow_style():
-            seq.fa.set_flow_style()
-        value = seq
+        value = CommentedSeq(value)
     elif isinstance(value, Mapping):
-        mapping = CommentedMap(value)
-        if getattr(old, "fa", None) is not None and old.fa.flow_style():
-            mapping.fa.set_flow_style()
-        value = mapping
+        value = CommentedMap(value)
+    if flow and isinstance(value, CommentedSeq | CommentedMap):
+        value.fa.set_flow_style()
     yaml = _yaml()
     item = _BLOCK_ITEM.search(yaml_text)
     offset = len(item.group(1)) if item else 0
