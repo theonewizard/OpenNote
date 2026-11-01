@@ -143,7 +143,7 @@ def test_edit_changes_only_the_span(raw): ...  # bytes before and after the repl
 **Interfaces:**
 - Consumes: `NoteDocument`, `replace_span` (Task 3).
 - Produces: `Properties = dict[str, object]`; `read_properties(doc: NoteDocument) -> tuple[Properties | None, bool]` (properties, `frontmatter_error`); `tags` and `aliases` normalized to lists on read (comma-separated legacy string accepted).
-- Produces: `DELETE = object()`; `edit_properties(doc: NoteDocument, changes: Mapping[str, object]) -> bytes` for top-level keys `tags`, `aliases`, `id`, and `opennote` (a mapping merged key by key); raises `FrontmatterInvalid` on invalid YAML (duplicate keys count as invalid) and `PropertyNotEditable` for any other key. A note without frontmatter gains a block at the top only when a change is non-empty.
+- Produces: `DELETE = object()`; `edit_properties(doc: NoteDocument, changes: Mapping[str, object]) -> bytes` for top-level keys `tags`, `aliases`, `id`, and `opennote` (a mapping merged key by key); raises `FrontmatterInvalid` on invalid YAML (duplicate keys count as invalid) and `PropertyNotEditable` for any other key. A note without frontmatter gains a block at the top only when a change is non-empty. The key check is the only thing `edit_properties` adds to `splice_keys(doc: NoteDocument, changes: Mapping[str, object]) -> bytes`, which does the splicing below for any top-level key; only the server merge (Task 13) calls `splice_keys` directly, because a clean merge must carry the other side's change to any key (`title`, `cssclasses`, user keys), not only the ones a user edit may touch.
 
 Algorithm (the tests do not determine it): load the frontmatter with `ruamel.yaml` round-trip mode to find each top-level key's line range (`.lc`); for each changed key, render only that key with a round-trip dumper configured from the existing block's indentation, and splice it over that key's line range with `replace_span`; a new key is appended after the last key. Untouched keys are never re-dumped, so their quoting, comments and order cannot change.
 
@@ -236,29 +236,37 @@ def test_higher_schema_version_opens_read_only(): ...
 ### Task 8: Atomic writes with the external-change guard (P1-07)
 
 **Files:**
-- Modify: `backend/app/vaults/fsio.py`
+- Modify: `backend/app/vaults/fsio.py`, `docs/deployment/kubernetes.md` (vault volume must support `RENAME_EXCHANGE`, or the write guard has a window)
 - Test: `backend/tests/unit/vaults/test_atomic_write.py`
 
 **Interfaces:**
 - Consumes: `open_parent`, `hash_file`.
-- Produces: `atomic_write(root_fd: int, rel: str, data: bytes, *, expected_hash: str | None) -> str` (returns the new hash; `expected_hash=None` means the path must not exist); `ExternalChangeError(path, found_hash)`; `move_to(root_fd: int, rel: str, dest_dir: Path) -> Path` for recovery-area deletes (storage §4.5); `clean_stale_temps(root: Path, older_than_ns: int) -> int`.
-- Steps inside `atomic_write`, in order, each a named point for the crash test: `temp_written`, `temp_synced`, `guard_checked`, `renamed`, `dir_synced`.
+- Produces: `atomic_write(root_fd: int, rel: str, data: bytes, *, expected_hash: str | None) -> str` (returns the new hash; `expected_hash=None` means the path must not exist); `ExternalChangeError` (below); `move_to(root_fd: int, rel: str, dest_dir: Path) -> Path` for recovery-area deletes (storage §4.5); `clean_stale_temps(root: Path, older_than_ns: int) -> int`.
+- A hash comparison followed by a plain `rename` leaves a window in which an external save is replaced and its bytes lost (CodeRabbit on this plan; storage §4 had the same gap and is corrected in this PR). So the replacement itself captures what it displaces: on Linux, `renameat2(…, RENAME_EXCHANGE)` (through `ctypes` on libc; Python has no wrapper) swaps the temp file and the target in one step, and the displaced inode, now at the temp name, is hashed afterwards. A create uses `RENAME_NOREPLACE`.
+- Steps inside `atomic_write`, in order, each a named point for the crash and race tests: `temp_written`, `temp_synced`, `exchanged`, `displaced_checked`, `dir_synced`. At `displaced_checked`: displaced hash equals `expected_hash` → unlink it; otherwise exchange back when the target still holds our bytes, move whatever external bytes are not at the target into the vault's recovery area (outside the vault), and raise `ExternalChangeError(path, found_hash, preserved: Path | None)`. External bytes are never unlinked before they are hashed and found equal to the base.
+- `RENAME_EXCHANGE` needs a local filesystem that supports it (ext4, XFS, Btrfs, tmpfs); NFS and some RWX volume types return `EINVAL`. There the function falls back to compare-then-`rename` with the window open, logs one warning per vault at startup, and the gap is recorded in `docs/deployment/kubernetes.md` (an RWX vault volume should be a filesystem with `RENAME_EXCHANGE`). The fallback is tested by forcing `EINVAL`.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-@pytest.mark.parametrize("point", ["temp_written", "temp_synced", "guard_checked", "renamed", "dir_synced"])
+@pytest.mark.parametrize("point", ["temp_written", "temp_synced", "exchanged", "displaced_checked", "dir_synced"])
 def test_crash_at_each_point_leaves_old_or_new_bytes(tmp_path, point):
-    # a subprocess runs atomic_write with os.fsync/os.rename wrapped to os._exit(1) at `point`
+    # a subprocess runs atomic_write with os.fsync and the libc call wrapped to os._exit(1) at `point`
     assert target_bytes(tmp_path) in (OLD, NEW)
 
-def test_external_edit_is_not_clobbered(tmp_path): ...       # file changed after base hash taken → ExternalChangeError, file keeps external bytes
+@pytest.mark.parametrize("style", ["rename_save", "in_place_write"])
+def test_external_edit_racing_the_exchange_survives(tmp_path, style): ...
+    # an external save is injected after temp_synced, just before the exchange
+    # → ExternalChangeError; the external bytes are at the target or at err.preserved, never lost
+def test_external_edit_is_not_clobbered(tmp_path): ...       # file changed before the call → ExternalChangeError, file keeps external bytes
+def test_create_refuses_existing_target(tmp_path): ...       # expected_hash=None and the path appears first → ExternalChangeError
+def test_einval_falls_back_and_warns(tmp_path, caplog): ...
 def test_enospc_leaves_old_bytes_and_no_temp(tmp_path): ... # small tmpfs mount if permitted, else os.write patched to raise ENOSPC
 def test_atomic_write_refuses_symlinked_directory(tmp_path): ...
 def test_temp_name_is_hidden_and_ignored_by_classify(): ...
 ```
 
-The crash point is injected by wrapping `os.fsync`/`os.rename` in the subprocess helper; production code carries no test hook. A real power loss is not testable here and is stated as such in `IMPLEMENTATION_STATUS.md`.
+The crash and race points are injected by wrapping `os.fsync` and the `renameat2` call in the test helper; production code carries no test hook. A real power loss is not testable here and is stated as such in `IMPLEMENTATION_STATUS.md`.
 
 - [ ] **Step 2:** Run; FAIL. **Step 3:** Implement. **Step 4:** Run; PASS.
 - [ ] **Step 5:** Commit `feat(vaults): atomic writes with external-change guard`.
@@ -340,11 +348,11 @@ def test_log_rebuild_reproduces_revisions(): ...  # drop revisions rows, rebuild
 - Test: `backend/tests/unit/sync/test_merge.py`
 
 **Interfaces:**
-- Consumes: `parse_note`, `read_properties`, `edit_properties`.
-- Produces: `MergeResult(clean: bool, data: bytes | None)`; `merge_note(base: bytes, theirs: bytes, ours: bytes) -> MergeResult` per sync §6 steps 2–6: `ours == theirs` is clean with `theirs`; frontmatter merged key by key on parsed YAML and re-emitted by `edit_properties` on `theirs`, a key changed on both sides to different values is unclean; invalid YAML on any side → whole file merged as text; body merged with `merge3.Merge3` over lines split with `keepends=True`, any conflict region is unclean. Line endings follow `theirs`.
+- Consumes: `parse_note`, `read_properties`, `splice_keys`.
+- Produces: `MergeResult(clean: bool, data: bytes | None)`; `merge_note(base: bytes, theirs: bytes, ours: bytes) -> MergeResult` per sync §6 steps 2–6: `ours == theirs` is clean with `theirs`; frontmatter merged key by key on parsed YAML and re-emitted by `splice_keys` on `theirs` (any top-level key), a key changed on both sides to different values is unclean; invalid YAML on any side → whole file merged as text; body merged with `merge3.Merge3` over lines split with `keepends=True`, any conflict region is unclean. Line endings follow `theirs`.
 - Produces: `conflict_copy_path(path: str, device_name: str, day: str, taken: Callable[[str], bool]) -> str` (`<name> (conflict <device> <yyyy-mm-dd>)<ext>`, then ` 2`, ` 3`); `day` is passed in, so no decision reads the clock (I6).
 
-- [ ] **Step 1:** Tests: `test_non_overlapping_edits_merge`, `test_overlapping_edits_conflict_without_markers` (`b"<<<<<<<" not in` any output), `test_frontmatter_key_merge`, `test_both_sides_change_same_key_conflict`, `test_crlf_preserved_in_merge`, and a Hypothesis property: for random `base`, edits on disjoint line ranges always merge cleanly and contain both edits.
+- [ ] **Step 1:** Tests: `test_non_overlapping_edits_merge`, `test_title_and_cssclasses_change_merges_with_body_edit`, `test_overlapping_edits_conflict_without_markers` (`b"<<<<<<<" not in` any output), `test_frontmatter_key_merge`, `test_both_sides_change_same_key_conflict`, `test_crlf_preserved_in_merge`, and a Hypothesis property: for random `base`, edits on disjoint line ranges always merge cleanly and contain both edits.
 - [ ] **Step 2:** Run; FAIL. **Step 3:** Implement. **Step 4:** Run; PASS.
 - [ ] **Step 5:** Commit `feat(sync): server-side three-way merge`.
 
@@ -375,7 +383,7 @@ def test_log_rebuild_reproduces_revisions(): ...  # drop revisions rows, rebuild
 - Consumes: everything in Tasks 9–14.
 - Produces: `run_seed(seed: int, *, clients: int, steps: int, engine: Engine, tmp: Path) -> SimReport` (each seed uses a fresh `vault_id` and fresh directories, so seeds share one database without truncation); `check_invariants(world: World) -> list[Violation]`; a failure prints `seed=<n>` and the shrunk action list.
 - Actions per step, chosen by the seeded RNG: client edit/create/move/delete of notes and attachments, external editor on a client vault or the server vault, go offline/online, push, pull, crash at each `Committer` crash point and between client steps, duplicate or reorder a request, expire a cursor.
-- I6 is checked by running each seed twice with the process clock shifted (`committed_at` and conflict-copy day supplied from a skewed fake) and comparing final states.
+- I6 is checked by running each seed twice with the process clock shifted (`committed_at` and conflict-copy day supplied from a skewed fake) and comparing final states after removing what the clock is allowed to change: `committed_at` is left out, and the `<yyyy-mm-dd>` in conflict-copy names is replaced by a placeholder before paths are compared. Everything else (revisions, `seq`, bytes, which side became the conflict copy) must be identical.
 
 - [ ] **Step 1:** Write `check_invariants` against hand-built worlds that violate each invariant once (`test_invariant_checker_catches_lost_edit`, …) so the checker itself is tested.
 - [ ] **Step 2:** Run 500 seeds; expected at first: failures; each failing seed becomes a file in `regressions/` before its fix (`CLAUDE.md` §9).

@@ -127,9 +127,9 @@ Every resolved absolute path must be inside the vault root after `realpath`; ope
 ## 4. Writes
 
 1. Write to `<dir>/.<name>.<random>.opennote-tmp` in the target directory (dot prefix keeps Obsidian from showing it).
-2. `fsync` the file, `rename` over the target (atomic on POSIX/APFS), `fsync` the directory.
+2. `fsync` the file, replace the target, `fsync` the directory. A hash check followed by a plain `rename` would lose an external save made between the two, so the replacement captures what it displaces: on Linux the server swaps temp file and target in one step (`renameat2` with `RENAME_EXCHANGE`; `RENAME_NOREPLACE` for a new file) and checks the displaced file afterwards. Filesystems without `RENAME_EXCHANGE` (NFS and some network volumes) fall back to check-then-`rename`, with that window logged and documented.
 3. On Apple platforms use `NSFileCoordinator` for writes so other presenters (Files app, Obsidian on macOS) see a coordinated change.
-4. Before overwriting, compare the on-disk hash with the expected base hash; if it changed, abort and hand the external change to the sync engine instead (never clobber an external edit).
+4. Before overwriting, compare the on-disk hash with the expected base hash; if it changed, abort and hand the external change to the sync engine instead. If the displaced file of step 2 does not have the expected base hash, put the external bytes back (or, if the target changed again, into the recovery area) and hand them to the sync engine. External bytes are never unlinked before they are hashed and found equal to the base (never clobber an external edit).
 5. Deletes from OpenNote move the file to the vault's history (server) or to a local recovery area (clients) before unlinking; nothing is hard-deleted on first delete.
 
 ## 5. Change detection
