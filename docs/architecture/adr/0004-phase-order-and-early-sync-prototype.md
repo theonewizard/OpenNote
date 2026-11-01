@@ -1,8 +1,8 @@
 # ADR-0004: Phase order and early sync prototype
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §15.7 orders phases Foundation → Storage → API → Web → Apple → Sync. Design §18 prefers Storage → **sync prototype** → API → clients, because sync carries the greatest data-integrity risk.

@@ -1,8 +1,8 @@
 # ADR-0016: Optional AI behind a typed provider interface
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §9 and §15.12: AI optional, off by default, local first, provider-agnostic, cited answers, injection resistance, no unapproved edits.

@@ -1,8 +1,8 @@
 # ADR-0006: Note identity without forcing metadata into files
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §4 wants a stable `id` in frontmatter, but also says not to modify existing notes on open, and §15.8 forbids device-specific state in Markdown. The §4 example also shows `modified:` in frontmatter, which would change on every save and conflict with Obsidian edits.

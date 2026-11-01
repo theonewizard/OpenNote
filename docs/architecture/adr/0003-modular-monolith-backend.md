@@ -1,8 +1,8 @@
 # ADR-0003: Modular monolith backend
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §6.1 says "initially deploy a collection of independent microservices", while §15.2.7 and §16 mandate a modular monolith and say to avoid premature microservices. `CLAUDE.md` §23 forbids distributed components when a local component suffices.

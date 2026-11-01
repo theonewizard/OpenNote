@@ -1,8 +1,8 @@
 # ADR-0007: Native SwiftUI clients with shared Swift packages
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §5 and §6.2 choose SwiftUI for Apple platforms for Spotlight, Share Sheet, Shortcuts, widgets, VisionKit and background tasks.

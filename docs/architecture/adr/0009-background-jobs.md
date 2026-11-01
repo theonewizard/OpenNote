@@ -1,8 +1,8 @@
 # ADR-0009: Background jobs on a Redis-protocol queue, Valkey server
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §15.3 asks for Redis-backed background jobs. Redis changed licence in 2024 (RSALv2/SSPL, later adding AGPLv3 for Redis 8). Valkey is the BSD-licensed Linux Foundation fork and speaks the same protocol. `CLAUDE.md` §20 prefers established, well-maintained dependencies.

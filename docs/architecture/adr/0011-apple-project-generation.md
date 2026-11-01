@@ -1,8 +1,8 @@
 # ADR-0011: Generate the Xcode project with XcodeGen
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §6.2 shows `apple/OpenNote.xcodeproj` in the tree. Hand-edited `.pbxproj` files cause merge conflicts and cannot be reviewed meaningfully, and AI agents editing them without Xcode is error-prone.

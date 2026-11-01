@@ -1,8 +1,8 @@
 # ADR-0008: Markdown-first source-preserving editor
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §6.3 lists TipTap/ProseMirror but then recommends a Markdown-first editor with live preview for the first release, and §10 requires preserving unsupported syntax. ProseMirror-based editors hold a document tree and serialize back to Markdown, which normalizes syntax.

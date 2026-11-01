@@ -1,8 +1,8 @@
 # ADR-0015: Web client offline model: IndexedDB cache, not a vault
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §16.C: browsers cannot hold an arbitrary local vault.

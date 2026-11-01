@@ -1,8 +1,8 @@
 # ADR-0010: Container images on Red Hat UBI
 
-Status: Proposed  
+Status: Accepted (2026-11-01)  
 Date: 2026-10-17  
-Deciders: Flemming (pending review)
+Deciders: Flemming
 
 ## Context
 Design §11 and `CLAUDE.md` §5 prefer UBI. Free UBI images are on `registry.access.redhat.com` (no login). Red Hat's PostgreSQL and Redis images are on `registry.redhat.io`, which needs a Red Hat account, and none ships pgvector.
