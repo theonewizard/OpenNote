@@ -1,0 +1,83 @@
+"""Walk a vault and describe every note and attachment (storage contract §1.1, §3, §6).
+
+The scan reads only: no symlink is followed, nothing in a dot-folder is opened, and every
+open goes through a directory fd with O_NOFOLLOW.
+"""
+
+import hashlib
+import logging
+import os
+import stat
+from collections.abc import Iterator
+from dataclasses import dataclass
+from pathlib import Path
+
+from app.vaults.fsio import open_root
+from app.vaults.paths import FileKind, casefold_key, classify, normalize, validate
+
+log = logging.getLogger(__name__)
+
+MAX_NOTE_BYTES = 16 * 1024 * 1024  # a larger .md is indexed as an opaque attachment
+_DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
+
+
+@dataclass(frozen=True)
+class ScannedFile:
+    path: str  # vault-relative, NFC
+    disk_name: str  # the leaf name exactly as spelled on disk
+    kind: FileKind
+    size: int
+    mtime_ns: int
+    inode: int
+    content_hash: str
+    path_warning: bool
+
+
+def hash_file(dir_fd: int, name: str) -> str:
+    """`sha256:<hex>` of the file's bytes, streamed; a symlink is refused (ELOOP)."""
+    fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=dir_fd)
+    with os.fdopen(fd, "rb", buffering=0) as fh:
+        return "sha256:" + hashlib.file_digest(fh, "sha256").hexdigest()
+
+
+def scan(root: Path) -> Iterator[ScannedFile]:
+    """Every note and attachment under `root`, sorted by path within each folder."""
+    root_fd = open_root(root)
+    try:
+        yield from _scan_dir(root_fd, "")
+    finally:
+        os.close(root_fd)
+
+
+def _scan_dir(dir_fd: int, prefix: str) -> Iterator[ScannedFile]:
+    with os.scandir(dir_fd) as it:
+        entries = sorted(it, key=lambda e: normalize(e.name))
+    keys = [casefold_key(e.name) for e in entries]
+    for entry, key in zip(entries, keys, strict=True):
+        path = prefix + normalize(entry.name)
+        kind = classify(path)
+        if kind not in ("note", "attachment"):
+            continue  # dot-folders, config, OS cruft, in-flight writes: never read
+        st = entry.stat(follow_symlinks=False)
+        if stat.S_ISDIR(st.st_mode):
+            sub_fd = os.open(entry.name, _DIR_FLAGS, dir_fd=dir_fd)
+            try:
+                yield from _scan_dir(sub_fd, path + "/")
+            finally:
+                os.close(sub_fd)
+        elif stat.S_ISREG(st.st_mode):
+            if kind == "note" and st.st_size > MAX_NOTE_BYTES:
+                kind = "attachment"
+            warning = bool(validate(path, note=kind == "note")) or keys.count(key) > 1
+            yield ScannedFile(
+                path=path,
+                disk_name=entry.name,
+                kind=kind,
+                size=st.st_size,
+                mtime_ns=st.st_mtime_ns,
+                inode=st.st_ino,
+                content_hash=hash_file(dir_fd, entry.name),
+                path_warning=warning,
+            )
+        else:
+            log.warning("unsupported vault entry skipped", extra={"vault_path": path})

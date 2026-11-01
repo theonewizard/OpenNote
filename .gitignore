@@ -57,6 +57,7 @@ xcuserdata/
 # Temporary logs and files
 *.log
 *.tmp
+dump.rdb
 
 # IDE and OS state
 .idea/

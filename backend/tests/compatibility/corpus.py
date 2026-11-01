@@ -34,3 +34,8 @@ def corpus_cases(*, with_valid_frontmatter: bool = False) -> list[Case]:
 
 def case_ids(cases: list[Case]) -> list[str]:
     return [c.name for c in cases]
+
+
+def vault_cases() -> list[Path]:
+    """Corpus cases that hold a whole vault tree (`<case>/vault/`)."""
+    return [p for p in sorted(CORPUS.iterdir()) if (p / "vault").is_dir()]
