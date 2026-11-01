@@ -92,15 +92,25 @@ def open_parent(root_fd: int, rel: str, *, create: bool = False) -> tuple[int, s
         raise
 
 
-def read_file(root_fd: int, rel: str) -> bytes:
-    """The bytes of an existing vault file. Only containment is checked, so a file whose
-    name breaks the path rules (indexed with a path warning) is still readable."""
+def _existing_parent(root_fd: int, rel: str) -> tuple[int, str]:
+    """Like open_parent, but only containment is checked, so a file whose name breaks the
+    path rules (indexed with a path warning) is still reachable."""
     segments = rel.split("/")
     if rel.startswith("/") or any(s in ("", ".", "..") or "\0" in s for s in segments):
         raise PathEscapeError("path leaves the vault")
     dir_fd = _walk(root_fd, segments[:-1], create=False)
     try:
-        fd = os.open(_disk_name(dir_fd, segments[-1]), _FILE_FLAGS, dir_fd=dir_fd)
+        return dir_fd, _disk_name(dir_fd, segments[-1])
+    except BaseException:
+        os.close(dir_fd)
+        raise
+
+
+def read_file(root_fd: int, rel: str) -> bytes:
+    """The bytes of an existing vault file (containment checks only)."""
+    dir_fd, name = _existing_parent(root_fd, rel)
+    try:
+        fd = os.open(name, _FILE_FLAGS, dir_fd=dir_fd)
     except OSError as exc:
         if exc.errno == errno.ELOOP:
             raise PathEscapeError("symlink in the vault path") from None
@@ -109,6 +119,18 @@ def read_file(root_fd: int, rel: str) -> bytes:
         os.close(dir_fd)
     with os.fdopen(fd, "rb") as fh:
         return fh.read()
+
+
+def hash_path(root_fd: int, rel: str) -> str | None:
+    """The content hash of a vault file, or None when it (or its folder) does not exist."""
+    try:
+        dir_fd, name = _existing_parent(root_fd, rel)
+    except FileNotFoundError:
+        return None
+    try:
+        return _current_hash(dir_fd, name)
+    finally:
+        os.close(dir_fd)
 
 
 # Write guard (storage contract §4) --------------------------------------------------------
@@ -327,3 +349,35 @@ def clean_stale_temps(root: Path, older_than_ns: int) -> int:
         finally:
             os.close(dir_fd)
     return removed
+
+
+def rename_noreplace(root_fd: int, src: str, dst: str, *, expected_hash: str) -> None:
+    """Move a vault file whose content is `expected_hash` to the free path `dst`.
+    ExternalChangeError when the source holds other bytes or `dst` is taken. An edit
+    landing between the check and the rename moves with the file and is not lost."""
+    src_fd, src_name = _existing_parent(root_fd, src)
+    try:
+        if (found := _current_hash(src_fd, src_name)) != expected_hash:
+            raise ExternalChangeError(src, found, None)
+        dst_fd, dst_name = open_parent(root_fd, dst, create=True)
+        try:
+            try:
+                _renameat2(src_fd, src_name, dst_fd, dst_name, RENAME_NOREPLACE)
+            except FileExistsError:
+                raise ExternalChangeError(dst, _current_hash(dst_fd, dst_name), None) from None
+            except OSError as exc:
+                if exc.errno not in (errno.EINVAL, errno.ENOSYS):
+                    raise
+                _warn_no_exchange(dst_fd)
+                try:
+                    os.link(src_name, dst_name, src_dir_fd=src_fd, dst_dir_fd=dst_fd)
+                except FileExistsError:
+                    found = _current_hash(dst_fd, dst_name)
+                    raise ExternalChangeError(dst, found, None) from None
+                os.unlink(src_name, dir_fd=src_fd)
+            os.fsync(dst_fd)
+        finally:
+            os.close(dst_fd)
+        os.fsync(src_fd)
+    finally:
+        os.close(src_fd)

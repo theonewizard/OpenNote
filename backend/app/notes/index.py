@@ -125,3 +125,12 @@ def _resolve_links(session: Session, vault_id: uuid.UUID, which: ColumnElement[b
             .where(NoteLink.file_id == file_id, NoteLink.ordinal == ordinal)
             .values(resolved_file_id=live.get(hit) if hit else None)
         )
+
+
+def remove_file(session: Session, file_id: uuid.UUID) -> None:
+    """Drop the derived rows of a deleted file; links to it become unresolved."""
+    for model in (NoteLink, NoteTag, Note):
+        session.execute(delete(model).where(model.file_id == file_id))
+    session.execute(
+        update(NoteLink).where(NoteLink.resolved_file_id == file_id).values(resolved_file_id=None)
+    )

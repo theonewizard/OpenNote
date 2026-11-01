@@ -17,8 +17,10 @@ from app.vaults.fsio import (
     PathEscapeError,
     atomic_write,
     clean_stale_temps,
+    hash_path,
     move_to,
     open_root,
+    rename_noreplace,
 )
 from app.vaults.paths import classify
 
@@ -312,3 +314,36 @@ def test_clean_stale_temps(vault):
     os.utime(stale, ns=(hour_ago, hour_ago))
     assert clean_stale_temps(root, older_than_ns=3600 * 10**9) == 1
     assert not stale.exists() and fresh.exists() and (root / "n.md").exists()
+
+
+def test_hash_path(vault):
+    _root, fd = vault
+    assert hash_path(fd, "n.md") == sha(OLD)
+    assert hash_path(fd, "missing.md") is None
+
+
+def test_rename_noreplace_moves_when_source_is_expected(vault):
+    root, fd = vault
+    rename_noreplace(fd, "n.md", "sub/m.md", expected_hash=sha(OLD))
+    assert (root / "sub/m.md").read_bytes() == OLD and not (root / "n.md").exists()
+
+
+def test_rename_noreplace_refuses_changed_source_or_taken_target(vault):
+    root, fd = vault
+    with pytest.raises(ExternalChangeError):
+        rename_noreplace(fd, "n.md", "m.md", expected_hash=sha(NEW))
+    (root / "m.md").write_bytes(EXT)
+    with pytest.raises(ExternalChangeError):
+        rename_noreplace(fd, "n.md", "m.md", expected_hash=sha(OLD))
+    assert (root / "n.md").read_bytes() == OLD and (root / "m.md").read_bytes() == EXT
+
+
+def test_rename_noreplace_falls_back_without_renameat2(vault, monkeypatch):
+    root, fd = vault
+
+    def no_flags(*args):
+        raise OSError(errno.EINVAL, "Invalid argument")
+
+    monkeypatch.setattr(fsio, "_renameat2", no_flags)
+    rename_noreplace(fd, "n.md", "m.md", expected_hash=sha(OLD))
+    assert (root / "m.md").read_bytes() == OLD and not (root / "n.md").exists()

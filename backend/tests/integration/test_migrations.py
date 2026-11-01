@@ -114,7 +114,7 @@ def test_cli_current_prints_only_the_revision_on_stdout(pg_url):
         "current", env={"PATH": os.environ["PATH"], "OPENNOTE_DATABASE_URL": pg_url}
     )
     assert result.returncode == 0, result.stderr
-    assert result.stdout == "0003 (head)\n"
+    assert result.stdout == "0004 (head)\n"
     assert json_lines(result.stderr)  # the progress lines went to stderr
 
 
@@ -138,7 +138,7 @@ def test_revision_renders_a_new_migration_from_the_template(tmp_path, monkeypatc
     source = new.read_text()
     compile(source, str(new), "exec")
     assert "revision: str = 'probe'" in source
-    assert "= '0003'" in source  # down_revision: chained onto the current head
+    assert "= '0004'" in source  # down_revision: chained onto the current head
 
 
 @pytest.mark.parametrize(
