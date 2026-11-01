@@ -8,7 +8,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from app.vaults.fsio import PathEscapeError, open_parent, open_root
+from app.vaults.fsio import PathEscapeError, open_parent, open_root, read_file
 from app.vaults.paths import validate
 
 
@@ -71,3 +71,38 @@ def test_nfd_name_on_disk_resolves(tmp_path):
     (tmp_path / "Café").mkdir()
     fd, leaf = open_parent(open_root(tmp_path), "Café/x.md")
     assert _fd_path(fd).name == "Café" and leaf == "x.md"
+
+
+def test_read_file_reads_existing_files_with_path_warnings(tmp_path):
+    (tmp_path / "Odd").mkdir()
+    (tmp_path / "Odd" / "CON.md").write_bytes(b"x")
+    root_fd = open_root(tmp_path)
+    try:
+        assert read_file(root_fd, "Odd/CON.md") == b"x"
+    finally:
+        os.close(root_fd)
+
+
+@pytest.mark.parametrize("rel", ["", "/etc/passwd", "../x", "a/../../x", "a//b", "a/./b"])
+def test_read_file_refuses_paths_leaving_the_vault(tmp_path, rel):
+    root_fd = open_root(tmp_path)
+    try:
+        with pytest.raises(PathEscapeError):
+            read_file(root_fd, rel)
+    finally:
+        os.close(root_fd)
+
+
+def test_read_file_refuses_symlinks(tmp_path):
+    outside = tmp_path.parent / f"{tmp_path.name}-out"
+    outside.mkdir()
+    (outside / "s.md").write_bytes(b"secret")
+    (tmp_path / "d").symlink_to(outside)
+    (tmp_path / "l.md").symlink_to(outside / "s.md")
+    root_fd = open_root(tmp_path)
+    try:
+        for rel in ("d/s.md", "l.md"):
+            with pytest.raises(PathEscapeError):
+                read_file(root_fd, rel)
+    finally:
+        os.close(root_fd)

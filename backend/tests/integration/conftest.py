@@ -21,11 +21,13 @@ from typing import Any
 import pytest
 from fastapi import FastAPI
 from httpx2 import ASGITransport, AsyncClient
-from sqlalchemy import make_url
+from sqlalchemy import Engine, make_url
 from sqlalchemy.exc import ArgumentError
+from sqlalchemy.orm import Session
 
 from app.api.main import create_app
 from app.core.config import Settings
+from app.core.db import make_sync_engine
 from app.workers.broker import configure_broker
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -159,3 +161,21 @@ async def client_with_dead_db(
 ) -> AsyncIterator[AsyncClient]:
     async with serve(create_app(make_settings(database_url=DEAD_DATABASE_URL))) as client:
         yield client
+
+
+@pytest.fixture
+def engine(pg_url: str, make_settings: Callable[..., Settings]) -> Iterator[Engine]:
+    """A sync engine on the test database migrated to head; back to base afterwards."""
+    from tests.integration.test_migrations import alembic_downgrade, alembic_upgrade
+
+    alembic_upgrade(pg_url, "head")
+    engine = make_sync_engine(make_settings())
+    yield engine
+    engine.dispose()
+    alembic_downgrade(pg_url, "base")
+
+
+@pytest.fixture
+def session(engine: Engine) -> Iterator[Session]:
+    with Session(engine) as session:
+        yield session

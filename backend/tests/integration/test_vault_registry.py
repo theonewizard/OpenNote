@@ -7,28 +7,12 @@ import pytest
 from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
-from app.core.db import make_sync_engine
 from app.vaults.config import SUPPORTED_SCHEMA_VERSION
 from app.vaults.models import Vault
 from app.vaults.registry import open_vault, register_vault
 from app.vaults.scan import scan
 from tests.conftest import tree_digest
-from tests.integration.test_migrations import alembic_downgrade, alembic_upgrade
-
-
-@pytest.fixture
-def engine(pg_url, make_settings):
-    alembic_upgrade(pg_url, "head")
-    engine = make_sync_engine(make_settings())
-    yield engine
-    engine.dispose()
-    alembic_downgrade(pg_url, "base")
-
-
-@pytest.fixture
-def session(engine):
-    with Session(engine) as session:
-        yield session
+from tests.integration.test_migrations import alembic_downgrade
 
 
 def config(root):
@@ -84,7 +68,7 @@ def test_register_refuses_a_newer_vault(obsidian_vault, session):
 
 def test_downgrade_drops_the_vaults_table(pg_url, engine):
     assert "vaults" in inspect(engine).get_table_names()
-    alembic_downgrade(pg_url, "-1")
+    alembic_downgrade(pg_url, "0001")
     engine.dispose()
     assert "vaults" not in inspect(engine).get_table_names()
     with Session(engine) as s:
