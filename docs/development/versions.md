@@ -65,7 +65,7 @@ The pins in the requirement files and the constraints are name and version only,
 | vite | 8.3.4 | 2026-10-08 | https://registry.npmjs.org/vite | 2026-10-17 |
 | @vitejs/plugin-react | 6.1.2 | 2026-10-05 | https://registry.npmjs.org/@vitejs%2fplugin-react | 2026-10-17 |
 | typescript | 6.0.3 | 2026-04-16 | https://registry.npmjs.org/typescript. The bridge release before 7, chosen by Flemming on 2026-10-18 (decision card; `.conversations/2026-10-18-node-26-typescript.md`, R109) over 5.9.3, the newest release every peer range accepts, and 7.0.2 (latest, 2026-07-08; the native compiler, which ships no `lib/typescript.js`), with which `tsc -b`, vitest and `vite build` pass but `npm run lint` stops with "typescript-eslint does not support TS 7.0" and openapi-typescript crashes on `ts.factory`. 6.0.3 is inside typescript-eslint 8.71.2's peer `<6.1.0` and outside openapi-typescript 7.13.0's `^5.x`, so `web/package.json` overrides that one peer edge (`"overrides": {"openapi-typescript": {"typescript": "$typescript"}}`; `npm explain typescript` reports it as "peer overridden"). Checked 2026-10-18 on Node.js 26.12.0: `npm ci` without a warning, lint, typecheck, vitest, `vite build`, Playwright and `scripts/gen-clients.sh` pass, and the generated `schema.d.ts` is byte-identical. Neither tool has a newer line (typescript-eslint `canary` 8.71.3-alpha.14, openapi-typescript `next` 7.0.0-rc.1) | 2026-10-18 |
-| typescript-eslint | 8.71.2 | 2026-10-12 | https://registry.npmjs.org/typescript-eslint | 2026-10-17 |
+| typescript-eslint | 8.72.1 | 2026-10-26 | https://registry.npmjs.org/typescript-eslint | 2026-11-01 |
 | eslint | 10.13.0 | 2026-10-16 | https://registry.npmjs.org/eslint | 2026-10-17 |
 | tailwindcss | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/tailwindcss | 2026-10-17 |
 | @tailwindcss/vite | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/@tailwindcss%2fvite | 2026-10-17 |
@@ -78,7 +78,7 @@ The pins in the requirement files and the constraints are name and version only,
 | eslint-plugin-react-refresh | 0.5.7 | 2026-09-14 | https://registry.npmjs.org/eslint-plugin-react-refresh | 2026-10-18 |
 | globals | 17.13.0 | 2026-10-01 | https://registry.npmjs.org/globals | 2026-10-18 |
 | @types/react, @types/react-dom | 19.3.0 | 2026-09-09 | https://registry.npmjs.org/@types%2freact | 2026-10-18 |
-| @types/node | 26.6.5 | 2026-10-09 | https://registry.npmjs.org/@types%2fnode. `latest`, matching the Node.js 26 runtime | 2026-10-18 |
+| @types/node | 26.6.6 | 2026-10-28 | https://registry.npmjs.org/@types%2fnode. `latest`, matching the Node.js 26 runtime | 2026-11-01 |
 | jsdom | 30.1.3 | 2026-10-15 | https://registry.npmjs.org/jsdom. Vitest's DOM environment (chosen over happy-dom); engines `^22.22.2 \|\| ^24.15.0 \|\| >=26.0.0` | 2026-10-18 |
 | @testing-library/react | 16.3.3 | 2026-08-27 | https://registry.npmjs.org/@testing-library%2freact | 2026-10-18 |
 | @testing-library/dom | 10.4.2 | 2026-09-13 | https://registry.npmjs.org/@testing-library%2fdom. Peer of @testing-library/react and @testing-library/jest-dom, so pinned explicitly | 2026-10-18 |
@@ -93,7 +93,7 @@ All rows except typescript are the `latest` dist-tag.
 ### Known peer constraints
 
 - openapi-typescript 7.13.0: peer `typescript ^5.x`, overridden to the pinned typescript by the `overrides` entry in `web/package.json` (the only override in `web/`; drop it once the peer range covers the pinned release).
-- typescript-eslint 8.71.2: peers `typescript >=4.8.4 <6.1.0` and `eslint ^8.57.0 || ^9.0.0 || ^10.0.0`.
+- typescript-eslint 8.72.1: peers `typescript >=4.8.4 <6.1.0` and `eslint ^8.57.0 || ^9.0.0 || ^10.0.0`.
 - @vitejs/plugin-react 6.1.2: peer `vite ^8.0.0`. @tailwindcss/vite 4.3.3: peer `vite ^5.2.0 || ^6 || ^7 || ^8`. vitest 5.0.5: peer `vite ^6.4.0 || ^7.0.0 || ^8.0.0`.
 - react-dom 19.3.1: peer `react ^19.3.1`.
 - Node.js engines: vitest 5.0.5 needs `^22.12.0 || ^24.0.0 || >=26.0.0`, eslint 10.13.0 needs `^20.19.0 || ^22.13.0 || >=24`; Node.js 26.12.0 satisfies both.
