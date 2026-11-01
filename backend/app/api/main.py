@@ -34,7 +34,12 @@ ROUTERS: list[APIRouter] = [health.router, meta.router]
 
 # The only routes callable without credentials; adding one needs review (API contract §2).
 KEYLESS_ROUTES: frozenset[tuple[str, str]] = frozenset(
-    {("GET", "/healthz"), ("GET", "/readyz"), ("GET", "/api/v1/meta")}
+    {
+        ("GET", "/healthz"),
+        ("GET", "/readyz"),
+        ("GET", "/api/v1/meta"),
+        ("GET", "/api/v1/meta/path-rules"),
+    }
 )
 
 _AUTH_DEPENDENCIES = (get_current_principal, get_api_key)

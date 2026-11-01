@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app import __version__
+from app.vaults.paths import PATH_RULES
 
 router = APIRouter()
 
@@ -28,3 +29,9 @@ async def get_meta() -> ServerMeta:
         sync_protocol_versions=[1],
         login_methods=[],
     )
+
+
+@router.get("/api/v1/meta/path-rules")
+async def get_path_rules() -> dict[str, object]:
+    """The file and folder naming rules every client applies (storage contract §3.2)."""
+    return PATH_RULES

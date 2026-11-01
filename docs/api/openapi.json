@@ -119,6 +119,37 @@
         "summary": "Get Meta"
       }
     },
+    "/api/v1/meta/path-rules": {
+      "get": {
+        "description": "The file and folder naming rules every client applies (storage contract \u00a73.2).",
+        "operationId": "get_path_rules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Path Rules",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "summary": "Get Path Rules"
+      }
+    },
     "/healthz": {
       "get": {
         "description": "Whether the server process answers: always 200 `ok`; no dependency is checked.",
