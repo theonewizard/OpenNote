@@ -40,10 +40,13 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    # One pull request per base image across the four directories (group-by), whatever the
+    # bump: on 2026-10-26 a digest-only bump of ubi-minimal arrived as four pull requests, one
+    # per directory, because it fell outside the minor-and-patch filter the group had then.
     groups:
-      docker-minor-and-patch:
+      docker-base-images:
         patterns: ["*"]
-        update-types: [minor, patch]
+        group-by: dependency-name
 
 # The five Swift packages (apple/Packages/*) are not listed: Dependabot's Swift updater runs Swift 6.3.1
 # and cannot read their `swift-tools-version: 6.4` manifests (first run on 2026-10-18 failed with
