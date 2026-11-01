@@ -175,4 +175,4 @@ One sync engine per vault (design §16.B). Clients detect and warn when the loca
 
 ## 13. Prototype scope (Phase 1, P1-12)
 
-Server-side only: in-process implementation of §§2–6 against a temporary vault and SQLite, plus a simulation harness with N simulated clients, randomized edits/moves/deletes, network partitions, duplicated and reordered requests, and crash points. Exit criterion: invariants I1–I6 hold over 10,000 seeded runs; failing seeds become regression tests.
+Server-side only: in-process implementation of §§2–6 against a temporary vault and PostgreSQL (the real schema and migrations, one fresh `vault_id` per simulated run; decision D9 in the [Phase 1 plan](../superpowers/plans/2026-11-01-phase-1-storage-sync-plan.md), Flemming, 2026-11-01), plus a simulation harness with N simulated clients, randomized edits/moves/deletes, network partitions, duplicated and reordered requests, and crash points. Exit criterion: invariants I1–I6 hold over 10,000 seeded runs; failing seeds become regression tests.

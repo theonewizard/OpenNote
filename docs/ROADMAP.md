@@ -27,6 +27,8 @@ Milestone M0: repository builds; backend starts in containers; Apple packages an
 
 Milestone M1: corpus round-trips byte-identically; external changes detected; renames keep identity; sync simulation invariants hold over 10,000 seeds.
 
+Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-sync-plan.md) (decisions D9–D11 taken 2026-11-01: PostgreSQL for the prototype, Python 3.14 floor, one-week time box).
+
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
 | P1-01 | Vault registry and `.opennote/config.json` (create, discover, open existing Obsidian vault without writing) | P0-04 | P0 | Opening an existing vault writes nothing (checked by tree hash) | NOT_STARTED |
