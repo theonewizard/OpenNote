@@ -100,6 +100,23 @@ jobs:
       - uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
         with:
           version: v0.76.0
+      # What the gate below leaves out, in the run's Summary tab, with the status per finding
+      # (for the pip, npm and Swift packages scanned here: whether the advisory names a fixed
+      # version) and the accepted risks from .trivyignore.yaml. Never fails the job: --exit-code 0
+      # covers findings, and when Trivy itself fails the step turns red with the exit code while
+      # continue-on-error keeps the job green (docs/development/setup.md, "Continuous integration").
+      - name: trivy fs report (HIGH and CRITICAL without a fix, job summary)
+        continue-on-error: true
+        run: |
+          status=0
+          {
+            echo "## Trivy fs: HIGH and CRITICAL vulnerabilities without a fix (reported, not gated)"
+            echo '```'
+            trivy fs --scanners vuln --severity HIGH,CRITICAL --ignore-status fixed --exit-code 0 \
+              --ignorefile .trivyignore.yaml --show-suppressed . || { echo "trivy exited $?"; status=1; }
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       - name: trivy fs (HIGH and CRITICAL with a fix fail the job)
         run: |
           trivy --version

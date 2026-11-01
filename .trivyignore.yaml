@@ -1,0 +1,16 @@
+# Accepted risks for the Trivy report steps (containers.yml, security.yml). The report lists a
+# finding entered here under "Suppressed Vulnerabilities" with its statement instead of in the
+# findings table. The gate steps do not read this file, so an entry never changes a red or
+# green result; an entry for a finding that has a fix does nothing at all, because the report
+# drops fixed findings before it reads this file and the gate still fails on them. Each entry
+# needs the finding id, a statement with the finding's status (Red Hat's for RPM packages,
+# https://access.redhat.com/security/cve/<id>; for pip, npm and Swift packages the advisory's)
+# and the reason the risk is accepted here, and an expired_at date, after which the finding is
+# reported again; narrow it with paths or purls where the reason does not hold for every
+# package. Trivy calls this format experimental; the report steps pass it with --ignorefile.
+vulnerabilities: []
+# Example:
+# vulnerabilities:
+#   - id: CVE-2026-00000
+#     statement: "Red Hat will_not_fix in ubi9; the affected code path is not reachable from the api image"
+#     expired_at: 2027-01-31

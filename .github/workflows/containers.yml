@@ -151,6 +151,30 @@ jobs:
         uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
         with:
           version: v0.76.0
+      # What the gate below leaves out, in the run's Summary tab: HIGH and CRITICAL findings whose
+      # status is anything but "fixed" (affected, under_investigation, will_not_fix, fix_deferred,
+      # end_of_life; Red Hat's status for RPM packages, the advisory's for pip packages), with that
+      # status, and the accepted risks from .trivyignore.yaml with their statements. Never fails
+      # the job: --exit-code 0 covers findings, and when Trivy itself fails the step turns red with
+      # the exit code while continue-on-error keeps the job green
+      # (docs/development/setup.md, "Continuous integration").
+      - name: Trivy image report (HIGH and CRITICAL without a fix, job summary)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          status=0
+          {
+            echo "## Trivy: HIGH and CRITICAL findings without a fix (reported, not gated)"
+            for image in opennote-api:dev opennote-web:dev opennote-postgres:dev opennote-valkey:dev; do
+              echo
+              echo "### $image"
+              echo '```'
+              trivy image --severity HIGH,CRITICAL --ignore-status fixed --exit-code 0 \
+                --ignorefile .trivyignore.yaml --show-suppressed "$image" || { echo "trivy exited $?"; status=1; }
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
       # Every image is scanned even when an earlier one has findings; any finding fails the step.
       - name: Trivy image scans (HIGH and CRITICAL with a fix fail the job)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
