@@ -4,9 +4,11 @@
 PYTHON ?= python3
 COMPOSE ?= docker compose
 COMPOSE_DIR := infrastructure/compose
+SEEDS ?= 500
+SEED_START ?= 0
 
 .DEFAULT_GOAL := help
-.PHONY: help bootstrap constraints lint typecheck test build up up-deps down openapi apple-project
+.PHONY: help bootstrap constraints lint typecheck test sync-sim build up up-deps down openapi apple-project
 
 help: ## List the targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -49,6 +51,9 @@ typecheck: ## Type-check backend (mypy) and web (tsc)
 test: ## Run backend and web tests
 	cd backend && ../.venv/bin/pytest -q
 	cd web && npm test
+
+sync-sim: ## Run the seeded sync simulation alone (SEEDS=10000 for the milestone run, SEED_START=N)
+	cd backend && SYNC_SIM_SEEDS=$(SEEDS) SYNC_SIM_SEED_START=$(SEED_START) ../.venv/bin/pytest -q -m sync_sim tests/integration/sync_sim
 
 build: ## Production build of the web app
 	cd web && npm run build

@@ -1,13 +1,16 @@
 # Backend: the constraints check of `make bootstrap`, the Makefile's backend lines (ruff,
 # mypy, pytest with the integration tests) on Python 3.14 against PostgreSQL with
 # pgvector and Valkey service containers, and the OpenAPI drift check
-# (docs/development/setup.md, "Continuous integration").
+# (docs/development/setup.md, "Continuous integration"). The pytest run includes 500
+# seeds of the sync simulation; a nightly run adds 10,000 (sync protocol §13).
 name: backend
 
 on:
   pull_request:
   push:
     branches: [main, "feature/**", "fix/**", "security/**", "docs/**"]
+  schedule:
+    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
@@ -49,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.14"]
-    services:
+    services: &services
       postgres:
         image: pgvector/pgvector:0.8.7-pg18@sha256:2358fcba361ed2233a5ed81b5fe4ca779ccb304120ce531a3bf51c0ed7e2bc11
         # Throwaway placeholders for this job's database (the integration-test defaults).
@@ -76,7 +79,7 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-    env:
+    env: &test-env
       OPENNOTE_TEST_DATABASE_URL: postgresql+psycopg://opennote:opennote@127.0.0.1:5432/opennote_test
       # Database 1: the suite refuses database 0, the dev stack's.
       OPENNOTE_TEST_VALKEY_URL: redis://127.0.0.1:6379/1
@@ -93,7 +96,8 @@ jobs:
             backend/constraints.txt
       # The backend lines of `make bootstrap` but its constraints check, the job above (it
       # also runs npm ci in web/).
-      - name: Create .venv
+      - &create-venv
+        name: Create .venv
         run: |
           python3 -m venv .venv
           .venv/bin/pip install --upgrade pip
@@ -110,6 +114,28 @@ jobs:
       - name: pytest (unit and integration)
         working-directory: backend
         run: ../.venv/bin/pytest -q
+
+  # The milestone M1 run: 10,000 seeds after the 500 of every push, at night only.
+  sync-sim-nightly:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    services: *services
+    env: *test-env
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements*.txt
+            backend/constraints.txt
+      - *create-venv
+      - name: 10,000 simulation seeds
+        run: make sync-sim SEEDS=10000 SEED_START=500
 
   openapi-drift:
     name: openapi drift

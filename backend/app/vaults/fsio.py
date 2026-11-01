@@ -355,7 +355,10 @@ def rename_noreplace(root_fd: int, src: str, dst: str, *, expected_hash: str) ->
     """Move a vault file whose content is `expected_hash` to the free path `dst`.
     ExternalChangeError when the source holds other bytes or `dst` is taken. An edit
     landing between the check and the rename moves with the file and is not lost."""
-    src_fd, src_name = _existing_parent(root_fd, src)
+    try:
+        src_fd, src_name = _existing_parent(root_fd, src)
+    except FileNotFoundError:
+        raise ExternalChangeError(src, None, None) from None
     try:
         if (found := _current_hash(src_fd, src_name)) != expected_hash:
             raise ExternalChangeError(src, found, None)

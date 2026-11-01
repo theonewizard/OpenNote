@@ -169,10 +169,13 @@ class Committer:
         vault_id: uuid.UUID,
         *,
         crash: Callable[[str], None] | None = None,
+        clock: Callable[[], dt.datetime] | None = None,
     ) -> None:
         self.session_factory, self.history = session_factory, history
         self.root_fd, self.vault_id = vault_root_fd, vault_id
         self.crash = crash or (lambda step: None)
+        # Informational only (I6): committed_at and the day in conflict-copy names.
+        self.clock = clock or (lambda: dt.datetime.now(dt.UTC))
         self.recovery_dir = history.root / "recovery"  # outside the vault
         self.recovery_dir.mkdir(parents=True, exist_ok=True)
 
@@ -198,8 +201,27 @@ class Committer:
         for rev in revs:  # step 4
             self._apply(rev.file_id, rev.revision, rev.before, rev.after)
         self.crash("vault")
+        if result.status == "conflict" and device_id == SERVER_FS:
+            self._restore_after_fs_conflict(op, result)
         self._index(revs)  # step 5 (the caller responds and publishes)
         return result
+
+    def _restore_after_fs_conflict(self, op: Operation, result: OpResult) -> None:
+        """The external bytes now live in the conflict copy: put the committed revision
+        back at the file's path, where the external save had replaced it."""
+        if isinstance(op, Create):  # the copy is the external file; ours is the original
+            file_id = uuid.UUID((result.problem or {}).get("original_file_id", str(op.file_id)))
+        elif isinstance(op, Update):
+            file_id = op.file_id
+        else:
+            return
+        with self.session_factory() as session:
+            row = session.get(File, file_id)
+            if row is None or row.deleted:
+                return
+            path, current, revision = row.path, row.content_hash, row.revision
+        on_disk = State(path, op.content_hash, False)
+        self._apply(file_id, revision, on_disk, State(path, current, False))
 
     def _commit_db(
         self, op: Operation, device_id: str, blob: bytes | None
@@ -215,7 +237,7 @@ class Committer:
             ).one()
             if prior := s.get(ClientOp, (self.vault_id, op.client_op_id)):
                 return dataclasses.replace(OpResult.from_json(prior.result), status="duplicate"), []
-            now = dt.datetime.now(dt.UTC)  # informational only (I6)
+            now = self.clock()
             try:
                 result, revs = self._plan(s, op, device_id, blob, now.date().isoformat())
             except _Rejected as rejected:
@@ -479,16 +501,20 @@ class Committer:
                     recovery_dir=self.recovery_dir,
                 )
                 return
-            if before.path != after.path and before.content_hash is not None:
+            if before.path != after.path:
+                found = hash_path(self.root_fd, before.path)
                 try:
-                    rename_noreplace(
-                        self.root_fd, before.path, after.path, expected_hash=before.content_hash
-                    )
+                    if found is None:
+                        raise ExternalChangeError(before.path, None, None)
+                    # Move whatever is there: an external edit travels with the file.
+                    rename_noreplace(self.root_fd, before.path, after.path, expected_hash=found)
                 except ExternalChangeError:
                     log.warning(
-                        "vault move skipped after an external change; the watcher reconciles"
+                        "vault move skipped (source gone or target taken); reconciled later"
                     )
                     return
+                if found != before.content_hash:
+                    raise ExternalChangeError(after.path, found, None)
             if before.content_hash != after.content_hash:
                 atomic_write(
                     self.root_fd,
@@ -500,10 +526,13 @@ class Committer:
         except ExternalChangeError as err:
             if not after.deleted and err.found_hash == after.content_hash:
                 return  # the disk already holds this revision
-            self._absorb(file_id, revision, err)
+            self._absorb(file_id, revision, err, new_file=before is None or before.deleted)
 
-    def _absorb(self, file_id: uuid.UUID, revision: int, err: ExternalChangeError) -> None:
-        """Commit external bytes found in the way as an update on the previous revision."""
+    def _absorb(
+        self, file_id: uuid.UUID, revision: int, err: ExternalChangeError, *, new_file: bool
+    ) -> None:
+        """Commit external bytes found in the way: as an update on the previous revision,
+        or, where the commit created the file, as an unrelated new file at that path."""
         try:
             data = (
                 err.preserved.read_bytes() if err.preserved else read_file(self.root_fd, err.path)
@@ -511,7 +540,11 @@ class Committer:
         except FileNotFoundError:
             log.warning("vault file removed during a commit; the watcher reconciles")
             return
-        follow = Update(uuid.uuid7(), file_id, max(revision - 1, 1), _sha(data))
+        follow: Operation
+        if new_file:
+            follow = Create(uuid.uuid7(), uuid.uuid7(), err.path, classify(err.path), _sha(data))
+        else:
+            follow = Update(uuid.uuid7(), file_id, max(revision - 1, 1), _sha(data))
         self.commit(follow, SERVER_FS, data)
 
     def _index(self, revs: list[_Rev]) -> None:

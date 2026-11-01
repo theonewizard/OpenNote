@@ -347,3 +347,10 @@ def test_rename_noreplace_falls_back_without_renameat2(vault, monkeypatch):
     monkeypatch.setattr(fsio, "_renameat2", no_flags)
     rename_noreplace(fd, "n.md", "m.md", expected_hash=sha(OLD))
     assert (root / "m.md").read_bytes() == OLD and not (root / "n.md").exists()
+
+
+def test_rename_noreplace_reports_a_missing_source_folder(vault):
+    _, fd = vault
+    with pytest.raises(ExternalChangeError) as err:
+        rename_noreplace(fd, "gone/n.md", "m.md", expected_hash=sha(OLD))
+    assert err.value.found_hash is None

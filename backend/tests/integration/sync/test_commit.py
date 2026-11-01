@@ -198,3 +198,77 @@ def test_log_rebuild_reproduces_revisions(world):
     )
     assert rebuilt == [tuple(r) for r in before]
     assert all(isinstance(e, RevisionLogEntry) for e in history.read_log())
+
+
+def test_conflicting_external_edit_keeps_the_commit_at_the_path(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    external = BASE.replace(b"three", b"external")
+
+    def edit_on_disk(step):
+        if step == "log":
+            (root / "n.md").write_bytes(external)
+
+    ours = BASE.replace(b"three", b"ours")
+    result = make(crash=edit_on_disk).commit(
+        Update(uuid.uuid7(), op.file_id, 1, sha(ours)), "dev", ours
+    )
+    assert (result.status, result.revision) == ("applied", 2)
+    assert (root / "n.md").read_bytes() == ours  # the committed revision is at its path
+    [copy] = [p for p in root.iterdir() if p.name != "n.md"]
+    assert copy.name.startswith("n (conflict server-fs ") and copy.read_bytes() == external
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_create_onto_an_untracked_file_keeps_both(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    external = b"# written on the server, never scanned\n"
+
+    def save_on_disk(step):
+        if step == "log":
+            (root / "n.md").write_bytes(external)
+
+    result = make(crash=save_on_disk).commit(op, "dev", data)
+    assert (result.status, result.revision) == ("applied", 1)
+    assert (root / "n.md").read_bytes() == data  # the client's file is at its path
+    [copy] = [p for p in root.iterdir() if p.name != "n.md"]
+    assert copy.name.startswith("n (conflict server-fs ") and copy.read_bytes() == external
+    with factory() as s:  # the external bytes are a new file, not a revision of ours
+        assert s.get(File, op.file_id).revision == 1
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_move_of_an_externally_edited_file_moves_the_edit_along(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    external = BASE.replace(b"five", b"FIVE")
+
+    def edit_on_disk(step):
+        if step == "log":
+            (root / "n.md").write_bytes(external)
+
+    edit_on_disk.done = False
+
+    def once(step):
+        if not edit_on_disk.done and step == "log":
+            edit_on_disk.done = True
+            edit_on_disk(step)
+
+    result = make(crash=once).commit(Move(uuid.uuid7(), op.file_id, 1, "sub/m.md"), "dev", None)
+    assert (result.status, result.revision) == ("applied", 2)
+    assert (root / "sub/m.md").read_bytes() == external and not (root / "n.md").exists()
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_second_move_after_a_skipped_move_does_not_crash(world):
+    root, _factory, _history, _vault_id, make = world
+    op, data = create()
+    c = make()
+    c.commit(op, "dev", data)
+    (root / "n.md").unlink()  # removed on the server's disk behind OpenNote's back
+    c.commit(Move(uuid.uuid7(), op.file_id, 1, "a/m.md"), "dev", None)
+    result = c.commit(Move(uuid.uuid7(), op.file_id, 2, "b/m.md"), "dev", None)
+    assert result.status == "applied"
