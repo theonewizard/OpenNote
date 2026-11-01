@@ -19,6 +19,7 @@ This specification turns the design document into decisions an engineer can buil
 | [ADRs](../../architecture/adr/README.md) | One record per decision |
 | [Roadmap](../../ROADMAP.md) | Work items with dependencies and acceptance criteria |
 | [Phase 0 plan](../plans/2026-10-17-phase-0-foundation-plan.md) | Task-level plan for the foundation |
+| [Phase 1 plan](../plans/2026-11-01-phase-1-storage-sync-plan.md) | Task-level plan for the vault storage engine and sync prototype |
 
 ---
 
