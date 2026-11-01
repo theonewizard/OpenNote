@@ -1,5 +1,5 @@
 # Backend: the constraints check of `make bootstrap`, the Makefile's backend lines (ruff,
-# mypy, pytest with the integration tests) on Python 3.13 and 3.14 against PostgreSQL with
+# mypy, pytest with the integration tests) on Python 3.14 against PostgreSQL with
 # pgvector and Valkey service containers, and the OpenAPI drift check
 # (docs/development/setup.md, "Continuous integration").
 name: backend
@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.13", "3.14"]
+        python: ["3.14"]
     services:
       postgres:
         image: pgvector/pgvector:0.8.7-pg18@sha256:2358fcba361ed2233a5ed81b5fe4ca779ccb304120ce531a3bf51c0ed7e2bc11

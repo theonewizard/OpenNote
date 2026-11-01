@@ -59,7 +59,7 @@ def pytest_collection_modifyitems() -> None:
     Valkey database is valid and above 0."""
     try:
         database = make_url(TEST_DATABASE_URL).database or ""
-    except (ArgumentError, ValueError):  # empty or unparseable, a bad port or IPv6 bracket
+    except ArgumentError, ValueError:  # empty or unparseable, a bad port or IPv6 bracket
         database = ""
     if not database.endswith("_test"):
         raise pytest.UsageError(
