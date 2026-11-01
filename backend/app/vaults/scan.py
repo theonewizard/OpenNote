@@ -7,7 +7,7 @@ open goes through a directory fd with O_NOFOLLOW.
 import logging
 import os
 import stat
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,16 +32,17 @@ class ScannedFile:
     path_warning: bool
 
 
-def scan(root: Path) -> Iterator[ScannedFile]:
-    """Every note and attachment under `root`, sorted by path within each folder."""
+def scan(root: Path, known: Mapping[str, ScannedFile] | None = None) -> Iterator[ScannedFile]:
+    """Every note and attachment under `root`, sorted by path within each folder. A file
+    whose (size, mtime_ns, inode) match its entry in `known` keeps that entry's hash."""
     root_fd = open_root(root)
     try:
-        yield from _scan_dir(root_fd, "")
+        yield from _scan_dir(root_fd, "", known or {})
     finally:
         os.close(root_fd)
 
 
-def _scan_dir(dir_fd: int, prefix: str) -> Iterator[ScannedFile]:
+def _scan_dir(dir_fd: int, prefix: str, known: Mapping[str, ScannedFile]) -> Iterator[ScannedFile]:
     with os.scandir(dir_fd) as it:
         entries = sorted(it, key=lambda e: normalize(e.name))
     keys = [casefold_key(e.name) for e in entries]
@@ -54,13 +55,19 @@ def _scan_dir(dir_fd: int, prefix: str) -> Iterator[ScannedFile]:
         if stat.S_ISDIR(st.st_mode):
             sub_fd = os.open(entry.name, _DIR_FLAGS, dir_fd=dir_fd)
             try:
-                yield from _scan_dir(sub_fd, path + "/")
+                yield from _scan_dir(sub_fd, path + "/", known)
             finally:
                 os.close(sub_fd)
         elif stat.S_ISREG(st.st_mode):
             if kind == "note" and st.st_size > MAX_NOTE_BYTES:
                 kind = "attachment"
             warning = bool(validate(path, note=kind == "note")) or keys.count(key) > 1
+            old = known.get(path)
+            same = old and (old.size, old.mtime_ns, old.inode) == (
+                st.st_size,
+                st.st_mtime_ns,
+                st.st_ino,
+            )
             yield ScannedFile(
                 path=path,
                 disk_name=entry.name,
@@ -68,7 +75,7 @@ def _scan_dir(dir_fd: int, prefix: str) -> Iterator[ScannedFile]:
                 size=st.st_size,
                 mtime_ns=st.st_mtime_ns,
                 inode=st.st_ino,
-                content_hash=hash_file(dir_fd, entry.name),
+                content_hash=old.content_hash if old and same else hash_file(dir_fd, entry.name),
                 path_warning=warning,
             )
         else:

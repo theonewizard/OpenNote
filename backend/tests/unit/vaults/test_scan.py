@@ -8,6 +8,7 @@ import unicodedata
 
 import pytest
 
+from app.vaults import scan as scan_module
 from app.vaults.scan import MAX_NOTE_BYTES, hash_file, scan
 from tests.compatibility.corpus import vault_cases
 from tests.conftest import tree_digest
@@ -121,3 +122,20 @@ def test_hash_file_refuses_symlink(tmp_path):
             hash_file(fd, "l")
     finally:
         os.close(fd)
+
+
+def test_known_files_with_unchanged_stat_are_not_rehashed(tmp_path, monkeypatch):
+    (tmp_path / "a.md").write_text("a")
+    (tmp_path / "b.md").write_text("b")
+    known = {f.path: f for f in scan(tmp_path)}
+    (tmp_path / "b.md").write_text("changed")
+    hashed = []
+    real = scan_module.hash_file
+    monkeypatch.setattr(
+        scan_module, "hash_file", lambda fd, name: hashed.append(name) or real(fd, name)
+    )
+    again = {f.path: f for f in scan(tmp_path, known=known)}
+    assert hashed == ["b.md"]
+    assert (
+        again["a.md"] == known["a.md"] and again["b.md"].content_hash != known["b.md"].content_hash
+    )
