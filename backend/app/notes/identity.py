@@ -4,6 +4,7 @@ updated, with external renames recognised as moves (storage contract §2.4).
 Reads only; nothing is written to the vault or the database.
 """
 
+import logging
 import os
 import posixpath
 import uuid
@@ -21,6 +22,8 @@ from app.notes.models import File
 from app.vaults.fsio import open_root, read_file
 from app.vaults.paths import casefold_key
 from app.vaults.scan import ScannedFile
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -53,10 +56,21 @@ def diff_scan(
     changes: list[FsChange] = []
     created: list[ScannedFile] = []
     seen: set[str] = set()
+    groups: dict[str, list[ScannedFile]] = {}
     for f in scanned:
-        key = casefold_key(f.path)
+        groups.setdefault(casefold_key(f.path), []).append(f)
+    for key, group in groups.items():
         seen.add(key)
         row = live.get(key)
+        # Case-fold or NFC twins share one identity key: the registered spelling (else the
+        # first) is tracked, the others stay untracked with their path warning.
+        f = next((g for g in group if row and g.path == row.path), group[0])
+        if len(group) > 1:
+            log.warning(
+                "case-fold twins in the vault; one is tracked", extra={"vault_path": f.path}
+            )
+        if f.content_hash is None:
+            continue  # unreadable: neither edited nor deleted
         if row is None:
             created.append(f)
             continue

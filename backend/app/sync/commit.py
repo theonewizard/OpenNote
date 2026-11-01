@@ -15,18 +15,19 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.problems import PROBLEM_TYPE_BASE
 from app.notes.index import index_file, remove_file
-from app.notes.models import File
+from app.notes.models import File, Note, NoteLink, NoteTag
 from app.sync.history import HistoryStore, RevisionLogEntry
 from app.sync.merge import conflict_copy_path, merge_note
 from app.sync.models import ClientOp, Conflict, Revision, VaultSeq
 from app.vaults.fsio import (
     ExternalChangeError,
+    PathEscapeError,
     atomic_write,
     hash_path,
     move_to,
@@ -34,6 +35,7 @@ from app.vaults.fsio import (
     rename_noreplace,
 )
 from app.vaults.paths import casefold_key, classify, validate
+from app.vaults.scan import MAX_NOTE_BYTES
 
 log = logging.getLogger(__name__)
 
@@ -178,6 +180,9 @@ class Committer:
         self.clock = clock or (lambda: dt.datetime.now(dt.UTC))
         self.recovery_dir = history.root / "recovery"  # outside the vault
         self.recovery_dir.mkdir(parents=True, exist_ok=True)
+        # Files whose step 4 failed after the commit; recover() retries them before the
+        # watcher's changes are ingested, so a missing write is never read as an edit.
+        self.unsettled: set[uuid.UUID] = set()
 
     # The five steps --------------------------------------------------------------------
 
@@ -308,7 +313,9 @@ class Committer:
             raise _Rejected(409, "invalid-base-revision", "Base revision does not exist")
 
     def _check_path(self, path: str, kind: str) -> None:
-        if validate(path, note=kind == "note") or classify(path) != kind:
+        # A `.md` may also travel as an attachment: an oversized note is opaque (scan).
+        expected = {classify(path)} | ({"attachment"} if classify(path) == "note" else set())
+        if validate(path, note=kind == "note") or kind not in expected:
             raise _Rejected(422, "invalid-path", "Path is not valid for this file")
 
     def _revision(self, s: Session, file_id: uuid.UUID, revision: int) -> Revision | None:
@@ -411,7 +418,8 @@ class Committer:
         if op.base_revision < row.revision:
             base = self._revision(s, row.file_id, op.base_revision)
             theirs = self.history.get(row.content_hash)
-            if row.kind != "note" or base is None or base.content_hash is None:
+            opaque = max(len(blob), len(theirs)) > MAX_NOTE_BYTES
+            if row.kind != "note" or opaque or base is None or base.content_hash is None:
                 if blob != theirs:
                     return self._conflict_copy(s, row, op, blob, device_id, day)
             else:
@@ -527,6 +535,9 @@ class Committer:
             if not after.deleted and err.found_hash == after.content_hash:
                 return  # the disk already holds this revision
             self._absorb(file_id, revision, err, new_file=before is None or before.deleted)
+        except OSError, PathEscapeError:
+            log.exception("vault write failed after the commit; recovery retries it")
+            self.unsettled.add(file_id)
 
     def _absorb(
         self, file_id: uuid.UUID, revision: int, err: ExternalChangeError, *, new_file: bool
@@ -553,30 +564,43 @@ class Committer:
                 for rev in revs:
                     if rev.deleted:
                         remove_file(s, rev.file_id)
+                    elif rev.kind == "note" and rev.content_hash and rev.size > MAX_NOTE_BYTES:
+                        for model in (NoteLink, NoteTag, Note):  # grown opaque: not parsed
+                            s.execute(delete(model).where(model.file_id == rev.file_id))
                     elif rev.kind == "note" and rev.content_hash:
                         data = self.history.get(rev.content_hash)
                         index_file(s, self.vault_id, rev.file_id, data, rev.path)
         except Exception:
             log.exception("indexing after a commit failed; a rebuild repairs it")
 
-    def recover(self) -> None:
-        """Repair what a crash between the commit steps left (sync §2.3 crash table)."""
+    def recover(self, file_ids: set[uuid.UUID] | None = None) -> None:
+        """Repair what a crash between the commit steps left (sync §2.3 crash table): the
+        whole vault at startup, or only `file_ids` (the unsettled files) before an ingest."""
         with self.session_factory() as s:
-            revisions = s.scalars(
-                select(Revision).where(Revision.vault_id == self.vault_id).order_by(Revision.seq)
-            ).all()
-            files = s.scalars(select(File).where(File.vault_id == self.vault_id)).all()
+            revs = select(Revision).where(Revision.vault_id == self.vault_id)
+            rows = select(File).where(File.vault_id == self.vault_id)
+            if file_ids is not None:
+                revs = revs.where(Revision.file_id.in_(file_ids))
+                rows = rows.where(File.file_id.in_(file_ids))
+            revisions = s.scalars(revs.order_by(Revision.seq)).all()
+            files = s.scalars(rows).all()
             s.expunge_all()
-        logged = {e.seq for e in self.history.read_log()}
-        for r in revisions:
-            if r.seq not in logged:
-                self.history.append_log(_entry(r, r.device_id, r.committed_at.isoformat()))
+        if file_ids is None:
+            logged = {e.seq for e in self.history.read_log()}
+            for r in revisions:
+                if r.seq not in logged:
+                    self.history.append_log(_entry(r, r.device_id, r.committed_at.isoformat()))
         by_key = {(r.file_id, r.revision): r for r in revisions}
         for row in files:
             prev = by_key.get((row.file_id, row.revision - 1))
             prev_state = State(prev.path, prev.content_hash, prev.deleted) if prev else None
             after = State(row.path, None if row.deleted else row.content_hash, row.deleted)
-            self._settle(row.file_id, row.revision, prev_state, after)
+            self.unsettled.discard(row.file_id)
+            try:  # one bad file must not stop the recovery of the others
+                self._settle(row.file_id, row.revision, prev_state, after)
+            except OSError, PathEscapeError:
+                log.exception("recovery of a vault file failed; retried on the next run")
+                self.unsettled.add(row.file_id)
 
     def _settle(
         self, file_id: uuid.UUID, revision: int, before: State | None, after: State

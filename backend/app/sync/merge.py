@@ -14,7 +14,7 @@ from merge3 import Merge3
 
 from app.notes.document import NoteDocument, parse_note, replace_span, with_newlines
 from app.notes.frontmatter import DELETE, FrontmatterInvalid, load_frontmatter, splice_keys
-from app.vaults.paths import FORBIDDEN_CHARS
+from app.vaults.paths import FORBIDDEN_CHARS, LINK_CHARS, MAX_SEGMENT_BYTES, truncate_utf8
 
 _MISSING: Any = object()
 
@@ -96,10 +96,14 @@ def conflict_copy_path(path: str, device_name: str, day: str, taken: Callable[[s
     """`<name> (conflict <device> <yyyy-mm-dd>)<ext>`, then ` 2`, ` 3` on collision."""
     folder, name = posixpath.split(path)
     stem, ext = posixpath.splitext(name)
-    device = "".join("-" if c in FORBIDDEN_CHARS else c for c in device_name)
-    base = f"{stem} (conflict {device} {day})"
-    candidate, n = base, 1
-    while taken(posixpath.join(folder, candidate + ext)):
+    device = "".join(
+        "-" if c in FORBIDDEN_CHARS or c in LINK_CHARS or not c.isprintable() else c
+        for c in truncate_utf8(device_name, 64)
+    )
+    n = 1
+    while True:
+        tail = f" (conflict {device} {day})" + (f" {n}" if n > 1 else "") + ext
+        candidate = truncate_utf8(stem, MAX_SEGMENT_BYTES - len(tail.encode())) + tail
+        if not taken(posixpath.join(folder, candidate)):
+            return posixpath.join(folder, candidate)
         n += 1
-        candidate = f"{base} {n}"
-    return posixpath.join(folder, candidate + ext)

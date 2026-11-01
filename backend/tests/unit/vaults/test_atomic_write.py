@@ -354,3 +354,13 @@ def test_rename_noreplace_reports_a_missing_source_folder(vault):
     with pytest.raises(ExternalChangeError) as err:
         rename_noreplace(fd, "gone/n.md", "m.md", expected_hash=sha(OLD))
     assert err.value.found_hash is None
+
+
+def test_a_name_near_the_length_limit_still_writes(vault, recovery):
+    root, fd = vault
+    name = "日" * 80 + ".md"  # 243 bytes: the temp name around it must stay within 255
+    assert len(name.encode()) <= 255
+    fsio.atomic_write(fd, name, b"x\n", expected_hash=None, recovery_dir=recovery)
+    before = fsio.hash_path(fd, name)
+    fsio.atomic_write(fd, name, b"y\n", expected_hash=before, recovery_dir=recovery)
+    assert (root / name).read_bytes() == b"y\n" and temps(root) == []

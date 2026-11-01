@@ -1,11 +1,14 @@
 """Push, pull, snapshot and server-side changes (sync protocol §4 to §7)."""
 
 import base64
+import errno
 import uuid
 
 import pytest
 
 from app.notes.identity import diff_scan
+from app.notes.models import File
+from app.sync import commit as commit_module
 from app.sync.commit import SERVER_FS, Create, Delete, Move, Update
 from app.sync.cursor import RETENTION_SEQ_WINDOW, CursorExpired, decode_cursor, encode_cursor
 from app.sync.service import changes, ingest_fs_changes, push, snapshot
@@ -282,3 +285,58 @@ def test_ingest_moved_and_edited_file(server):
     (root / "b.md").write_bytes(data + b"more\n")
     [move, edit] = ingest_fs_changes(committer, fs_changes(root, factory, vault_id))
     assert (move.path, edit.revision, edit.content_hash) == ("b.md", 3, sha(data + b"more\n"))
+
+
+def test_a_failed_vault_write_is_retried_not_reverted(server, monkeypatch):
+    root, factory, vault_id, committer = server
+    op, data = create()
+    committer.commit(op, "a", data)
+    real = commit_module.atomic_write
+
+    def disk_full(*args, **kwargs):
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(commit_module, "atomic_write", disk_full)
+    ours = BASE.replace(b"three", b"ours")
+    [result] = push(committer, "a", *update(op.file_id, 1, ours))
+    assert (result.status, result.revision) == ("applied", 2)  # committed before step 4
+    assert (root / "n.md").read_bytes() == data
+
+    monkeypatch.setattr(commit_module, "atomic_write", real)
+    ingest_fs_changes(committer, fs_changes(root, factory, vault_id))  # disk looks "edited"
+    assert (root / "n.md").read_bytes() == ours  # recovery wrote it, the watcher did not revert
+    with factory() as s:
+        assert s.get(File, op.file_id).revision == 2
+
+
+def test_a_failed_create_write_is_not_ingested_as_a_delete(server, monkeypatch):
+    root, factory, vault_id, committer = server
+    real = commit_module.atomic_write
+
+    def disk_full(*args, **kwargs):
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(commit_module, "atomic_write", disk_full)
+    op, data = create()
+    [result] = push(committer, "a", [op], {op.content_hash: data})
+    assert result.status == "applied" and not (root / "n.md").exists()
+    monkeypatch.setattr(commit_module, "atomic_write", real)
+    found = fs_changes(root, factory, vault_id)
+    assert [c.kind for c in found] == ["delete"]
+    ingest_fs_changes(committer, found)
+    assert (root / "n.md").read_bytes() == data
+    with factory() as s:
+        assert not s.get(File, op.file_id).deleted
+
+
+def test_an_oversized_note_from_the_server_disk_is_opaque(server):
+    from app.notes.models import Note
+    from app.vaults.scan import MAX_NOTE_BYTES
+
+    root, factory, vault_id, committer = server
+    (root / "Big.md").write_bytes(b"# Big\n" + b"x" * MAX_NOTE_BYTES)
+    [result] = ingest_fs_changes(committer, fs_changes(root, factory, vault_id))
+    assert result.status == "applied"
+    with factory() as s:
+        assert s.get(File, result.file_id).kind == "attachment"
+        assert s.get(Note, result.file_id) is None  # never parsed

@@ -115,7 +115,7 @@ def _resolve_links(session: Session, vault_id: uuid.UUID, which: ColumnElement[b
     rows = session.execute(
         select(NoteLink.file_id, NoteLink.ordinal, NoteLink.target, File.path)
         .join(File, File.file_id == NoteLink.file_id)
-        .where(which)
+        .where(File.vault_id == vault_id, which)
     ).all()
     for file_id, ordinal, target, from_path in rows:
         link = Link(target, None, None, None, embed=False, markdown=False)

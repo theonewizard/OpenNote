@@ -122,3 +122,25 @@ def test_no_id_written_on_open(vault, session):
     before = tree_digest(root)
     diff(session, vault_id, root)
     assert tree_digest(root) == before
+
+
+def test_an_unreadable_file_is_neither_edited_nor_deleted(vault, session, monkeypatch):
+    from app.vaults import scan as scan_module
+
+    root, vault_id, _ = vault
+    real = scan_module.hash_file
+
+    def denied(dir_fd, name):
+        if name == "Welcome.md":
+            raise PermissionError(13, "Permission denied")
+        return real(dir_fd, name)
+
+    monkeypatch.setattr(scan_module, "hash_file", denied)
+    (root / "Welcome.md").write_text("changed, but we cannot read it\n")
+    assert diff(session, vault_id, root) == []
+
+
+def test_a_case_fold_twin_does_not_flip_the_registry(vault, session):
+    root, vault_id, _ = vault
+    (root / "welcome.md").write_text("a twin only Linux can hold\n")
+    assert diff(session, vault_id, root) == []  # the registered spelling keeps its row

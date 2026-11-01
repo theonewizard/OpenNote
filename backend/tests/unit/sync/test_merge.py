@@ -142,3 +142,15 @@ def test_conflict_copy_path():
     assert conflict_copy_path("img.png", "a/b:c", "2026-11-01", lambda p: False) == (
         "img (conflict a-b-c 2026-11-01).png"
     )
+
+
+def test_conflict_copy_path_is_always_a_valid_path():
+    from app.vaults.paths import validate
+
+    long_stem = "日" * 80
+    for device in ("iPad #2 [old]|x", "Mac^", "tab\there"):
+        path = conflict_copy_path(f"A/{long_stem}.md", device, "2026-11-01", lambda p: False)
+        assert validate(path, note=True) == [], path
+    first_taken = lambda p: p.endswith("2026-11-01).md")  # noqa: E731
+    path = conflict_copy_path(f"A/{long_stem}.md", "Mac", "2026-11-01", first_taken)
+    assert validate(path, note=True) == [] and path.endswith(" 2.md")

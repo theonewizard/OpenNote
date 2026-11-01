@@ -28,7 +28,7 @@ class ScannedFile:
     size: int
     mtime_ns: int
     inode: int
-    content_hash: str
+    content_hash: str | None  # None: the file could not be read; treat it as unchanged
     path_warning: bool
 
 
@@ -51,7 +51,10 @@ def _scan_dir(dir_fd: int, prefix: str, known: Mapping[str, ScannedFile]) -> Ite
         kind = classify(path)
         if kind not in ("note", "attachment"):
             continue  # dot-folders, config, OS cruft, in-flight writes: never read
-        st = entry.stat(follow_symlinks=False)
+        try:
+            st = entry.stat(follow_symlinks=False)
+        except FileNotFoundError:
+            continue  # removed during the scan
         if stat.S_ISDIR(st.st_mode):
             sub_fd = os.open(entry.name, _DIR_FLAGS, dir_fd=dir_fd)
             try:
@@ -68,6 +71,14 @@ def _scan_dir(dir_fd: int, prefix: str, known: Mapping[str, ScannedFile]) -> Ite
                 st.st_mtime_ns,
                 st.st_ino,
             )
+            content_hash: str | None = old.content_hash if old and same else None
+            if content_hash is None:
+                try:
+                    content_hash = hash_file(dir_fd, entry.name)
+                except FileNotFoundError:
+                    continue  # removed during the scan: the next one reports the delete
+                except OSError:  # unreadable (permissions, a swapped-in symlink)
+                    log.warning("unreadable vault file kept as is", extra={"vault_path": path})
             yield ScannedFile(
                 path=path,
                 disk_name=entry.name,
@@ -75,7 +86,7 @@ def _scan_dir(dir_fd: int, prefix: str, known: Mapping[str, ScannedFile]) -> Ite
                 size=st.st_size,
                 mtime_ns=st.st_mtime_ns,
                 inode=st.st_ino,
-                content_hash=old.content_hash if old and same else hash_file(dir_fd, entry.name),
+                content_hash=content_hash,
                 path_warning=warning,
             )
         else:

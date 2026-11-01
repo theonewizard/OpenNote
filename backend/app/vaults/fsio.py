@@ -17,7 +17,7 @@ import unicodedata
 import uuid
 from pathlib import Path
 
-from app.vaults.paths import TEMP_SUFFIX, validate
+from app.vaults.paths import MAX_SEGMENT_BYTES, TEMP_SUFFIX, truncate_utf8, validate
 
 log = logging.getLogger(__name__)
 
@@ -188,7 +188,8 @@ def _warn_no_exchange(dir_fd: int) -> None:
 
 
 def _write_temp(dir_fd: int, name: str, data: bytes, mode: int) -> str:
-    tmp = f".{name}.{secrets.token_hex(6)}{TEMP_SUFFIX}"
+    tag = f".{secrets.token_hex(6)}{TEMP_SUFFIX}"
+    tmp = "." + truncate_utf8(name, MAX_SEGMENT_BYTES - 1 - len(tag)) + tag
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC
     fd = os.open(tmp, flags, mode, dir_fd=dir_fd)
     try:

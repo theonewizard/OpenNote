@@ -72,6 +72,11 @@ def classify(path: str) -> FileKind:
     return "attachment"
 
 
+def truncate_utf8(text: str, max_bytes: int) -> str:
+    """`text` cut to at most `max_bytes` of UTF-8, never inside a character."""
+    return text.encode()[: max(max_bytes, 0)].decode(errors="ignore")
+
+
 def validate(path: str, *, note: bool) -> list[PathViolation]:
     """The rule violations of `path` (empty when valid). Case-fold collisions need the folder
     listing, so callers check those with `casefold_key`."""

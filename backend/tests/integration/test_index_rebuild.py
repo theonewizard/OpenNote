@@ -125,6 +125,23 @@ def test_link_resolution_updates_when_target_appears(obsidian_vault, session):
     ]
 
 
+def test_indexing_one_vault_never_resolves_links_of_another(obsidian_vault, session, tmp_path):
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "B.md").write_text("[[Lonely]]\n")
+    other_id = open_vault(session, other)
+    other_ids = add_files(session, other_id, other)
+    rebuild_index(session, other_id, other)
+
+    vault_id = open_vault(session, obsidian_vault)
+    (obsidian_vault / "Lonely.md").write_text("only in the first vault\n")
+    ids = add_files(session, vault_id, obsidian_vault)
+    index_file(session, vault_id, ids["Lonely.md"], b"only in the first vault\n", "Lonely.md")
+
+    resolved = "SELECT resolved_file_id FROM note_links WHERE file_id = :f"
+    assert session.execute(text(resolved), {"f": other_ids["B.md"]}).scalar_one() is None
+
+
 def test_downgrade_drops_the_index_tables(pg_url, engine):
     from sqlalchemy import inspect
 

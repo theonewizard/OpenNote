@@ -14,8 +14,9 @@ from app.notes.models import File
 from app.sync.commit import SERVER_FS, Committer, Create, Delete, Move, Operation, OpResult, Update
 from app.sync.cursor import RETENTION_SEQ_WINDOW, CursorExpired, decode_cursor, encode_cursor
 from app.sync.models import Revision
-from app.vaults.fsio import read_file
+from app.vaults.fsio import hash_path, read_file
 from app.vaults.paths import classify
+from app.vaults.scan import MAX_NOTE_BYTES
 
 MAX_PUSH_OPS = 100
 
@@ -101,8 +102,12 @@ def snapshot(session: Session, vault_id: uuid.UUID) -> list[ChangeEntry]:
 def ingest_fs_changes(committer: Committer, fs_changes: list[FsChange]) -> list[OpResult]:
     """Commit changes found on the server's vault as `server-fs` operations, each based
     on the file's last known revision (sync §7)."""
+    if committer.unsettled:  # first finish writes that failed after their commit
+        committer.recover(set(committer.unsettled))
     results = []
     for change in fs_changes:
+        if change.file_id in committer.unsettled:
+            continue  # disk and registry differ because our write failed, not an edit
         for op, blob in _ops_for(committer, change):
             results.append(committer.commit(op, SERVER_FS, blob))
     return results
@@ -116,14 +121,19 @@ def _ops_for(committer: Committer, change: FsChange) -> list[tuple[Operation, by
         row = s.get(File, file_id)
         revision, known_hash = (row.revision, row.content_hash) if row else (0, None)
     if change.kind == "delete":
-        return [(Delete(uuid.uuid7(), file_id, revision), None)] if row else []
+        if row is None or hash_path(committer.root_fd, path) is not None:
+            return []  # back since the scan (a recovered write, or a re-save)
+        return [(Delete(uuid.uuid7(), file_id, revision), None)]
     try:
         blob = read_file(committer.root_fd, path)
     except FileNotFoundError:
         return []  # gone again; the next scan reports it
     content = "sha256:" + hashlib.sha256(blob).hexdigest()
     if change.kind == "create":
-        return [(Create(uuid.uuid7(), file_id, path, classify(path), content), blob)]
+        kind = classify(path)
+        if kind == "note" and len(blob) > MAX_NOTE_BYTES:
+            kind = "attachment"  # opaque, as the scan classifies it
+        return [(Create(uuid.uuid7(), file_id, path, kind, content), blob)]
     if row is None:
         return []
     ops: list[tuple[Operation, bytes | None]] = []

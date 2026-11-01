@@ -139,3 +139,19 @@ def test_known_files_with_unchanged_stat_are_not_rehashed(tmp_path, monkeypatch)
     assert (
         again["a.md"] == known["a.md"] and again["b.md"].content_hash != known["b.md"].content_hash
     )
+
+
+def test_an_unreadable_file_does_not_stop_the_scan(tmp_path, monkeypatch, caplog):
+    (tmp_path / "A.md").write_text("a")
+    (tmp_path / "B.md").write_text("b")
+    real = scan_module.hash_file
+
+    def denied(dir_fd, name):
+        if name == "A.md":
+            raise PermissionError(13, "Permission denied")
+        return real(dir_fd, name)
+
+    monkeypatch.setattr(scan_module, "hash_file", denied)
+    found = {f.path: f.content_hash for f in scan(tmp_path)}
+    assert found["A.md"] is None and found["B.md"].startswith("sha256:")
+    assert "unreadable" in caplog.text
