@@ -12,7 +12,7 @@
 
 ## Decisions this plan needs
 
-The architecture spec lists D1–D8. Phase 1 adds three; the plan is written with the recommended option and the PR stays open until Flemming answers.
+The architecture spec lists D1–D8. Phase 1 adds three. **Decided by Flemming on 2026-11-01 (19:55 UTC): D9 PostgreSQL, D10 Python 3.14, D11 one week**, the recommended option in each case.
 
 | # | Question | Options | Recommended, and why |
 |---|---|---|---|

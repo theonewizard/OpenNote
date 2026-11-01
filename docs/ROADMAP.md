@@ -27,7 +27,7 @@ Milestone M0: repository builds; backend starts in containers; Apple packages an
 
 Milestone M1: corpus round-trips byte-identically; external changes detected; renames keep identity; sync simulation invariants hold over 10,000 seeds.
 
-Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-sync-plan.md) (in review; decisions D9–D11 open).
+Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-sync-plan.md) (decisions D9–D11 taken 2026-11-01: PostgreSQL for the prototype, Python 3.14 floor, one-week time box).
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
