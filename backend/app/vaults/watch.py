@@ -31,7 +31,7 @@ _TICK_S = 0.05
 
 
 class _Handler(FileSystemEventHandler):
-    def __init__(self, watcher: "VaultWatcher") -> None:
+    def __init__(self, watcher: VaultWatcher) -> None:
         self.watcher = watcher
 
     def on_any_event(self, event: FileSystemEvent) -> None:
