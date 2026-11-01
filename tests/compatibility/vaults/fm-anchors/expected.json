@@ -1,0 +1,12 @@
+{
+  "frontmatter": {
+    "base": {
+      "x": 1
+    },
+    "derived": {
+      "x": 1,
+      "y": 2
+    }
+  },
+  "frontmatter_error": false
+}
