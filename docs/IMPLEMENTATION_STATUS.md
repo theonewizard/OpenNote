@@ -4,7 +4,7 @@ Last updated: 2026-11-01
 
 ## Current phase
 
-**Phase 1 — Vault storage engine and sync prototype, implemented on `feature/phase-1-storage-sync`; in review.** The work of the [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-sync-plan.md) (P1-01 to P1-13) is a Python library under `backend/app/vaults`, `backend/app/notes` and `backend/app/sync` with migrations `0002` to `0004`: it opens an existing Obsidian vault without writing to it, reads and edits notes byte for byte, writes atomically without clobbering external saves, detects external changes and renames, keeps a rebuildable index and a content-addressed history, and commits, merges and serves changes for a server-side sync prototype checked by a seeded multi-client simulation. The only new HTTP route is the keyless `GET /api/v1/meta/path-rules`; the note and sync endpoints, authentication and the process that runs the watcher are Phase 2. Every P1 row is `TESTING` until its CI run is observed ([ROADMAP.md, Phase 1](ROADMAP.md#phase-1--vault-storage-engine--sync-prototype-m1)).
+**Phase 1 — Vault storage engine and sync prototype, implemented on `feature/phase-1-storage-sync`; in review.** The work of the [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-sync-plan.md) (P1-01 to P1-13) is a Python library under `backend/app/vaults`, `backend/app/notes` and `backend/app/sync` with migrations `0002` to `0004`: it opens an existing Obsidian vault without writing to it, reads and edits notes byte for byte, writes atomically without clobbering external saves, detects external changes and renames, keeps a rebuildable index and a content-addressed history, and commits, merges and serves changes for a server-side sync prototype checked by a seeded multi-client simulation. The only new HTTP route is the keyless `GET /api/v1/meta/path-rules`; the note and sync endpoints, authentication and the process that runs the watcher are Phase 2. P1-01 to P1-11 and P1-13 are `COMPLETED` (local and CI evidence); P1-12 stays `TESTING` until the first nightly 10,000-seed run on `main` ([ROADMAP.md, Phase 1](ROADMAP.md#phase-1--vault-storage-engine--sync-prototype-m1)).
 
 Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work of the [Phase 0 plan](superpowers/plans/2026-10-17-phase-0-foundation-plan.md), is delivered as one squash-merged pull request from `feature/phase-0-foundation`. It holds skeletons and tooling only: the API answers `/healthz`, `/readyz` and `/api/v1/meta`; any other path answers 404 and a wrong method 405 (`POST /healthz`), both as `application/problem+json`; and the startup assertion `assert_routes_authenticated` refuses to start the API if a route has no authentication dependency and is not in `KEYLESS_ROUTES` (`CLAUDE.md` §12). The worker runs one smoke-test job, and the web and Apple apps show empty shells. Version 0.1.0 is not released, no image is published, and nothing is deployed anywhere. Roadmap items and their evidence: [ROADMAP.md, Phase 0](ROADMAP.md#phase-0--foundation-m0).
 
@@ -20,7 +20,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 | Item | State | Gap |
 |---|---|---|
 | P0-07 Container images and Compose | TESTING | `podman compose` has never been run; CI uses Docker |
-| P1-01 to P1-13 storage engine and sync prototype | TESTING | Local runs only so far: backend suite 505 passed, 3 skipped (5 minutes, including 500 seeds); 10,000 simulation seeds zero violations over seeds 0 to 9,999 on `4673673` (224 tests passed, 1 h 11 min wall). The pull request's CI runs and the first nightly 10,000-seed run on `main` are not observed yet |
+| P1-12 sync prototype | TESTING | The pull request's CI is green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped (5 minutes, including 500 seeds); 10,000 simulation seeds zero violations over seeds 0 to 9,999 on `4673673` (224 tests passed, 1 h 11 min wall). The first nightly 10,000-seed run on `main` is not observed yet |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
 
 ## Verified where
@@ -97,7 +97,7 @@ D2–D6 in the [specification §4](superpowers/specs/2026-10-17-opennote-archite
 
 | Suite | Tests | Where |
 |---|---|---|
-| Backend (unit, compatibility and integration) | 505 passed and 3 skipped locally (two read-only-directory tests skip as root; one corpus case is a read-only note with no edit round trip) | Local; CI on the pull request pending |
+| Backend (unit, compatibility and integration) | 505 passed and 3 skipped locally (two read-only-directory tests skip as root; one corpus case is a read-only note with no edit round trip) | Local and CI (pull request #26) |
 | Sync simulation (`make sync-sim`) | zero violations over seeds 0 to 9,999 on `4673673` (224 tests passed, 1 h 11 min wall); 500 seeds inside the backend suite | Local; nightly in CI after the merge |
 | Web unit (Vitest) | 5 | Local and CI |
 | Web end-to-end (Playwright) | 2 | Local and CI |
