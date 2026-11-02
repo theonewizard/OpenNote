@@ -71,7 +71,9 @@ jobs:
           version=$(docker compose -f "$FULL" exec -T postgres \
             psql -h /tmp -U opennote -d opennote -Atc 'select version_num from alembic_version')
           echo "alembic_version: $version"
-          [[ $version == 0001 ]]
+          # The head is the newest migration file's revision (files are named <rev>_<slug>.py).
+          head=$(basename "$(ls backend/migrations/versions/[0-9]*_*.py | sort | tail -1)")
+          [[ $version == "${head%%_*}" ]]
           docker compose -f "$FULL" stop
           OPENNOTE_MIGRATE_ON_START=true docker compose -f "$FULL" up -d --wait --wait-timeout 300
           scripts/smoke-test.sh http://localhost:8080
@@ -83,7 +85,7 @@ jobs:
           version=$(docker compose -f "$FULL" exec -T postgres \
             psql -h /tmp -U opennote -d opennote -Atc 'select version_num from alembic_version')
           echo "alembic_version after the second start: $version"
-          [[ $version == 0001 ]]
+          [[ $version == "${head%%_*}" ]]
           # Volumes created by UID 1001 must not carry over to the arbitrary-UID run.
           docker compose -f "$FULL" down -v
 
