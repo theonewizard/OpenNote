@@ -3,7 +3,7 @@
 # and the backend CI jobs install with `-c backend/constraints.txt`, so a transitive
 # dependency cannot change between installs. pip-audit audits this file in CI.
 #
-# Generated 2026-11-01 by `make constraints` with Python 3.14.10 (pip 26.2.2): `pip freeze`
+# Generated 2026-11-02 by `make constraints` with Python 3.14.10 (pip 26.2.2): `pip freeze`
 # in a new virtual environment after `pip install --only-binary=:all: -r requirements.txt`.
 # Run `make constraints` whenever requirements.txt changes, a Dependabot pull request
 # included (docs/development/versions.md, "Backend (PyPI)").
@@ -13,7 +13,7 @@ annotated-types==0.8.0
 anyio==4.16.0
 click==8.5.0
 dramatiq==2.2.1
-fastapi==0.161.1
+fastapi==0.162.0
 greenlet==3.5.6
 h11==0.16.0
 httptools==0.9.0
@@ -26,15 +26,15 @@ merge3==1.0.0
 opentelemetry-api==1.45.2
 psycopg==3.3.6
 psycopg-binary==3.3.6
-pydantic==2.14.1
-pydantic-settings==2.16.1
-pydantic_core==2.50.1
+pydantic==2.14.2
+pydantic-settings==2.16.2
+pydantic_core==2.50.2
 python-dotenv==1.2.4
 PyYAML==6.0.3
 redis==8.1.0
 ruamel.yaml==0.19.1
 SQLAlchemy==2.1.6
-starlette==1.9.0
+starlette==1.10.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.54.0
