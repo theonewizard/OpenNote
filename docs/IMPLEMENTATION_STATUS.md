@@ -59,7 +59,7 @@ These are repository settings only the owner can change ([workflow.md](developme
 
 ## Open items
 
-- Phase 1, from the final review (2026-11-01), decided for later rather than fixed ([record](../.conversations/2026-11-01-phase-1-storage-sync.md), R145):
+- Phase 1, from the final review (2026-11-01), decided for later rather than fixed ([record](../.conversations/2026-11-01-phase-1-storage-sync.md), R149):
   - Concurrency: the commit path serializes in PostgreSQL only up to the database step; the log and vault steps run after it. Phase 1 has one caller per vault. Before Phase 2 wires the watcher and HTTP requests to one vault, a per-vault lock must be held through the vault write, or two commits of one file can revert a revision.
   - Crash recovery base (sync protocol §2.3, needs Flemming): when the disk matches neither the previous nor the current revision, recovery merges the disk against the previous revision. That is right after a crash before the vault write, and wrong when the write had completed and the user then edited the note offline (a deletion of lines the last revision added can come back). The fix needs a record of the last written sequence number.
   - Memory: the commit path takes whole blobs, so a 2 GiB attachment is held in memory several times on ingest and commit; streaming is P5-02 (resumable blob upload).

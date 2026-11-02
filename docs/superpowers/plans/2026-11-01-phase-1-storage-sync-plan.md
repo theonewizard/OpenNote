@@ -411,10 +411,10 @@ HTTP endpoints other than path-rules (Phase 2, P2-04 builds them on `push`/`chan
 
 Departures found during implementation are listed here with their ruling numbers, as in the Phase 0 plan ([record](../../../.conversations/2026-11-01-phase-1-storage-sync.md)).
 
-- Task 12 ran after Task 13 (R137).
-- Task 12: the section 6 pair rules sit in `Committer._plan`; a superseded delete answers `merged` with a `delete-superseded` problem (R138). The recovery area is `<history_root>/<vault_id>/recovery` (R139).
-- Task 12, changed by Task 15: a vault move that finds the source edited on disk moves the edited file and absorbs the edit as a `server-fs` update, instead of skipping the move (R143).
-- Task 14: `RETENTION_SEQ_WINDOW` is 100,000 sequence numbers; `revisions` has a `size` column (R140).
-- Task 11: per-vault debounce with a full cached scan per pass (R141).
-- Task 15: the harness is in `backend/tests/integration/sync_sim/`, and `Committer` takes a clock (R142); CI layout (R144). A create onto an unscanned server file keeps that file as a separate conflict copy (R143).
-- Final review: `Committer.unsettled` and `recover(file_ids)` before each ingest; scanned files carry `content_hash=None` when unreadable; a `.md` may be committed with kind `attachment` (oversized, opaque) (R145).
+- Task 12 ran after Task 13 (R141).
+- Task 12: the section 6 pair rules sit in `Committer._plan`; a superseded delete answers `merged` with a `delete-superseded` problem (R142). The recovery area is `<history_root>/<vault_id>/recovery` (R143).
+- Task 12, changed by Task 15: a vault move that finds the source edited on disk moves the edited file and absorbs the edit as a `server-fs` update, instead of skipping the move (R147).
+- Task 14: `RETENTION_SEQ_WINDOW` is 100,000 sequence numbers; `revisions` has a `size` column (R144).
+- Task 11: per-vault debounce with a full cached scan per pass (R145).
+- Task 15: the harness is in `backend/tests/integration/sync_sim/`, and `Committer` takes a clock (R146); CI layout (R148). A create onto an unscanned server file keeps that file as a separate conflict copy (R147).
+- Final review: `Committer.unsettled` and `recover(file_ids)` before each ingest; scanned files carry `content_hash=None` when unreadable; a `.md` may be committed with kind `attachment` (oversized, opaque) (R149).
