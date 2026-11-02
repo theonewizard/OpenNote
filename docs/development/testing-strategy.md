@@ -14,11 +14,11 @@ Status: Proposed (2026-10-17). Implements design §15.13 and `CLAUDE.md` §9. St
 
 | Layer | Location | Tools | Runs |
 |---|---|---|---|
-| Backend unit | `backend/tests/unit` | pytest, Hypothesis (Phase 1+) | Every push |
+| Backend unit | `backend/tests/unit` | pytest, Hypothesis | Every push |
 | Backend integration | `backend/tests/integration` | pytest + real PostgreSQL/pgvector + Valkey + temp vault dirs; Alembic upgrade from empty and downgrade one step | Every push |
 | API contract | `scripts/` + CI (drift check); `tests/integration/contract` (Schemathesis, Phase 2+) | Schemathesis against the running API and committed `docs/api/openapi.json` (Phase 2+); OpenAPI drift check (`make openapi`, then `git diff --exit-code` on the generated files; `docs/api/openapi.json` is generated and committed from Phase 0) | Every push (drift check; Schemathesis: Phase 2+) |
-| Compatibility | `tests/compatibility` | Shared corpus, run by Python and Swift parsers | Every push (Phase 1+) |
-| Sync simulation | `backend/tests/sync_sim` | Seeded simulation, invariants I1–I6 of the sync protocol | 500 seeds per push; 10,000 nightly (Phase 1+) |
+| Compatibility | `tests/compatibility` | Shared corpus, run by the Python parsers (`backend/tests/compatibility`) since Phase 1 and by the Swift parsers from P4-01 | Every push |
+| Sync simulation | `backend/tests/integration/sync_sim` (pytest marker `sync_sim`) | Seeded simulation, invariants I1–I6 of the sync protocol, against the integration-test PostgreSQL; `make sync-sim SEEDS=…`; failing seeds stay in `regressions/` | 500 seeds per push; 10,000 nightly |
 | Web unit/component | `web/tests/unit` | Vitest, Testing Library | Every push |
 | Web end-to-end | `web/tests/e2e` | Playwright with Chromium against the production build under `vite preview`; WebKit and runs against the Compose stack (Phase 3+) | Every push (Chromium, preview build); WebKit and the Compose stack: Phase 3+ |
 | Apple packages | `apple/Packages/*/Tests` | Swift Testing / XCTest; Core and Storage also on Linux | Every push (macOS runner; Core and Storage also in a Linux `swift:6.4.1` container) |
@@ -49,7 +49,7 @@ A property-based test (Hypothesis) generates Markdown from a grammar of the abov
 
 Implemented with the P1-12 prototype and kept for the life of the project.
 
-- Actors: server, 2–5 clients, an "external editor" writing directly to a client vault or the server vault.
+- Actors: server, 3 clients (2 in the checker's own tests), an "external editor" writing directly to a client vault or the server vault.
 - Actions: create/edit/move/delete notes and attachments, go offline/online, push, pull, crash between any two steps, duplicate or reorder requests, expire cursors.
 - Checks after each run: invariants I1–I6; every conflict copy's content equals one side's content; history contains every committed revision.
 - Shrinking: Hypothesis stateful testing (`RuleBasedStateMachine`) gives minimal failing sequences.

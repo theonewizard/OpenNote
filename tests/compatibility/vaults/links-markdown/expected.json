@@ -1,0 +1,33 @@
+{
+  "frontmatter": null,
+  "frontmatter_error": false,
+  "links": [
+    {
+      "target": "notes/plan.md",
+      "heading": null,
+      "block": null,
+      "alias": "plain",
+      "markdown": true
+    },
+    {
+      "target": "My Notes/a b.md",
+      "heading": null,
+      "block": null,
+      "alias": "spaces",
+      "markdown": true
+    },
+    {
+      "target": "My Notes/c d.md",
+      "heading": "Part",
+      "block": null,
+      "alias": "encoded",
+      "markdown": true
+    }
+  ],
+  "embeds": [],
+  "tags": [],
+  "external_urls": [
+    "https://example.com/page#frag",
+    "mailto:a@example.com"
+  ]
+}

@@ -37,7 +37,12 @@ def test_route_added_after_create_app_fails_at_lifespan_start():
 
 
 def test_keyless_routes_are_exactly_the_documented_set():
-    assert {p for _, p in KEYLESS_ROUTES} == {"/healthz", "/readyz", "/api/v1/meta"}
+    assert {p for _, p in KEYLESS_ROUTES} == {
+        "/healthz",
+        "/readyz",
+        "/api/v1/meta",
+        "/api/v1/meta/path-rules",
+    }
 
 
 def test_routes_protected_by_either_auth_dependency_pass(build_app):

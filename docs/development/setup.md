@@ -7,12 +7,12 @@ How to set up a working copy and run the checks CI runs. Describes the repositor
 | Tool | Needed for |
 |---|---|
 | Git, GNU Make | everything |
-| Python 3.13 or 3.14 (the versions CI tests) | backend, worker |
+| Python 3.14 (the floor since Phase 1, decision D10; the version CI tests and the images run) | backend, worker |
 | Node.js 26 with npm (`web/.npmrc` sets `engine-strict`, so npm refuses to install with a Node.js or npm outside `web/package.json`'s `engines`) | web app |
 | Docker with Compose, or Podman with `podman compose` (supported by design but untested; only Docker has been exercised) | PostgreSQL and Valkey for integration tests; the full stack |
 | macOS with Xcode and XcodeGen | Apple apps only |
 
-If `python3` on your machine is another version, pass a suitable interpreter: `make bootstrap PYTHON=python3.13`.
+If `python3` on your machine is another version, pass a suitable interpreter: `make bootstrap PYTHON=python3.14`.
 
 ## 1. Install dependencies
 
@@ -68,7 +68,8 @@ make lint typecheck test
 |---|---|
 | `lint` | `ruff check` and `ruff format --check` in `backend/`; `npm run lint` in `web/` |
 | `typecheck` | `mypy app` in `backend/`; `npm run typecheck` in `web/` |
-| `test` | `pytest` in `backend/` (unit and integration, so `make up-deps` first); `npm test` in `web/` |
+| `test` | `pytest` in `backend/` (unit and integration, so `make up-deps` first; includes 500 seeds of the sync simulation, about 3 minutes); `npm test` in `web/` |
+| `sync-sim` | Only the sync simulation (`pytest -m sync_sim tests/integration/sync_sim` in `backend/`); `SEEDS` (default 500) and `SEED_START` (default 0) pick the seeds, `make sync-sim SEEDS=10000` is the Phase 1 milestone run (about an hour) |
 | `build` | `npm run build` in `web/` |
 
 Apple packages are tested with `swift test --package-path apple/Packages/<Package>`.
@@ -175,7 +176,7 @@ GitHub Actions runs five workflows from `.github/workflows/` on every pull reque
 
 | Workflow | Runs | Locally |
 |---|---|---|
-| `backend` | A `constraints` job runs the constraints check of `make bootstrap` (section 1) on Python 3.14. The backend lines of `make bootstrap`, `make lint` and `make typecheck`, and `pytest` (unit and integration), on Python 3.13 and 3.14, against PostgreSQL 18 with pgvector and Valkey service containers; a separate job runs `make bootstrap`, `make openapi` and the drift check of section 8 | `make up-deps`, then `make lint typecheck test` |
+| `backend` | A `constraints` job runs the constraints check of `make bootstrap` (section 1) on Python 3.14. The backend lines of `make bootstrap`, `make lint` and `make typecheck`, and `pytest` (unit and integration, with 500 simulation seeds), on Python 3.14, against PostgreSQL 18 with pgvector and Valkey service containers; a `sync-sim-nightly` job, on the nightly schedule only (02:17 UTC, on `main`), runs `make sync-sim SEEDS=10000 SEED_START=500`; a separate job runs `make bootstrap`, `make openapi` and the drift check of section 8 | `make up-deps`, then `make lint typecheck test` |
 | `web` | `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, then the Playwright tests in Chromium | In `web/`: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, then `npx playwright install chromium` once and `npm run test:e2e` |
 | `apple` | On macOS with Xcode 27.1: `swift test` for each package, `xcodegen generate` and unsigned builds of both schemes. On Linux, in the Swift 6.4.1 image: `swift test` for `OpenNoteCore` and `OpenNoteStorage`. Both jobs fail when `swift test` changes or adds a `Package.resolved` file | Section 7 |
 | `containers` | Builds the images, starts the full stack with migrations and runs both smoke tests, checks the migration and that the worker is running and was never restarted, stops the stack and starts it again with the same checks, runs the api image and the full stack (worker check included) as an arbitrary UID in group 0, starts the dev stack and checks the test database's extensions, then scans each image with Trivy (HIGH and CRITICAL with a fix fail the job) and writes the HIGH and CRITICAL findings without a fix, with the status per finding (Red Hat's for the RPM packages), to the run's Summary tab (reported, not gated); also every Monday at 06:00 UTC, so the images are rebuilt and rescanned at least weekly. A failing scan fails the run; nothing rebuilds automatically. A second job, `manifests`, runs `helm lint --strict` on three chart variants and renders them, the kustomize base and the OpenShift overlay, at Kubernetes 1.29.0 (the chart's floor; a 1.28.9 render must fail), checks the renders for what kubeconform cannot see (no Secret, `secretKeyRef` or `secretRef`; `fsGroup`, `fsGroupChangePolicy` and a read-only root filesystem on the pods, and no service account token; web's API upstream), then validates them with kubeconform | Section 6; `manifests`: [docs/deployment/kubernetes.md, "Validation"](../deployment/kubernetes.md#validation) |

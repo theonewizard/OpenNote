@@ -2,10 +2,14 @@
 alembic==1.20.1
 dramatiq[redis]==2.2.1
 fastapi==0.161.1
+markdown-it-py==4.2.0
+merge3==1.0.0
 psycopg[binary]==3.3.6
 pydantic==2.14.1
 pydantic-settings==2.16.1
 redis==8.1.0
+ruamel.yaml==0.19.1
 sqlalchemy[asyncio]==2.1.6
 starlette==1.9.0
 uvicorn[standard]==0.54.0
+watchdog==7.0.0
