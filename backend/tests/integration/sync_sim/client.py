@@ -281,6 +281,8 @@ class Client:
                 self.write(e.path, self.world.blob(e.content_hash or ""))
                 self.files[file_id] = Rec(file_id, e.path, e.kind, e.revision, e.content_hash)
             return
+        if rec.base_revision == e.revision and not e.deleted:
+            self.relocate(rec, e.path)  # a move that waited for its target to be freed
         if (rec.base_revision >= e.revision and rec.override_hash is None) or not self.clean(rec):
             return
         if e.deleted:

@@ -17,8 +17,10 @@ REGRESSIONS = {
     434: "harness: a superseded delete wrote the revived file over another local file at its path",
     583: "harness: a retried conflict result recreated a conflict copy the client had moved",
     667: "a create onto an unscanned server file absorbed it as a revision of the new file",
+    4461: "harness: a move that waited for its target to be freed was never finished",
     6096: "harness: a file stayed marked rejected after a later edit of it won and was applied",
     6575: "harness: a deleted file's stale override let an older pull entry bring it back",
+    8112: "harness: as 4461, a deferred relocation after a rejected move",
 }
 
 
