@@ -1,4 +1,11 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Reviews are off for now (Flemming, 2026-11-03; .conversations/2026-11-03-coderabbit-off.md, R151).
+# To turn them back on: set `enabled: true` and `review_status: true` below, and request each
+# review with an `@coderabbitai review` comment (the repository is below CodeRabbit's threshold
+# for unprompted reviews). Removing the GitHub App itself is done in the repository's
+# GitHub settings, not here.
 reviews:
+  review_status: false
   auto_review:
+    enabled: false
     drafts: true
