@@ -1,0 +1,58 @@
+{
+  "frontmatter": null,
+  "frontmatter_error": false,
+  "links": [
+    {
+      "target": "Target",
+      "heading": null,
+      "block": null,
+      "alias": null,
+      "markdown": false
+    },
+    {
+      "target": "Target",
+      "heading": null,
+      "block": null,
+      "alias": "Alias",
+      "markdown": false
+    },
+    {
+      "target": "Target",
+      "heading": "Heading",
+      "block": null,
+      "alias": null,
+      "markdown": false
+    },
+    {
+      "target": "Target",
+      "heading": null,
+      "block": "block-id",
+      "alias": null,
+      "markdown": false
+    },
+    {
+      "target": "",
+      "heading": "Local heading",
+      "block": null,
+      "alias": null,
+      "markdown": false
+    },
+    {
+      "target": "Projects/Plan 2026",
+      "heading": null,
+      "block": null,
+      "alias": null,
+      "markdown": false
+    },
+    {
+      "target": "Escaped",
+      "heading": null,
+      "block": null,
+      "alias": "Shown",
+      "markdown": false
+    }
+  ],
+  "embeds": [],
+  "tags": [],
+  "external_urls": []
+}

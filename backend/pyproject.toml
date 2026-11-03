@@ -4,7 +4,7 @@
 [project]
 name = "opennote-backend"
 description = "OpenNote API server and background worker"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
@@ -28,7 +28,7 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"] # pytest checks with assert
+"tests/**" = ["S101", "S311"] # pytest checks with assert; seeded test RNGs are not crypto
 "tests/conftest.py" = ["E402"] # settings placeholders are set before the app is imported
 
 [tool.mypy]
@@ -40,4 +40,8 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = ["-ra", "--strict-markers", "--strict-config"]
 xfail_strict = true
+markers = [
+    "compatibility: the shared Markdown compatibility corpus (testing strategy §3)",
+    "sync_sim: the seeded multi-client sync simulation (testing strategy §4)",
+]
 filterwarnings = ["error"]

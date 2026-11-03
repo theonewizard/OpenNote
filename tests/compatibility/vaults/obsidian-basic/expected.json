@@ -1,0 +1,9 @@
+{
+  "files": [
+    {"path": "Attachments/pixel.png", "kind": "attachment", "path_warning": false},
+    {"path": "Notes/#hashtag note.md", "kind": "note", "path_warning": true},
+    {"path": "Projects/Board.canvas", "kind": "attachment", "path_warning": false},
+    {"path": "Projects/Plan.md", "kind": "note", "path_warning": false},
+    {"path": "Welcome.md", "kind": "note", "path_warning": false}
+  ]
+}

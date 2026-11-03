@@ -12,3 +12,11 @@ indent_size = 4
 
 [Makefile]
 indent_style = tab
+
+# Compatibility corpus: the bytes are test data, editors must not change them.
+[tests/compatibility/vaults/**]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset

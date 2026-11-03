@@ -1,0 +1,37 @@
+{
+  "frontmatter": null,
+  "frontmatter_error": false,
+  "links": [],
+  "embeds": [
+    {
+      "target": "image.png",
+      "heading": null,
+      "block": null,
+      "alias": "300",
+      "markdown": false
+    },
+    {
+      "target": "Other note",
+      "heading": null,
+      "block": null,
+      "alias": null,
+      "markdown": false
+    },
+    {
+      "target": "Doc",
+      "heading": "Section",
+      "block": null,
+      "alias": null,
+      "markdown": false
+    },
+    {
+      "target": "img/photo 1.jpg",
+      "heading": null,
+      "block": null,
+      "alias": "alt text",
+      "markdown": true
+    }
+  ],
+  "tags": [],
+  "external_urls": []
+}

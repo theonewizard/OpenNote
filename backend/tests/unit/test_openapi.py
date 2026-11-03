@@ -53,6 +53,7 @@ def test_operation_ids_are_the_endpoint_names():
         ("get", "/healthz"): "healthz",
         ("get", "/readyz"): "readyz",
         ("get", "/api/v1/meta"): "get_meta",
+        ("get", "/api/v1/meta/path-rules"): "get_path_rules",
     }
 
 

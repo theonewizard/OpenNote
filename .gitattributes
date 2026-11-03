@@ -1,2 +1,4 @@
 * text=auto
 *.sh text eol=lf
+# Compatibility corpus: exact bytes (CRLF, BOM, Windows-1252) are the test data.
+tests/compatibility/vaults/** -text

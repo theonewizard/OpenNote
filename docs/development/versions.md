@@ -49,9 +49,14 @@ How to read the rows:
 | httpx2 | 2.13.1 | 2026-09-23 | https://pypi.org/pypi/httpx2/json. Test client behind Starlette's `TestClient`; Starlette 1.8.0 deprecates `httpx` there in favour of `httpx2` (https://github.com/pydantic/httpx2) | 2026-10-17 |
 | pip-audit | 2.10.1 | 2026-06-10 | https://pypi.org/pypi/pip-audit/json. Audits both requirements files and `backend/constraints.txt` against the PyPI vulnerability data in `security.yml` | 2026-10-18 |
 | bandit | 1.9.4 | 2026-02-25 | https://pypi.org/pypi/bandit/json. `bandit -r backend/app` in `security.yml`, alongside ruff's `S` rules | 2026-10-18 |
+| ruamel.yaml | 0.19.1 | 2026-01-02 | https://pypi.org/pypi/ruamel.yaml/json. Round-trip YAML for frontmatter edits (storage contract §2.2, Phase 1 Task 4) | 2026-11-01 |
+| markdown-it-py | 4.2.0 | — | https://pypi.org/pypi/markdown-it-py/json. Code and HTML ranges for link and tag extraction (Phase 1 Task 5) | 2026-11-01 |
+| watchdog | 7.0.0 | 2026-10-31 | https://pypi.org/pypi/watchdog/json. Vault file events (storage contract §5, Phase 1 Task 11) | 2026-11-01 |
+| merge3 | 1.0.0 | 2026-10-25 | https://pypi.org/pypi/merge3/json. Line-based three-way merge (sync protocol §6, Phase 1 Task 13) | 2026-11-01 |
+| hypothesis | 6.170.14 | 2026-10-30 | https://pypi.org/pypi/hypothesis/json. Property-based and stateful tests (testing strategy §3, §4) | 2026-11-01 |
 | pre-commit | 4.7.0 | 2026-10-12 | https://pypi.org/pypi/pre-commit/json. Runs the optional local hooks in `.pre-commit-config.yaml` | 2026-10-18 |
 
-None of these excludes Python 3.13 or 3.14 through `requires-python` (highest floor: `>=3.11`, SQLAlchemy, pydantic-settings, starlette and pre-commit).
+None of these excludes Python 3.14 through `requires-python` (highest floor: `>=3.11`, SQLAlchemy, pydantic-settings, starlette and pre-commit).
 
 `backend/constraints.txt` pins every package a clean install of `backend/requirements.txt` brings in, transitive dependencies included; the api image, `make bootstrap` and the backend CI jobs install with `-c backend/constraints.txt`. Regenerate it with `make constraints` whenever `requirements.txt` changes, a Dependabot pull request included (otherwise the `-c` install fails on the old pin): the target installs `backend/requirements.txt` with `--only-binary=:all:`, as the api image does, into a throwaway `.venv-constraints`, writes the file's header with the date and interpreter and the output of `pip freeze` below it, and removes the environment. `make constraints PYTHON=python3.14` uses the image's Python; 3.13 freezes the same set. The `constraints` check in `make bootstrap` and the backend workflow fails with `backend/constraints.txt is stale: run make constraints` when a pin disagrees. `make constraints` resolves `requirements.txt` only, so it cannot clear a `requirements-dev.txt` bump that needs a newer version of a package the runtime set shares: raise that pin by hand in `backend/constraints.txt`, or bump the runtime requirement that brings it in and run `make constraints`.
 
@@ -209,6 +214,8 @@ The [architecture specification](../superpowers/specs/2026-10-17-opennote-archit
 The same run pulled `ubi9/ubi-minimal:9.8` (RHEL 9.8) and `ubi10/ubi-minimal:10.2` (RHEL 10.2) with the digests recorded above; neither image has `python3` installed.
 
 **Verified since (Phase 0 Task 9).** The containers workflow's image build installs `python3.14` 3.14.8-1.el9_8 with `microdnf` in `ubi9/ubi-minimal:9.8`, the API and worker image ([Packages the image builds installed](#packages-the-image-builds-installed)).
+
+**Floor raised to 3.14 (Phase 1, decision D10, Flemming 2026-11-01).** `requires-python = ">=3.14"`; CI tests 3.14 only. The backend uses the standard library's `compression.zstd` (history store) and `uuid.uuid7()` (file IDs), both new in 3.14. The cloud development container ships Python 3.13 only; there, 3.14.10 was installed with `uv python install 3.14` (python-build-standalone, which uv checks against its recorded SHA-256) into a scratch directory, and `.venv` was created from it.
 
 **Gap.** The runtime Python (3.14) is one minor release behind the latest stable release (3.15.0).
 

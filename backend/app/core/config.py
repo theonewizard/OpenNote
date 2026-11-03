@@ -65,7 +65,7 @@ def _read_secret_file(path: str, field: str) -> str:
             data = file.read(MAX_SECRET_FILE_BYTES + 1)
         if len(data) <= MAX_SECRET_FILE_BYTES:
             return data.decode("utf-8").removesuffix("\n")
-    except (OSError, UnicodeDecodeError):
+    except OSError, UnicodeDecodeError:
         pass
     # Raised outside the except block so the OSError, which names the path, is not chained.
     raise SettingsError(

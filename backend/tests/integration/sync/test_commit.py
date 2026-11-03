@@ -1,0 +1,274 @@
+"""The commit path: history, PostgreSQL, log, vault, in that order (sync protocol §2.3)."""
+
+import threading
+import uuid
+from dataclasses import astuple
+
+import pytest
+from sqlalchemy import delete, select
+
+from app.notes.models import File
+from app.sync.commit import Create, Delete, Move, Restore, Update
+from app.sync.history import RevisionLogEntry
+from app.sync.models import Revision
+from tests.integration.sync.conftest import BASE, SimulatedCrash, create, sha
+
+
+def assert_consistent(root, factory, history, vault_id):
+    with factory() as s:
+        rows = s.scalars(select(File).where(File.vault_id == vault_id)).all()
+        seqs = sorted(s.scalars(select(Revision.seq).where(Revision.vault_id == vault_id)))
+    for row in rows:
+        target = root / row.path
+        if row.deleted:
+            assert not target.exists()
+        else:
+            assert sha(target.read_bytes()) == row.content_hash
+    assert sorted(e.seq for e in history.read_log()) == seqs
+    assert seqs == list(range(1, len(seqs) + 1))
+
+
+def test_create_update_move_delete_restore(world):
+    root, factory, history, vault_id, make = world
+    c = make()
+    op, data = create()
+    r1 = c.commit(op, "dev", data)
+    assert (r1.status, r1.revision, r1.seq, r1.path) == ("applied", 1, 1, "n.md")
+    assert (root / "n.md").read_bytes() == BASE
+    new = BASE + b"six\n"
+    r2 = c.commit(Update(uuid.uuid7(), op.file_id, 1, sha(new)), "dev", new)
+    assert (r2.status, r2.revision) == ("applied", 2) and (root / "n.md").read_bytes() == new
+    r3 = c.commit(Move(uuid.uuid7(), op.file_id, 2, "sub/m.md"), "dev", None)
+    assert (r3.status, r3.revision, r3.path) == ("applied", 3, "sub/m.md")
+    assert (root / "sub/m.md").read_bytes() == new and not (root / "n.md").exists()
+    r4 = c.commit(Delete(uuid.uuid7(), op.file_id, 3), "dev", None)
+    assert (r4.status, r4.revision) == ("applied", 4) and not (root / "sub/m.md").exists()
+    assert [p.read_bytes() for p in (history.root / "recovery").iterdir()] == [new]
+    r5 = c.commit(Restore(uuid.uuid7(), op.file_id, 1), "dev", None)
+    assert (r5.status, r5.revision) == ("applied", 5)
+    assert (root / "sub/m.md").read_bytes() == BASE
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_rejected_operations_change_nothing(world):
+    root, factory, history, vault_id, make = world
+    c = make()
+    bad_path = c.commit(
+        Create(uuid.uuid7(), uuid.uuid7(), "a/../b.md", "note", sha(BASE)), "d", BASE
+    )
+    no_blob = c.commit(Create(uuid.uuid7(), uuid.uuid7(), "x.md", "note", sha(BASE)), "d", None)
+    wrong_blob = c.commit(Create(uuid.uuid7(), uuid.uuid7(), "x.md", "note", sha(BASE)), "d", b"x")
+    unknown = c.commit(Update(uuid.uuid7(), uuid.uuid7(), 1, sha(BASE)), "d", BASE)
+    for result in (bad_path, no_blob, wrong_blob, unknown):
+        assert result.status == "rejected" and result.problem["status"] in (404, 409, 422)
+        assert result.seq is None
+    assert list(root.iterdir()) == []
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_stale_update_is_merged(world):
+    root, _factory, _history, _vault_id, make = world
+    c = make()
+    op, data = create()
+    c.commit(op, "a", data)
+    theirs = BASE.replace(b"five", b"FIVE")
+    c.commit(Update(uuid.uuid7(), op.file_id, 1, sha(theirs)), "a", theirs)
+    ours = BASE.replace(b"one", b"ONE")
+    result = c.commit(Update(uuid.uuid7(), op.file_id, 1, sha(ours)), "b", ours)
+    merged = BASE.replace(b"one", b"ONE").replace(b"five", b"FIVE")
+    assert (result.status, result.revision, result.content_hash) == ("merged", 3, sha(merged))
+    assert (root / "n.md").read_bytes() == merged
+
+
+def test_retry_with_same_client_op_id_returns_duplicate(world):
+    root, factory, history, vault_id, make = world
+    c = make()
+    op, data = create()
+    first = c.commit(op, "dev", data)
+    again = c.commit(op, "dev", None)  # a retry need not resend the blob
+    assert again.status == "duplicate"
+    assert astuple(again)[1:] == astuple(first)[1:]
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_seq_is_gap_free_under_concurrent_commits(world):
+    root, factory, history, vault_id, make = world
+    errors = []
+
+    def worker(n):
+        c = make()
+        try:
+            for i in range(50):
+                data = f"{n}-{i}\n".encode()
+                op, _ = create(f"t{n}/n{i}.md", data)
+                assert c.commit(op, f"dev{n}", data).status == "applied"
+        except Exception as exc:  # surfaced below
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(n,)) for n in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert errors == []
+    with factory() as s:
+        seqs = sorted(s.scalars(select(Revision.seq).where(Revision.vault_id == vault_id)))
+    assert seqs == list(range(1, 201))
+    assert_consistent(root, factory, history, vault_id)
+
+
+@pytest.mark.parametrize("point", ["history", "db", "log", "vault"])
+def test_crash_then_recover_restores_consistency(world, point):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    new = BASE + b"six\n"
+    update = Update(uuid.uuid7(), op.file_id, 1, sha(new))
+
+    def crash(step):
+        if step == point:
+            raise SimulatedCrash(step)
+
+    with pytest.raises(SimulatedCrash):
+        make(crash=crash).commit(update, "dev", new)
+    restarted = make()
+    restarted.recover()
+    assert_consistent(root, factory, history, vault_id)
+    retry = restarted.commit(update, "dev", new)
+    assert retry.status == ("applied" if point == "history" else "duplicate")
+    assert retry.revision == 2
+    assert (root / "n.md").read_bytes() == new
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_external_edit_during_commit_is_merged_not_clobbered(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    external = BASE.replace(b"five", b"FIVE")
+
+    def edit_on_disk(step):
+        if step == "log":  # an editor saves between the log line and the vault write
+            (root / "n.md").write_bytes(external)
+
+    ours = BASE.replace(b"one", b"ONE")
+    result = make(crash=edit_on_disk).commit(
+        Update(uuid.uuid7(), op.file_id, 1, sha(ours)), "dev", ours
+    )
+    assert (result.status, result.revision) == ("applied", 2)
+    merged = BASE.replace(b"one", b"ONE").replace(b"five", b"FIVE")
+    assert (root / "n.md").read_bytes() == merged
+    with factory() as s:
+        revs = s.execute(
+            select(Revision.revision, Revision.device_id, Revision.content_hash)
+            .where(Revision.file_id == op.file_id)
+            .order_by(Revision.revision)
+        ).all()
+    assert revs == [(1, "dev", sha(BASE)), (2, "dev", sha(ours)), (3, "server-fs", sha(merged))]
+    assert history.get(sha(external)) == external  # the external save is kept in history
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_log_rebuild_reproduces_revisions(world):
+    _root, factory, history, vault_id, make = world
+    c = make()
+    op, data = create()
+    c.commit(op, "dev", data)
+    c.commit(Move(uuid.uuid7(), op.file_id, 1, "m.md"), "dev", None)
+    c.commit(Delete(uuid.uuid7(), op.file_id, 2), "dev", None)
+    columns = (
+        Revision.seq,
+        Revision.file_id,
+        Revision.revision,
+        Revision.path,
+        Revision.kind,
+        Revision.content_hash,
+        Revision.deleted,
+        Revision.device_id,
+        Revision.op,
+    )
+    with factory.begin() as s:
+        before = s.execute(
+            select(*columns).where(Revision.vault_id == vault_id).order_by(Revision.seq)
+        ).all()
+        s.execute(delete(Revision).where(Revision.vault_id == vault_id))
+    rebuilt = sorted(
+        (e.seq, e.file_id, e.revision, e.path, e.kind, e.content_hash, e.deleted, e.device_id, e.op)
+        for e in history.read_log()
+    )
+    assert rebuilt == [tuple(r) for r in before]
+    assert all(isinstance(e, RevisionLogEntry) for e in history.read_log())
+
+
+def test_conflicting_external_edit_keeps_the_commit_at_the_path(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    external = BASE.replace(b"three", b"external")
+
+    def edit_on_disk(step):
+        if step == "log":
+            (root / "n.md").write_bytes(external)
+
+    ours = BASE.replace(b"three", b"ours")
+    result = make(crash=edit_on_disk).commit(
+        Update(uuid.uuid7(), op.file_id, 1, sha(ours)), "dev", ours
+    )
+    assert (result.status, result.revision) == ("applied", 2)
+    assert (root / "n.md").read_bytes() == ours  # the committed revision is at its path
+    [copy] = [p for p in root.iterdir() if p.name != "n.md"]
+    assert copy.name.startswith("n (conflict server-fs ") and copy.read_bytes() == external
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_create_onto_an_untracked_file_keeps_both(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    external = b"# written on the server, never scanned\n"
+
+    def save_on_disk(step):
+        if step == "log":
+            (root / "n.md").write_bytes(external)
+
+    result = make(crash=save_on_disk).commit(op, "dev", data)
+    assert (result.status, result.revision) == ("applied", 1)
+    assert (root / "n.md").read_bytes() == data  # the client's file is at its path
+    [copy] = [p for p in root.iterdir() if p.name != "n.md"]
+    assert copy.name.startswith("n (conflict server-fs ") and copy.read_bytes() == external
+    with factory() as s:  # the external bytes are a new file, not a revision of ours
+        assert s.get(File, op.file_id).revision == 1
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_move_of_an_externally_edited_file_moves_the_edit_along(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    external = BASE.replace(b"five", b"FIVE")
+
+    def edit_on_disk(step):
+        if step == "log":
+            (root / "n.md").write_bytes(external)
+
+    edit_on_disk.done = False
+
+    def once(step):
+        if not edit_on_disk.done and step == "log":
+            edit_on_disk.done = True
+            edit_on_disk(step)
+
+    result = make(crash=once).commit(Move(uuid.uuid7(), op.file_id, 1, "sub/m.md"), "dev", None)
+    assert (result.status, result.revision) == ("applied", 2)
+    assert (root / "sub/m.md").read_bytes() == external and not (root / "n.md").exists()
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_second_move_after_a_skipped_move_does_not_crash(world):
+    root, _factory, _history, _vault_id, make = world
+    op, data = create()
+    c = make()
+    c.commit(op, "dev", data)
+    (root / "n.md").unlink()  # removed on the server's disk behind OpenNote's back
+    c.commit(Move(uuid.uuid7(), op.file_id, 1, "a/m.md"), "dev", None)
+    result = c.commit(Move(uuid.uuid7(), op.file_id, 2, "b/m.md"), "dev", None)
+    assert result.status == "applied"

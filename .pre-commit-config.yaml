@@ -14,9 +14,11 @@ repos:
         args: [--allow-multiple-documents]
         exclude: ^infrastructure/helm/opennote/templates/
       - id: end-of-file-fixer
+        exclude: ^tests/compatibility/vaults/ # exact bytes are the test data
       - id: trailing-whitespace
         # Two trailing spaces are a Markdown line break.
         args: [--markdown-linebreak-ext=md]
+        exclude: ^tests/compatibility/vaults/
       - id: detect-private-key
 
   # The same ruff as backend/requirements-dev.txt, on backend/ only, as CI runs it.
