@@ -32,3 +32,11 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 ## Output
 
 Pull request from `feature/phase-1-storage-sync`; status in [IMPLEMENTATION_STATUS.md](../docs/IMPLEMENTATION_STATUS.md) and the P1 rows of [ROADMAP.md](../docs/ROADMAP.md).
+
+## Follow-up 2026-11-03
+
+| Time (UTC) | From | Prompt |
+|---|---|---|
+| 05:00 | Flemming | "P1-12 waits on the first nightly 10,000-seed run. … Why are we waiting?" |
+
+- R151: there was no reason to wait. The `sync-sim-nightly` job now also runs on `workflow_dispatch`, so the 10,000-seed run can be started by hand; it was dispatched on this branch (main's code plus the one-line condition) to close P1-12 without waiting for the schedule.

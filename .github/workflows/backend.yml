@@ -115,9 +115,9 @@ jobs:
         working-directory: backend
         run: ../.venv/bin/pytest -q
 
-  # The milestone M1 run: 10,000 seeds after the 500 of every push, at night only.
+  # The milestone M1 run: 10,000 seeds after the 500 of every push, nightly or on a manual run.
   sync-sim-nightly:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     services: *services
