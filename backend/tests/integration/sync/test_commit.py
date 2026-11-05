@@ -272,3 +272,46 @@ def test_second_move_after_a_skipped_move_does_not_crash(world):
     c.commit(Move(uuid.uuid7(), op.file_id, 1, "a/m.md"), "dev", None)
     result = c.commit(Move(uuid.uuid7(), op.file_id, 2, "b/m.md"), "dev", None)
     assert result.status == "applied"
+
+
+def test_offline_edit_after_a_completed_write_keeps_its_deletions(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    added = BASE + b"six\n"
+    make().commit(Update(uuid.uuid7(), op.file_id, 1, sha(added)), "dev", added)
+    edited = BASE.replace(b"one", b"ONE")  # edited while the server was down: "six" removed
+    (root / "n.md").write_bytes(edited)
+    make().recover()
+    assert (root / "n.md").read_bytes() == edited
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_offline_edit_after_a_crash_before_the_write_is_merged(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    added = BASE + b"six\n"
+
+    def crash(step):
+        if step == "log":
+            raise SimulatedCrash(step)
+
+    with pytest.raises(SimulatedCrash):
+        make(crash=crash).commit(Update(uuid.uuid7(), op.file_id, 1, sha(added)), "dev", added)
+    (root / "n.md").write_bytes(BASE.replace(b"one", b"ONE"))  # still revision 1 underneath
+    make().recover()
+    assert (root / "n.md").read_bytes() == BASE.replace(b"one", b"ONE") + b"six\n"
+    assert_consistent(root, factory, history, vault_id)
+
+
+def test_offline_revert_after_a_completed_write_is_kept(world):
+    root, factory, history, vault_id, make = world
+    op, data = create()
+    make().commit(op, "dev", data)
+    added = BASE + b"six\n"
+    make().commit(Update(uuid.uuid7(), op.file_id, 1, sha(added)), "dev", added)
+    (root / "n.md").write_bytes(BASE)  # put back to revision 1's bytes while the server was down
+    make().recover()
+    assert (root / "n.md").read_bytes() == BASE
+    assert_consistent(root, factory, history, vault_id)

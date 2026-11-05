@@ -15,7 +15,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -485,20 +485,35 @@ class Committer:
     # Vault materialization and recovery -------------------------------------------------
 
     def _apply(self, file_id: uuid.UUID, revision: int, before: State | None, after: State) -> None:
-        """Bring the vault from `before` to `after`, never overwriting external bytes."""
+        """Bring the vault from `before` to `after`, never overwriting external bytes, and
+        record the revision once the vault holds it."""
+        if self._write(file_id, revision, before, after):
+            self._mark_written(file_id, revision)
+
+    def _mark_written(self, file_id: uuid.UUID, revision: int) -> None:
+        with self.session_factory.begin() as s:
+            s.execute(
+                update(File)
+                .where(File.file_id == file_id)
+                .where(func.coalesce(File.written_revision, 0) < revision)
+                .values(written_revision=revision)
+            )
+
+    def _write(self, file_id: uuid.UUID, revision: int, before: State | None, after: State) -> bool:
+        """True when the vault now holds `after`."""
         try:
             if after.deleted:
                 if before is None or before.deleted:
-                    return
+                    return True
                 found = hash_path(self.root_fd, before.path)
                 if found is None:
-                    return
+                    return True
                 if found != before.content_hash:
                     raise ExternalChangeError(before.path, found, None)
                 move_to(self.root_fd, before.path, self.recovery_dir)
-                return
+                return True
             if after.content_hash is None:
-                return
+                return True
             data = self.history.get(after.content_hash)
             if before is None or before.deleted:
                 atomic_write(
@@ -508,7 +523,7 @@ class Committer:
                     expected_hash=None,
                     recovery_dir=self.recovery_dir,
                 )
-                return
+                return True
             if before.path != after.path:
                 found = hash_path(self.root_fd, before.path)
                 try:
@@ -520,7 +535,7 @@ class Committer:
                     log.warning(
                         "vault move skipped (source gone or target taken); reconciled later"
                     )
-                    return
+                    return False
                 if found != before.content_hash:
                     raise ExternalChangeError(after.path, found, None)
             if before.content_hash != after.content_hash:
@@ -531,13 +546,15 @@ class Committer:
                     expected_hash=before.content_hash,
                     recovery_dir=self.recovery_dir,
                 )
+            return True
         except ExternalChangeError as err:
             if not after.deleted and err.found_hash == after.content_hash:
-                return  # the disk already holds this revision
+                return True  # the disk already holds this revision
             self._absorb(file_id, revision, err, new_file=before is None or before.deleted)
         except OSError, PathEscapeError:
             log.exception("vault write failed after the commit; recovery retries it")
             self.unsettled.add(file_id)
+        return False
 
     def _absorb(
         self, file_id: uuid.UUID, revision: int, err: ExternalChangeError, *, new_file: bool
@@ -597,18 +614,30 @@ class Committer:
             after = State(row.path, None if row.deleted else row.content_hash, row.deleted)
             self.unsettled.discard(row.file_id)
             try:  # one bad file must not stop the recovery of the others
-                self._settle(row.file_id, row.revision, prev_state, after)
+                self._settle(row.file_id, row.revision, row.written_revision, prev_state, after)
             except OSError, PathEscapeError:
                 log.exception("recovery of a vault file failed; retried on the next run")
                 self.unsettled.add(row.file_id)
 
     def _settle(
-        self, file_id: uuid.UUID, revision: int, before: State | None, after: State
+        self,
+        file_id: uuid.UUID,
+        revision: int,
+        written: int | None,
+        before: State | None,
+        after: State,
     ) -> None:
         actual = hash_path(self.root_fd, after.path)
         if after.deleted and (before is None or before.deleted or actual is None):
             return
         if not after.deleted and actual == after.content_hash:
+            if written != revision:  # the write finished but was not recorded (a crash)
+                self._mark_written(file_id, revision)
+            return
+        if written == revision:  # the write finished: what differs was edited afterwards
+            if actual is not None and not after.deleted:
+                data = read_file(self.root_fd, after.path)
+                self.commit(Update(uuid.uuid7(), file_id, revision, _sha(data)), SERVER_FS, data)
             return
         if before is None or before.deleted:
             at_before = actual is None
@@ -620,6 +649,5 @@ class Committer:
             self._apply(file_id, revision, before, after)
         elif actual is not None:
             data = read_file(self.root_fd, after.path)
-            self.commit(
-                Update(uuid.uuid7(), file_id, max(revision - 1, 1), _sha(data)), SERVER_FS, data
-            )
+            base = written or max(revision - 1, 1)  # the revision the vault last held
+            self.commit(Update(uuid.uuid7(), file_id, base, _sha(data)), SERVER_FS, data)
