@@ -264,7 +264,8 @@ public enum Frontmatter {
         if v.isEmpty { return .int(0) }  // "_" after the sign only; ruamel gives 0 too
         if let magnitude = Int(v, radix: radix) { return .int(negative ? -magnitude : magnitude) }
         // Beyond Int64: Python keeps an exact int; the nearest double is as close as JSON gets.
-        let d = v.reduce(0.0) { $0 * Double(radix) + Double(Int(String($1), radix: radix) ?? 0) }
+        let d = radix == 10 ? Double(v) ?? .nan  // correctly rounded
+            : v.reduce(0.0) { $0 * Double(radix) + Double(Int(String($1), radix: radix) ?? 0) }
         return .double(negative ? -d : d)
     }
 
