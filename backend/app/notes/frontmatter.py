@@ -7,6 +7,7 @@ and flow style byte for byte.
 
 import datetime as dt
 import io
+import math
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -45,7 +46,7 @@ def load_frontmatter(doc: NoteDocument) -> CommentedMap | None:
         return None
     try:
         data = _yaml().load(doc.text[doc.frontmatter])
-    except YAMLError:
+    except YAMLError, ValueError, OverflowError:  # ValueError: an impossible date (2024-02-30)
         raise FrontmatterInvalid("frontmatter is not valid YAML") from None
     if data is None:
         return CommentedMap()
@@ -55,14 +56,20 @@ def load_frontmatter(doc: NoteDocument) -> CommentedMap | None:
 
 
 def _plain(value: Any) -> Any:
-    """JSON-safe copy: mappings to dicts, sequences to lists, dates to ISO strings."""
+    """JSON-safe copy: mappings to dicts, sequences to lists, dates to ISO strings; any
+    other scalar JSON cannot hold (an explicitly tagged `!!str 5` or `!foo bar`, `.nan`)
+    becomes its text."""
     if isinstance(value, Mapping):
         return {str(k): _plain(v) for k, v in value.items()}
     if isinstance(value, list):
         return [_plain(v) for v in value]
     if isinstance(value, dt.date | dt.datetime):
         return value.isoformat()
-    return value
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if value is None or isinstance(value, str | int | float):  # bool is an int
+        return value
+    return str(getattr(value, "value", value))
 
 
 def read_properties(doc: NoteDocument) -> tuple[Properties | None, bool]:
