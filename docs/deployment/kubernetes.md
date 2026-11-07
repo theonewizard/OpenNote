@@ -2,7 +2,7 @@
 
 OpenNote ships a Helm chart (`infrastructure/helm/opennote`), a kustomize base (`infrastructure/kubernetes/base`) and an OpenShift overlay of that base (`infrastructure/openshift`). They deploy the API, the background worker and the web app.
 
-**Status (Phase 0).** These are skeletons. CI lints the chart, renders every variant and validates the output against the Kubernetes schemas (the `manifests` job, see [Validation](#validation)), but the manifests have not been applied to a cluster yet. **No images are published yet:** build them from `infrastructure/containers` and push them to a registry your cluster can pull from (see [Images](#images)).
+**Status.** CI lints the chart, renders every variant and validates the output against the Kubernetes schemas (the `manifests` job), and deploys the chart and the OpenShift overlay to throwaway kind clusters at Kubernetes 1.29 and 1.37 in a namespace that enforces Pod Security `restricted`, with what OpenShift's `restricted-v2` SCC does to a pod simulated (the `deploy` job, see [Deployment test](#deployment-test)). Neither has run on a real OpenShift cluster yet: the Route and real SCC admission are unverified. **No images are published yet:** build them from `infrastructure/containers` and push them to a registry your cluster can pull from (see [Images](#images)).
 
 ## What is deployed
 
@@ -75,7 +75,8 @@ The values (`infrastructure/helm/opennote/values.yaml` describes each one; `valu
 | `logLevel` | `INFO` | `OPENNOTE_LOG_LEVEL`, one of CRITICAL, ERROR, WARNING, INFO, DEBUG; `OPENNOTE_ENVIRONMENT` is always `production` |
 | `clusterDomain` | `cluster.local` | Used for web's `OPENNOTE_API_UPSTREAM`, `<fullname>-api.<namespace>.svc.<clusterDomain>:80`, where `<fullname>` is the release name if it contains `opennote`, else `<release>-opennote`. nginx's resolver ignores the resolv.conf search list, so the name must be fully qualified |
 | `fsGroup` | `1001` | Left out when `openshift.enabled` is true. `fsGroupChangePolicy: OnRootMismatch` is not a value: every pod sets it, on OpenShift too |
-| `openshift.enabled`, `openshift.route.host` | `false`, empty (the router generates a host) | |
+| `openshift.enabled`, `openshift.route.host`, `openshift.route.annotations` | `false`, empty (the router generates a host), `{}` | Annotations go on the Route, see [OpenShift](#openshift) |
+| `networkPolicy.enabled` | `false` | Only web may connect to the API, nothing to the worker, see [Network policy](#network-policy) |
 | `ingress.enabled`, `ingress.className`, `ingress.annotations`, `ingress.host`, `ingress.tlsSecretName` | `false`, empty, `{}`, empty (any host), empty (no TLS) | |
 | `persistence.accessMode`, `persistence.storageClassName`, `persistence.vaults.size`, `persistence.history.size` | `ReadWriteMany`, empty (the default class), `10Gi`, `10Gi` | |
 | `api.replicas`, `worker.replicas`, `web.replicas` | `1` | |
@@ -91,6 +92,10 @@ helm upgrade opennote infrastructure/helm/opennote --namespace opennote --reuse-
 ```
 
 Without `ingress.tlsSecretName` the Ingress serves plain HTTP: set it, or terminate TLS at the ingress controller, before exposing OpenNote.
+
+### Network policy
+
+With `networkPolicy.enabled=true` the chart adds two NetworkPolicies: the API accepts connections only from the release's web pods (web proxies `/api/`, `/healthz` and `/readyz` to it), and the worker, which listens on no port, accepts none. web stays reachable for the router or ingress controller, whose namespace differs from cluster to cluster. Egress is not restricted, because PostgreSQL and Valkey are external and their addresses are yours; add an egress policy for them if your cluster requires one. The policies need a network plugin that enforces NetworkPolicy (OpenShift's OVN-Kubernetes does; the `deploy` CI job checks them on kind). Turn them on in production.
 
 ## Apply with kustomize
 
@@ -115,15 +120,52 @@ oc apply -k infrastructure/openshift
 Both differ from plain Kubernetes in two ways:
 
 - **No `fsGroup`.** The `restricted-v2` SCC assigns each pod a UID and an `fsGroup` from the namespace's ranges and refuses a fixed `fsGroup` outside them. The images run with any UID in group 0, and the volumes get the SCC's group. The pods leave out only `fsGroup` and keep `fsGroupChangePolicy: OnRootMismatch`.
-- **A Route to web** with edge TLS (the router's default certificate) and HTTP redirected to HTTPS: `oc -n opennote get route`. With the chart, `openshift.route.host` sets a host name.
+- **A Route to web** with edge TLS (the router's default certificate) and HTTP redirected to HTTPS: `oc -n opennote get route`. With the chart, `openshift.route.host` sets a host name and `openshift.route.annotations` adds router annotations.
 
 The cluster must run Kubernetes 1.29 or newer (OpenShift 4.16 or newer), the chart's `kubeVersion`.
+
+### Production on OpenShift
+
+What the chart expects, and what to set, for a namespace that holds real vaults (`CLAUDE.md` §11 treats it as production):
+
+1. **No extra SCC.** Every pod runs under the default `restricted-v2` SCC: no `anyuid`, no privileged container, no host path. Do not grant the service account another SCC.
+2. **ReadWriteMany storage** for the two volumes (OpenShift Data Foundation's CephFS, or NFS). On NFS and some other RWX filesystems the vault writes fall back from `renameat2(RENAME_EXCHANGE)` to check-then-rename and log a warning once ([IMPLEMENTATION_STATUS.md, Known limits](../IMPLEMENTATION_STATUS.md#known-limits)).
+3. **The network policy on:** `--set networkPolicy.enabled=true`.
+4. **HSTS and timeouts on the Route**, for example:
+
+   ```bash
+   helm upgrade opennote infrastructure/helm/opennote --namespace opennote --reuse-values \
+     --set-string 'openshift.route.annotations.haproxy\.router\.openshift\.io/hsts_header=max-age=31536000' \
+     --set-string 'openshift.route.annotations.haproxy\.router\.openshift\.io/timeout=60s'
+   ```
+
+   The Route uses the router's default certificate. A host name outside the cluster's apps domain needs a certificate for it: on the router (the cluster's ingress controller) or, if your cluster's policy prefers it, a Route you create yourself instead of the chart's (`openshift.enabled` keeps `fsGroup` out either way; the Route is the only object it adds).
+5. **Backups** of the database, the history volume and the vault volume together (roadmap item P8-04).
+
+## Deployment test
+
+`scripts/kind-deploy-test.sh` deploys to the cluster of the current `kubectl` context and checks the result; the `deploy` job runs it on kind at Kubernetes 1.29.14 (the chart's floor, OpenShift 4.16) and 1.37.0. It creates the namespaces `opennote-test` and `opennote`, refuses a cluster that already has either, and deletes them afterwards. In each namespace Pod Security `restricted` is enforced and a pod without a security context is first checked to be refused. PostgreSQL and Valkey run there as test fixtures from the repository's images.
+
+1. **Helm chart**, Kubernetes variant, network policy on, RWO volumes (kind's local-path provisioner has no RWX): a server-side dry run of every template, migration hook included, must draw no PodSecurity warning; `helm install --wait` must bring every pod up after the migration Job succeeded; the smoke test passes through web; the worker never restarts; a pod labelled as web reaches the API and any other pod does not; `helm upgrade` runs a new migration Job and rolls the pods; `helm uninstall` leaves both volumes.
+2. **OpenShift overlay**, with what `restricted-v2` adds to every pod (`runAsUser` and `fsGroup` 1000870000 from a typical namespace range) and without the Route: no PodSecurity warning, the migration Job completes, all three Deployments roll out, the api runs as UID 1000870000, the smoke test passes.
+
+Locally, with Docker, kind 0.33.0 and Helm 4.3.1:
+
+```bash
+docker compose -f infrastructure/compose/compose.yaml build
+kind create cluster --name opennote --image kindest/node:v1.37.0
+kind load docker-image --name opennote opennote-api:dev opennote-web:dev opennote-postgres:dev opennote-valkey:dev
+scripts/kind-deploy-test.sh
+kind delete cluster --name opennote
+```
+
+What it does not show: the OpenShift router and Route, real SCC admission (the UID and group come from a patch, not from the SCC), RWX storage across nodes, and a multi-node cluster.
 
 ## Validation
 
 The `manifests` job of `.github/workflows/containers.yml` runs whenever that workflow does (docs/development/setup.md, "Continuous integration"):
 
-- `helm lint --strict --kube-version 1.29.0` for the defaults, `openshift.enabled=true`, and an Ingress with a host and TLS, and a `helm template --kube-version 1.28.9` that must fail (the chart's `kubeVersion` floor);
+- `helm lint --strict --kube-version 1.29.0` for the defaults, `openshift.enabled=true`, and an Ingress with a host and TLS plus the network policy, and a `helm template --kube-version 1.28.9` that must fail (the chart's `kubeVersion` floor);
 - `helm template --kube-version 1.29.0` of the same three variants, and `kubectl kustomize` of the base and the OpenShift overlay;
 - a check of what kubeconform cannot see: no render contains a Secret, `secretKeyRef` or `secretRef`; the four pods set `fsGroup: 1001` on Kubernetes and none does on OpenShift, and all four set `fsGroupChangePolicy: OnRootMismatch` and `readOnlyRootFilesystem: true` (on their containers) in every render; `automountServiceAccountToken: false` appears twice in each chart render (the ServiceAccount and the migration Job) and on all four pods in each kustomize render; web's `OPENNOTE_API_UPSTREAM` is the api Service's fully qualified name on port 80;
 - `kubeconform -strict` of all five renders against the Kubernetes 1.29.0 schemas and the newest ones, with the Route schema from the community CRD catalog (`datreeio/CRDs-catalog`, OpenShift 4.15).
@@ -145,6 +187,4 @@ kustomize build infrastructure/openshift |
 
 The job also lints and renders the Ingress variant, checks that the 1.28.9 render fails, runs the check of the third item on the saved renders, and repeats kubeconform with `-kubernetes-version master`.
 
-Neither the job nor the repository checks the Pod Security `restricted` profile: in Phase 0 it was checked by hand with a throwaway Go program, not committed, that runs the evaluator of `k8s.io/pod-security-admission` v0.37.1 at level `restricted` (versions v1.30 and latest) on every Deployment and Job pod template of the five renders, and found none forbidden; a repeatable check is an open item in [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md#open-items).
-
-None of this proves that the manifests work on a cluster: the probes, the migration hook, volume permissions, the SCC and the Route are only exercised by a real deployment.
+The Pod Security `restricted` profile is checked by the `deploy` job ([Deployment test](#deployment-test)): its namespaces enforce the profile and its server-side dry run fails on any PodSecurity warning.

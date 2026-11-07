@@ -39,8 +39,15 @@
       "properties": {
         "enabled": {"type": "boolean"},
         "route": {"type": "object", "additionalProperties": false,
-                  "properties": {"host": {"type": "string"}}}
+                  "properties": {"host": {"type": "string"},
+                                 "annotations": {"type": "object",
+                                                 "additionalProperties": {"type": "string"}}}}
       }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {"enabled": {"type": "boolean"}}
     },
     "ingress": {
       "type": "object",
