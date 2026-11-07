@@ -114,7 +114,8 @@ def valkey_url() -> str:
 
 @pytest.fixture
 def make_settings(pg_url: str, valkey_url: str, tmp_path: Path) -> Callable[..., Settings]:
-    """Settings for the test services with fresh writable data directories; kwargs override."""
+    """Settings for the test services with fresh writable data directories and no rate
+    limits; kwargs override."""
     vaults, history = tmp_path / "vaults", tmp_path / "history"
     vaults.mkdir()
     history.mkdir()
@@ -126,6 +127,10 @@ def make_settings(pg_url: str, valkey_url: str, tmp_path: Path) -> Callable[...,
             "vault_root": vaults,
             "history_root": history,
             "environment": "test",
+            # Off unless a test turns them on: suites share one client IP and one minute.
+            "rate_limit_per_principal": 0,
+            "rate_limit_per_ip": 0,
+            "rate_limit_auth_per_ip": 0,
         }
         return Settings(**(values | overrides))
 
