@@ -123,6 +123,11 @@ jobs:
           [[ $state == "true 0" ]]
           docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" down -v
 
+      # Backups taken with the stack running, restored onto empty volumes and checked
+      # (docs/deployment/backup.md, "Restore drill").
+      - name: Backup and restore drill
+        run: scripts/backup-drill.sh
+
       - name: Dev stack (make up-deps) with the test database
         run: |
           docker compose -f "$DEV" up -d --wait --wait-timeout 300 postgres valkey

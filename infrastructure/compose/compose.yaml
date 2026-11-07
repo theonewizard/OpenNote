@@ -135,6 +135,55 @@ services:
       timeout: 5s
       retries: 12
 
+  # Backups (docs/deployment/backup.md), run on demand, never by `up`:
+  #   docker compose -f infrastructure/compose/compose.yaml run --rm backup
+  #   docker compose -f infrastructure/compose/compose.yaml run --rm restore /backups/<file>
+  # OPENNOTE_BACKUP_HOST_DIR (default backups/ next to this file) must be writable by UID
+  # 1001 or group 0. backup reads the vaults and the history read-only and needs only the
+  # public key; restore needs the private key, an empty database and empty volumes, with
+  # api and worker stopped.
+  backup:
+    <<: *defaults
+    image: opennote-postgres:dev
+    profiles: [backup]
+    restart: "no"
+    entrypoint: [opennote-backup]
+    environment: &backup-environment
+      OPENNOTE_DATABASE_URL:
+      OPENNOTE_DATABASE_URL_FILE:
+      OPENNOTE_VAULT_ROOT: /var/lib/opennote/vaults
+      OPENNOTE_HISTORY_ROOT: /var/lib/opennote/history
+      OPENNOTE_BACKUP_DIR: /backups
+      OPENNOTE_BACKUP_PUBLIC_KEY_FILE: /run/secrets/backup-public-key.asc
+      OPENNOTE_BACKUP_KEEP:
+    volumes:
+      - vaults:/var/lib/opennote/vaults:ro
+      - history:/var/lib/opennote/history:ro
+      - ${OPENNOTE_BACKUP_HOST_DIR:-./backups}:/backups
+      - ${OPENNOTE_BACKUP_PUBLIC_KEY:-./backup-public-key.asc}:/run/secrets/backup-public-key.asc:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  restore:
+    <<: *defaults
+    image: opennote-postgres:dev
+    profiles: [restore]
+    restart: "no"
+    entrypoint: [opennote-restore]
+    environment:
+      <<: *backup-environment
+      OPENNOTE_BACKUP_PRIVATE_KEY_FILE: /run/secrets/backup-private-key.asc
+      OPENNOTE_BACKUP_PASSPHRASE_FILE:
+    volumes:
+      - vaults:/var/lib/opennote/vaults
+      - history:/var/lib/opennote/history
+      - ${OPENNOTE_BACKUP_HOST_DIR:-./backups}:/backups:ro
+      - ${OPENNOTE_BACKUP_PRIVATE_KEY:-./backup-private-key.asc}:/run/secrets/backup-private-key.asc:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   vaults:
   history:
