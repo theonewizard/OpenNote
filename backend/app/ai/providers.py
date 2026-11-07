@@ -52,7 +52,8 @@ class _HTTPProvider:
     name = "http"
 
     def __init__(self, settings: AISettings) -> None:
-        assert settings.base_url is not None  # AISettings checks this  # noqa: S101
+        if settings.base_url is None:  # AISettings refuses a provider without one
+            raise AIError(f"{self.name}: no base_url")
         self._base = str(settings.base_url).rstrip("/")
         self._timeout = settings.timeout_seconds
         self._key = settings.api_key
