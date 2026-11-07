@@ -230,6 +230,7 @@ jobs:
           helm lint --strict "$CHART" --kube-version 1.29.0 --set openshift.enabled=true
           helm lint --strict "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
             --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls
+          helm lint --strict "$CHART" --kube-version 1.29.0 --set backup.enabled=true
           ! helm template opennote "$CHART" --kube-version 1.28.9 >/dev/null 2>&1 || { echo "kubeVersion floor not enforced"; exit 1; }
 
       - name: Render the chart and the kustomizations
@@ -242,6 +243,9 @@ jobs:
           helm template opennote "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
             --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
             > "$out/helm-ingress.yaml"
+          # The backup CronJob, for kubeconform only (the counts below cover the five above).
+          helm template opennote "$CHART" --kube-version 1.29.0 --set backup.enabled=true \
+            > "$out/helm-backup.yaml"
           kubectl kustomize infrastructure/kubernetes/base > "$out/kustomize-base.yaml"
           kubectl kustomize infrastructure/openshift > "$out/kustomize-openshift.yaml"
 
