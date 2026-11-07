@@ -18,6 +18,7 @@ from app.auth.dependencies import Principal
 from app.core.config import Settings
 from app.core.db import make_sync_engine
 from app.core.problems import ProblemError
+from app.notes.models import File
 from app.sync.commit import Committer, Operation, OpResult
 from app.sync.history import HistoryStore
 from app.vaults.fsio import open_root
@@ -110,12 +111,32 @@ class Committers:
         self.engine.dispose()
 
 
+class StaleRevision(Exception):
+    """The file is no longer at the revision the request was based on."""
+
+
 async def commit(
-    request: Request, vault: Vault, op: Operation, device_id: str, blob: bytes | None
+    request: Request,
+    vault: Vault,
+    op: Operation,
+    device_id: str,
+    blob: bytes | None,
+    *,
+    expected_revision: int | None = None,
 ) -> OpResult:
+    """Commit `op`. With `expected_revision`, only while the file is still at that
+    revision (else StaleRevision): checked under the vault lock, so two requests based on
+    the same revision cannot both commit (a REST write never merges)."""
     committers: Committers = request.app.state.committers
 
     def run() -> OpResult:
-        return committers.get(vault.id, vault.root_path).commit(op, device_id, blob)
+        committer = committers.get(vault.id, vault.root_path)
+        with committer._vault_lock():  # re-entered by commit(): check and commit are atomic
+            if expected_revision is not None:
+                with committer.session_factory() as session:
+                    row = session.get(File, op.file_id)
+                if row is None or row.revision != expected_revision:
+                    raise StaleRevision
+            return committer.commit(op, device_id, blob)
 
     return await anyio.to_thread.run_sync(run)
