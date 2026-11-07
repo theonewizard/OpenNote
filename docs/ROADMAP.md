@@ -65,15 +65,15 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
 | P3-01 | Login/logout UI | P2-02 | P0 | Playwright login flow | NOT_STARTED |
-| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | NOT_STARTED |
+| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | TESTING |
 | P3-03 | Note list (sort, favorites, archive) | P2-04 | P0 | Playwright | NOT_STARTED |
-| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | NOT_STARTED |
+| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | TESTING |
 | P3-05 | Tags UI | P2-07 | P0 | — | NOT_STARTED |
 | P3-06 | Search UI with grammar hints | P2-08 | P0 | — | NOT_STARTED |
 | P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | NOT_STARTED |
 | P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | NOT_STARTED |
 | P3-09 | Settings, vault management | P2-03 | P0 | — | NOT_STARTED |
-| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | NOT_STARTED |
+| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | TESTING |
 
 ## Phase 4 — Apple applications (M4)
 

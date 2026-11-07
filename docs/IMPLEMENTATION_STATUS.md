@@ -23,6 +23,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 | P0-07 Container images and Compose | TESTING | `podman compose` has never been run; CI uses Docker |
 | P1-12 sync prototype | COMPLETED | 10,000 seeds (500 to 10,499) zero violations in CI on `main`'s code 88c08c7 ([sync-sim-nightly run](https://github.com/theonewizard/OpenNote/actions/runs/41581414871), manual dispatch, 224 tests passed, 46 min). The pull request's CI was green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped; 10,000 seeds zero violations over seeds 0 to 9,999 on `4673673` |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
+| P3-02, P3-04, P3-10 web shell, editor, PWA | TESTING | Built against mocks of the v1 contract (MSW in the unit tests, `page.route` in Playwright), not yet against the API: the Phase 2 routes are stubs. Local: lint, typecheck, 44 unit tests, build, 6 Playwright tests in Chromium, among them every UTF-8 corpus note saved through the UI with its original bytes plus the typed text, and the editor styled under nginx's CSP. Markup stays visible (styled source, no hidden-markup preview); no login screen yet (P3-01) ([record](../.conversations/2026-11-07-web-shell-editor.md)) |
 
 ## Verified where
 
