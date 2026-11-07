@@ -42,6 +42,10 @@ def test_keyless_routes_are_exactly_the_documented_set():
         "/readyz",
         "/api/v1/meta",
         "/api/v1/meta/path-rules",
+        "/api/v1/auth/authorize",
+        "/api/v1/auth/login",
+        "/api/v1/auth/token",
+        "/api/v1/auth/oidc/{provider}/callback",
     }
 
 
