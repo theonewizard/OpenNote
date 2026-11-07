@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     history_root: Path = Field(description="Directory holding note history")
     log_level: str = "INFO"
     environment: Literal["development", "test", "production"] = "production"
+    # Requests per minute under /api/ (app.api.ratelimit); 0 turns that limit off.
+    rate_limit_per_principal: int = Field(600, ge=0)
+    rate_limit_per_ip: int = Field(1200, ge=0)
+    rate_limit_auth_per_ip: int = Field(10, ge=0)
 
     @field_validator("log_level")
     @classmethod
