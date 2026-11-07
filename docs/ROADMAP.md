@@ -124,8 +124,8 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P7-01 | AI provider abstraction (Ollama, OpenAI-compatible, faster-whisper), off by default | M5 | P2 | Core works with AI disabled/absent | NOT_STARTED |
-| P7-02 | Embedding pipeline (chunking, pgvector, incremental on change) | P7-01 | P2 | Index updates after edits | NOT_STARTED |
+| P7-01 | AI provider abstraction (Ollama, OpenAI-compatible, faster-whisper), off by default | M5 | P2 | Core works with AI disabled/absent | IN_PROGRESS: `backend/app/ai` has the `AIProvider` protocol (`embed`, `generate`) with Ollama and OpenAI-compatible providers, off by default, external providers only for vaults that opt in ([AI guide](deployment/ai.md)); the full suite passes with AI unset. faster-whisper (`transcribe`) is left to P7-07, the first feature that needs it |
+| P7-02 | Embedding pipeline (chunking, pgvector, incremental on change) | P7-01 | P2 | Index updates after edits | IN_PROGRESS: migration `0006`, `embed_vault` re-embeds only changed chunks (integration tests), the worker job `embed_vault_job` and `python -m app.ai embed`. Open: nothing enqueues the job after a commit yet; that is one line in the process that runs the committer (Phase 2) |
 | P7-03 | Hybrid semantic search | P7-02, P2-08 | P2 | Results cite notes; vault-scoped | NOT_STARTED |
 | P7-04 | AI assistant with citations and injection defenses | P7-03 | P2 | Red-team cases pass | NOT_STARTED |
 | P7-05 | Auto-tagging and classification suggestions | P7-01 | P2 | Suggestions only; no unapproved writes | NOT_STARTED |

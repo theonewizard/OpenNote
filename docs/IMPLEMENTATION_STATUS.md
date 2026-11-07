@@ -22,6 +22,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 |---|---|---|
 | P0-07 Container images and Compose | TESTING | `podman compose` has never been run; CI uses Docker |
 | P1-12 sync prototype | COMPLETED | 10,000 seeds (500 to 10,499) zero violations in CI on `main`'s code 88c08c7 ([sync-sim-nightly run](https://github.com/theonewizard/OpenNote/actions/runs/41581414871), manual dispatch, 224 tests passed, 46 min). The pull request's CI was green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped; 10,000 seeds zero violations over seeds 0 to 9,999 on `4673673` |
+| P7-01, P7-02 optional AI | IN_PROGRESS | Started early, in parallel with Phase 2 (Flemming, 2026-11-07). Provider interface (Ollama, OpenAI-compatible), per-vault opt-in, embedding pipeline and worker job ([AI guide](deployment/ai.md)). Locally: 57 new tests (unit tests against a stub HTTP server, integration tests against PostgreSQL 16 with pgvector 0.6), backend suite 565 passed, 3 skipped; one run by hand through the real worker against a stub Ollama endpoint. Not verified: a real Ollama or llama.cpp server and real models (none in this container). Open: faster-whisper (P7-07), and the enqueue after a commit (Phase 2) |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
 
 ## Verified where
