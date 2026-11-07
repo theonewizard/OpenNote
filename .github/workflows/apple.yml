@@ -82,6 +82,9 @@ jobs:
         with:
           persist-credentials: false
       - run: swift --version
+      # OpenNoteStorage links the system SQLite; the image ships only the runtime library.
+      - name: Install the SQLite headers
+        run: apt-get update && apt-get install -y --no-install-recommends libsqlite3-dev
       - run: swift test --package-path apple/Packages/OpenNoteCore
       - run: swift test --package-path apple/Packages/OpenNoteStorage
       # The container runs as root and the checkout belongs to the runner user.

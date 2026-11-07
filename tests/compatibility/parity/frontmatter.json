@@ -1,0 +1,747 @@
+[
+ {
+  "yaml": "a: 1",
+  "frontmatter": {
+   "a": 1
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: -0",
+  "frontmatter": {
+   "a": 0
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: +1",
+  "frontmatter": {
+   "a": 1
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 012",
+  "frontmatter": {
+   "a": 12
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 0o17",
+  "frontmatter": {
+   "a": 15
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 0x1F",
+  "frontmatter": {
+   "a": 31
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 0b101",
+  "frontmatter": {
+   "a": 5
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1_000",
+  "frontmatter": {
+   "a": 1000
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 0o",
+  "frontmatter": {
+   "a": "0o"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 99999999999999999999",
+  "frontmatter": {
+   "a": 99999999999999999999
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1.0",
+  "frontmatter": {
+   "a": 1.0
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1e3",
+  "frontmatter": {
+   "a": 1000.0
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 3.",
+  "frontmatter": {
+   "a": 3.0
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: -.5",
+  "frontmatter": {
+   "a": -0.5
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1_0.5",
+  "frontmatter": {
+   "a": 10.5
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 3.e2",
+  "frontmatter": {
+   "a": 300.0
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: +.5e+3",
+  "frontmatter": {
+   "a": 500.0
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1.5e-3",
+  "frontmatter": {
+   "a": 0.0015
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: true",
+  "frontmatter": {
+   "a": true
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: True",
+  "frontmatter": {
+   "a": true
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: TRUE",
+  "frontmatter": {
+   "a": true
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: false",
+  "frontmatter": {
+   "a": false
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: yes",
+  "frontmatter": {
+   "a": "yes"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: no",
+  "frontmatter": {
+   "a": "no"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: on",
+  "frontmatter": {
+   "a": "on"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: tRUE",
+  "frontmatter": {
+   "a": "tRUE"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: ~",
+  "frontmatter": {
+   "a": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: null",
+  "frontmatter": {
+   "a": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: Null",
+  "frontmatter": {
+   "a": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: NULL",
+  "frontmatter": {
+   "a": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a:",
+  "frontmatter": {
+   "a": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: nul",
+  "frontmatter": {
+   "a": "nul"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-01-02",
+  "frontmatter": {
+   "a": "2024-01-02"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-1-2",
+  "frontmatter": {
+   "a": "2024-1-2"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-1-2 3:04:05",
+  "frontmatter": {
+   "a": "2024-01-02T03:04:05"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04t05:06:07",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04 05:06:07 Z",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07+00:00"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07Z",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07+00:00"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07+2",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07+02:00"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07-05:30",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07-05:30"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07-00:00",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07+00:00"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07.0",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07.",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07.5",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07.500000"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07.123456789",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:07.123457"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07.9999995",
+  "frontmatter": {
+   "a": "2024-03-04T05:06:08"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-02-29",
+  "frontmatter": {
+   "a": "2024-02-29"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 00:00",
+  "frontmatter": {
+   "a": "00:00"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 12:30:00",
+  "frontmatter": {
+   "a": "12:30:00"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1:2",
+  "frontmatter": {
+   "a": "1:2"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: \"x\"",
+  "frontmatter": {
+   "a": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 'it''s'",
+  "frontmatter": {
+   "a": "it's"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: \"\\u00e9\\t\"",
+  "frontmatter": {
+   "a": "é\t"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 5 # comment",
+  "frontmatter": {
+   "a": 5
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: \"5\"",
+  "frontmatter": {
+   "a": "5"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: '1.0'",
+  "frontmatter": {
+   "a": "1.0"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: |\n  literal\n  text",
+  "frontmatter": {
+   "a": "literal\ntext\n"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: >\n  folded\n  text",
+  "frontmatter": {
+   "a": "folded text\n"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: |-\n  strip",
+  "frontmatter": {
+   "a": "strip"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: plain text: no",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: #not a comment?",
+  "frontmatter": {
+   "a": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: x#y",
+  "frontmatter": {
+   "a": "x#y"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: -",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: .",
+  "frontmatter": {
+   "a": "."
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: [1, two, 3.0, null]",
+  "frontmatter": {
+   "a": [
+    1,
+    "two",
+    3.0,
+    null
+   ]
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: {b: c, d: [e]}",
+  "frontmatter": {
+   "a": {
+    "b": "c",
+    "d": [
+     "e"
+    ]
+   }
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a:\n  - 1\n  - [x, {b: c}]",
+  "frontmatter": {
+   "a": [
+    1,
+    [
+     "x",
+     {
+      "b": "c"
+     }
+    ]
+   ]
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a:\n  b:\n    c: 1",
+  "frontmatter": {
+   "a": {
+    "b": {
+     "c": 1
+    }
+   }
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "tags: one, two , ,three",
+  "frontmatter": {
+   "tags": [
+    "one",
+    "two",
+    "three"
+   ]
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "tags: [x, y]",
+  "frontmatter": {
+   "tags": [
+    "x",
+    "y"
+   ]
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "tags: single",
+  "frontmatter": {
+   "tags": [
+    "single"
+   ]
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "tags:",
+  "frontmatter": {
+   "tags": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "aliases: A, B",
+  "frontmatter": {
+   "aliases": [
+    "A",
+    "B"
+   ]
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "tags: 5",
+  "frontmatter": {
+   "tags": 5
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "tags:\n  - a\n  - b",
+  "frontmatter": {
+   "tags": [
+    "a",
+    "b"
+   ]
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "base: &b\n  x: 1\nderived:\n  <<: *b\n  y: 2",
+  "frontmatter": {
+   "base": {
+    "x": 1
+   },
+   "derived": {
+    "y": 2,
+    "x": 1
+   }
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "base: &b\n  x: 1\nderived:\n  x: 9\n  <<: *b",
+  "frontmatter": {
+   "base": {
+    "x": 1
+   },
+   "derived": {
+    "x": 9
+   }
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: &a {x: 1}\nb: &b {x: 2, y: 2}\nc:\n  <<: [*a, *b]",
+  "frontmatter": {
+   "a": {
+    "x": 1
+   },
+   "b": {
+    "x": 2,
+    "y": 2
+   },
+   "c": {
+    "x": 1,
+    "y": 2
+   }
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "s: &s hello\nt: *s",
+  "frontmatter": {
+   "s": "hello",
+   "t": "hello"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "1: x",
+  "frontmatter": {
+   "1": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "true: x",
+  "frontmatter": {
+   "True": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "null: x",
+  "frontmatter": {
+   "None": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "1.5: x",
+  "frontmatter": {
+   "1.5": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "2024-01-02: x",
+  "frontmatter": {
+   "2024-01-02": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "'quoted': x",
+  "frontmatter": {
+   "quoted": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "0x10: x",
+  "frontmatter": {
+   "16": "x"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "",
+  "frontmatter": {},
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "# only a comment",
+  "frontmatter": {},
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "~",
+  "frontmatter": {},
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1\na: 2",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "- a\n- b",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "just text",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: [unclosed",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: b: c",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: *undefined",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: 1\n--- \nb: 2",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "\ta: 1",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: x\n  b: y",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "naïve: café",
+  "frontmatter": {
+   "naïve": "café"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "emoji: 😀",
+  "frontmatter": {
+   "emoji": "😀"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "ключ: значение",
+  "frontmatter": {
+   "ключ": "значение"
+  },
+  "frontmatter_error": false
+ }
+]

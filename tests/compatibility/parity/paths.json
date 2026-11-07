@@ -1,0 +1,789 @@
+[
+ {
+  "path": "Welcome.md",
+  "normalized": "Welcome.md",
+  "casefold_key": "welcome.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "notes/Plan.MD",
+  "normalized": "notes/Plan.MD",
+  "casefold_key": "notes/plan.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "a/b/c.png",
+  "normalized": "a/b/c.png",
+  "casefold_key": "a/b/c.png",
+  "kind": "attachment",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "Projects/Board.canvas",
+  "normalized": "Projects/Board.canvas",
+  "casefold_key": "projects/board.canvas",
+  "kind": "attachment",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "x.base",
+  "normalized": "x.base",
+  "casefold_key": "x.base",
+  "kind": "attachment",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": ".obsidian/app.json",
+  "normalized": ".obsidian/app.json",
+  "casefold_key": ".obsidian/app.json",
+  "kind": "obsidian_config",
+  "violations_note": [
+   {
+    "code": "leading_dot",
+    "segment": ".obsidian"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "leading_dot",
+    "segment": ".obsidian"
+   }
+  ]
+ },
+ {
+  "path": ".opennote/config.json",
+  "normalized": ".opennote/config.json",
+  "casefold_key": ".opennote/config.json",
+  "kind": "config",
+  "violations_note": [
+   {
+    "code": "leading_dot",
+    "segment": ".opennote"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "leading_dot",
+    "segment": ".opennote"
+   }
+  ]
+ },
+ {
+  "path": ".opennote/other.json",
+  "normalized": ".opennote/other.json",
+  "casefold_key": ".opennote/other.json",
+  "kind": "ignored",
+  "violations_note": [
+   {
+    "code": "leading_dot",
+    "segment": ".opennote"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "leading_dot",
+    "segment": ".opennote"
+   }
+  ]
+ },
+ {
+  "path": ".trash/x.md",
+  "normalized": ".trash/x.md",
+  "casefold_key": ".trash/x.md",
+  "kind": "ignored",
+  "violations_note": [
+   {
+    "code": "leading_dot",
+    "segment": ".trash"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "leading_dot",
+    "segment": ".trash"
+   }
+  ]
+ },
+ {
+  "path": "a/.hidden/b.md",
+  "normalized": "a/.hidden/b.md",
+  "casefold_key": "a/.hidden/b.md",
+  "kind": "ignored",
+  "violations_note": [
+   {
+    "code": "leading_dot",
+    "segment": ".hidden"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "leading_dot",
+    "segment": ".hidden"
+   }
+  ]
+ },
+ {
+  "path": ".DS_Store",
+  "normalized": ".DS_Store",
+  "casefold_key": ".ds_store",
+  "kind": "ignored",
+  "violations_note": [
+   {
+    "code": "leading_dot",
+    "segment": ".DS_Store"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "leading_dot",
+    "segment": ".DS_Store"
+   }
+  ]
+ },
+ {
+  "path": "Thumbs.db",
+  "normalized": "Thumbs.db",
+  "casefold_key": "thumbs.db",
+  "kind": "ignored",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "folder/desktop.INI",
+  "normalized": "folder/desktop.INI",
+  "casefold_key": "folder/desktop.ini",
+  "kind": "ignored",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "Icon\r",
+  "normalized": "Icon\r",
+  "casefold_key": "icon\r",
+  "kind": "ignored",
+  "violations_note": [
+   {
+    "code": "control_char",
+    "segment": "Icon\r"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "control_char",
+    "segment": "Icon\r"
+   }
+  ]
+ },
+ {
+  "path": "a/.x.md.abc.opennote-tmp",
+  "normalized": "a/.x.md.abc.opennote-tmp",
+  "casefold_key": "a/.x.md.abc.opennote-tmp",
+  "kind": "temp",
+  "violations_note": [
+   {
+    "code": "leading_dot",
+    "segment": ".x.md.abc.opennote-tmp"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "leading_dot",
+    "segment": ".x.md.abc.opennote-tmp"
+   }
+  ]
+ },
+ {
+  "path": "dir.md/file",
+  "normalized": "dir.md/file",
+  "casefold_key": "dir.md/file",
+  "kind": "attachment",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "",
+  "normalized": "",
+  "casefold_key": "",
+  "kind": "attachment",
+  "violations_note": [
+   {
+    "code": "empty_segment",
+    "segment": null
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "empty_segment",
+    "segment": null
+   }
+  ]
+ },
+ {
+  "path": "/abs.md",
+  "normalized": "/abs.md",
+  "casefold_key": "/abs.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "absolute",
+    "segment": null
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "absolute",
+    "segment": null
+   }
+  ]
+ },
+ {
+  "path": "a//b.md",
+  "normalized": "a//b.md",
+  "casefold_key": "a//b.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "empty_segment",
+    "segment": ""
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "empty_segment",
+    "segment": ""
+   }
+  ]
+ },
+ {
+  "path": "a/./b.md",
+  "normalized": "a/./b.md",
+  "casefold_key": "a/./b.md",
+  "kind": "ignored",
+  "violations_note": [
+   {
+    "code": "dot_segment",
+    "segment": "."
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "dot_segment",
+    "segment": "."
+   }
+  ]
+ },
+ {
+  "path": "a/../b.md",
+  "normalized": "a/../b.md",
+  "casefold_key": "a/../b.md",
+  "kind": "ignored",
+  "violations_note": [
+   {
+    "code": "dot_segment",
+    "segment": ".."
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "dot_segment",
+    "segment": ".."
+   }
+  ]
+ },
+ {
+  "path": "back\\slash.md",
+  "normalized": "back\\slash.md",
+  "casefold_key": "back\\slash.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "backslash",
+    "segment": null
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "backslash",
+    "segment": null
+   }
+  ]
+ },
+ {
+  "path": "ctrl\u0001.md",
+  "normalized": "ctrl\u0001.md",
+  "casefold_key": "ctrl\u0001.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "control_char",
+    "segment": "ctrl\u0001.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "control_char",
+    "segment": "ctrl\u0001.md"
+   }
+  ]
+ },
+ {
+  "path": "del.md",
+  "normalized": "del.md",
+  "casefold_key": "del.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "control_char",
+    "segment": "del.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "control_char",
+    "segment": "del.md"
+   }
+  ]
+ },
+ {
+  "path": "star*.md",
+  "normalized": "star*.md",
+  "casefold_key": "star*.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "forbidden_char",
+    "segment": "star*.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "forbidden_char",
+    "segment": "star*.md"
+   }
+  ]
+ },
+ {
+  "path": "quote\".md",
+  "normalized": "quote\".md",
+  "casefold_key": "quote\".md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "forbidden_char",
+    "segment": "quote\".md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "forbidden_char",
+    "segment": "quote\".md"
+   }
+  ]
+ },
+ {
+  "path": "lt<gt>.md",
+  "normalized": "lt<gt>.md",
+  "casefold_key": "lt<gt>.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "forbidden_char",
+    "segment": "lt<gt>.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "forbidden_char",
+    "segment": "lt<gt>.md"
+   }
+  ]
+ },
+ {
+  "path": "colon:.md",
+  "normalized": "colon:.md",
+  "casefold_key": "colon:.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "forbidden_char",
+    "segment": "colon:.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "forbidden_char",
+    "segment": "colon:.md"
+   }
+  ]
+ },
+ {
+  "path": "pipe|.md",
+  "normalized": "pipe|.md",
+  "casefold_key": "pipe|.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "forbidden_char",
+    "segment": "pipe|.md"
+   },
+   {
+    "code": "link_char",
+    "segment": "pipe|.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "forbidden_char",
+    "segment": "pipe|.md"
+   }
+  ]
+ },
+ {
+  "path": "q?.md",
+  "normalized": "q?.md",
+  "casefold_key": "q?.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "forbidden_char",
+    "segment": "q?.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "forbidden_char",
+    "segment": "q?.md"
+   }
+  ]
+ },
+ {
+  "path": "hash#tag.md",
+  "normalized": "hash#tag.md",
+  "casefold_key": "hash#tag.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "link_char",
+    "segment": "hash#tag.md"
+   }
+  ],
+  "violations_attachment": []
+ },
+ {
+  "path": "caret^.md",
+  "normalized": "caret^.md",
+  "casefold_key": "caret^.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "link_char",
+    "segment": "caret^.md"
+   }
+  ],
+  "violations_attachment": []
+ },
+ {
+  "path": "[br].md",
+  "normalized": "[br].md",
+  "casefold_key": "[br].md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "link_char",
+    "segment": "[br].md"
+   }
+  ],
+  "violations_attachment": []
+ },
+ {
+  "path": "hash#dir/x.png",
+  "normalized": "hash#dir/x.png",
+  "casefold_key": "hash#dir/x.png",
+  "kind": "attachment",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "trailing .md",
+  "normalized": "trailing .md",
+  "casefold_key": "trailing .md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "trailing./x.md",
+  "normalized": "trailing./x.md",
+  "casefold_key": "trailing./x.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "trailing_space_or_dot",
+    "segment": "trailing."
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "trailing_space_or_dot",
+    "segment": "trailing."
+   }
+  ]
+ },
+ {
+  "path": "space /x.md",
+  "normalized": "space /x.md",
+  "casefold_key": "space /x.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "trailing_space_or_dot",
+    "segment": "space "
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "trailing_space_or_dot",
+    "segment": "space "
+   }
+  ]
+ },
+ {
+  "path": "CON.md",
+  "normalized": "CON.md",
+  "casefold_key": "con.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "reserved_name",
+    "segment": "CON.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "reserved_name",
+    "segment": "CON.md"
+   }
+  ]
+ },
+ {
+  "path": "con.txt",
+  "normalized": "con.txt",
+  "casefold_key": "con.txt",
+  "kind": "attachment",
+  "violations_note": [
+   {
+    "code": "reserved_name",
+    "segment": "con.txt"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "reserved_name",
+    "segment": "con.txt"
+   }
+  ]
+ },
+ {
+  "path": "COM1",
+  "normalized": "COM1",
+  "casefold_key": "com1",
+  "kind": "attachment",
+  "violations_note": [
+   {
+    "code": "reserved_name",
+    "segment": "COM1"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "reserved_name",
+    "segment": "COM1"
+   }
+  ]
+ },
+ {
+  "path": "lpt9.md",
+  "normalized": "lpt9.md",
+  "casefold_key": "lpt9.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "reserved_name",
+    "segment": "lpt9.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "reserved_name",
+    "segment": "lpt9.md"
+   }
+  ]
+ },
+ {
+  "path": "COM10.md",
+  "normalized": "COM10.md",
+  "casefold_key": "com10.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "aux/x.md",
+  "normalized": "aux/x.md",
+  "casefold_key": "aux/x.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "reserved_name",
+    "segment": "aux"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "reserved_name",
+    "segment": "aux"
+   }
+  ]
+ },
+ {
+  "path": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md",
+  "normalized": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md",
+  "casefold_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md",
+  "normalized": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md",
+  "casefold_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "segment_too_long",
+    "segment": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "segment_too_long",
+    "segment": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.md"
+   }
+  ]
+ },
+ {
+  "path": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.md",
+  "normalized": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.md",
+  "casefold_key": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "segment_too_long",
+    "segment": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.md"
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "segment_too_long",
+    "segment": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.md"
+   }
+  ]
+ },
+ {
+  "path": "d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d.md",
+  "normalized": "d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d.md",
+  "casefold_key": "d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d.md",
+  "kind": "note",
+  "violations_note": [
+   {
+    "code": "path_too_long",
+    "segment": null
+   }
+  ],
+  "violations_attachment": [
+   {
+    "code": "path_too_long",
+    "segment": null
+   }
+  ]
+ },
+ {
+  "path": "Café.md",
+  "normalized": "Café.md",
+  "casefold_key": "café.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "Café.md",
+  "normalized": "Café.md",
+  "casefold_key": "café.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "STRASSE.md",
+  "normalized": "STRASSE.md",
+  "casefold_key": "strasse.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "Straße.md",
+  "normalized": "Straße.md",
+  "casefold_key": "strasse.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "ΣΑΣ.md",
+  "normalized": "ΣΑΣ.md",
+  "casefold_key": "σασ.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "ǰ.md",
+  "normalized": "ǰ.md",
+  "casefold_key": "ǰ.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "İstanbul.md",
+  "normalized": "İstanbul.md",
+  "casefold_key": "i̇stanbul.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "ﬃ.md",
+  "normalized": "ﬃ.md",
+  "casefold_key": "ffi.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ },
+ {
+  "path": "Ａ.md",
+  "normalized": "Ａ.md",
+  "casefold_key": "ａ.md",
+  "kind": "note",
+  "violations_note": [],
+  "violations_attachment": []
+ }
+]

@@ -22,6 +22,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 |---|---|---|
 | P0-07 Container images and Compose | TESTING | `podman compose` has never been run; CI uses Docker |
 | P1-12 sync prototype | COMPLETED | 10,000 seeds (500 to 10,499) zero violations in CI on `main`'s code 88c08c7 ([sync-sim-nightly run](https://github.com/theonewizard/OpenNote/actions/runs/41581414871), manual dispatch, 224 tests passed, 46 min). The pull request's CI was green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped; 10,000 seeds zero violations over seeds 0 to 9,999 on `4673673` |
+| P4-01, P4-02, P4-04 Apple core packages | COMPLETED | Parser parity, local vault storage and the TextKit 2 editor in `apple/Packages` ([plan](superpowers/plans/2026-11-07-apple-core-packages-plan.md)); `swift test` green on macOS and Linux and both app schemes build ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511)). Not yet wired into the app windows (P4-05/P4-06) |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
 
 ## Verified where
@@ -101,7 +102,7 @@ D2–D6 in the [specification §4](superpowers/specs/2026-10-17-opennote-archite
 | Sync simulation (`make sync-sim`) | zero violations over seeds 0 to 9,999 on `4673673` (224 tests passed, 1 h 11 min wall); 500 seeds inside the backend suite | Local; nightly in CI after the merge |
 | Web unit (Vitest) | 5 | Local and CI |
 | Web end-to-end (Playwright) | 2 | Local and CI |
-| Apple (`swift test`, five packages) | 10 `@Test` functions in the sources | CI only (macOS, green, per-package result lines not read; `OpenNoteCore` and `OpenNoteStorage` also on Linux) |
+| Apple (`swift test`, five packages) | Core 14, Storage 15, Editor 8, API 2, Sync 2 test functions (parameterized ones run all 32 corpus cases) | CI only, green ([run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511)); `OpenNoteCore` and `OpenNoteStorage` also on Linux |
 
 ## Known defects
 
