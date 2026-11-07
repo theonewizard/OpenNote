@@ -2,12 +2,23 @@
 
 import logging
 import os
+import re
 from collections.abc import Iterable
 from functools import cache
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
-from pydantic import Field, PostgresDsn, RedisDsn, TypeAdapter, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    PostgresDsn,
+    RedisDsn,
+    TypeAdapter,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PREFIX = "OPENNOTE_"
@@ -18,6 +29,39 @@ MAX_SECRET_FILE_BYTES = 64 * 1024
 
 class SettingsError(Exception):
     """Invalid or missing settings. The message names fields only, never their values."""
+
+
+class OidcProvider(BaseModel):
+    """An upstream OpenID Connect provider (R-P2-006). The client secret comes from
+    OPENNOTE_OIDC_<NAME>_CLIENT_SECRET_FILE unless given directly."""
+
+    model_config = {"frozen": True}
+
+    name: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,63}$")
+    issuer: str
+    client_id: str = Field(min_length=1)
+    client_secret: str = Field(default="", repr=False)
+
+    @field_validator("issuer")
+    @classmethod
+    def _https_issuer(cls, value: str) -> str:
+        url = urlsplit(value)
+        local = url.hostname in {"127.0.0.1", "localhost"}
+        if not url.hostname or (url.scheme != "https" and not (url.scheme == "http" and local)):
+            raise ValueError("issuer must be an https URL")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _secret_from_file(cls, data: Any) -> Any:
+        if isinstance(data, dict) and not data.get("client_secret"):
+            name = re.sub(r"[^A-Za-z0-9]", "_", str(data.get("name", ""))).lower()
+            field = f"oidc_{name}_client_secret"
+            path = os.environ.get(ENV_PREFIX + field.upper() + "_FILE")
+            if not path:
+                raise SettingsError(f"invalid or missing settings: {field}")
+            data = data | {"client_secret": _read_secret_file(path, field)}
+        return data
 
 
 class Settings(BaseSettings):
@@ -42,6 +86,9 @@ class Settings(BaseSettings):
     rate_limit_per_principal: int = Field(600, ge=0)
     rate_limit_per_ip: int = Field(1200, ge=0)
     rate_limit_auth_per_ip: int = Field(10, ge=0)
+    oidc_providers: list[OidcProvider] = Field(
+        default=[], description='JSON list of {"name", "issuer", "client_id"}'
+    )
 
     @field_validator("log_level")
     @classmethod

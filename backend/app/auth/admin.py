@@ -21,18 +21,29 @@ from app.core.db import make_sync_engine
 MIN_PASSWORD_LENGTH = 12
 
 
+class UserExists(ValueError):
+    pass
+
+
 def create_user(
-    session: Session, username: str, password: str, *, admin: bool, display_name: str | None
+    session: Session,
+    username: str,
+    password: str,
+    *,
+    admin: bool,
+    display_name: str | None,
+    email: str | None = None,
 ) -> User:
     if len(password) < MIN_PASSWORD_LENGTH:
         raise ValueError(f"password must have at least {MIN_PASSWORD_LENGTH} characters")
     key = username_key(username)
     if session.scalar(select(User).where(User.username_key == key)) is not None:
-        raise ValueError("a user with this name exists")
+        raise UserExists("a user with this name exists")
     user = User(
         username=username,
         username_key=key,
         display_name=display_name or username,
+        email=email,
         password_hash=hash_password(password),
         is_admin=admin,
     )
