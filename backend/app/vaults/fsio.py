@@ -106,18 +106,23 @@ def _existing_parent(root_fd: int, rel: str) -> tuple[int, str]:
         raise
 
 
-def read_file(root_fd: int, rel: str) -> bytes:
-    """The bytes of an existing vault file (containment checks only)."""
+def open_file(root_fd: int, rel: str) -> int:
+    """A read-only fd for an existing vault file (containment checks only); the caller
+    closes it."""
     dir_fd, name = _existing_parent(root_fd, rel)
     try:
-        fd = os.open(name, _FILE_FLAGS, dir_fd=dir_fd)
+        return os.open(name, _FILE_FLAGS, dir_fd=dir_fd)
     except OSError as exc:
         if exc.errno == errno.ELOOP:
             raise PathEscapeError("symlink in the vault path") from None
         raise
     finally:
         os.close(dir_fd)
-    with os.fdopen(fd, "rb") as fh:
+
+
+def read_file(root_fd: int, rel: str) -> bytes:
+    """The bytes of an existing vault file (containment checks only)."""
+    with os.fdopen(open_file(root_fd, rel), "rb") as fh:
         return fh.read()
 
 

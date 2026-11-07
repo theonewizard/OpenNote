@@ -53,7 +53,12 @@ How to read the rows:
 | markdown-it-py | 4.2.0 | — | https://pypi.org/pypi/markdown-it-py/json. Code and HTML ranges for link and tag extraction (Phase 1 Task 5) | 2026-11-01 |
 | watchdog | 7.0.0 | 2026-10-31 | https://pypi.org/pypi/watchdog/json. Vault file events (storage contract §5, Phase 1 Task 11) | 2026-11-01 |
 | merge3 | 1.0.0 | 2026-10-25 | https://pypi.org/pypi/merge3/json. Line-based three-way merge (sync protocol §6, Phase 1 Task 13) | 2026-11-01 |
+| python-multipart | 0.0.33 | 2026-10-31 | https://pypi.org/pypi/python-multipart/json. Form and multipart bodies (`/auth/token`, attachment upload); FastAPI needs it for `Form` and `File` (Phase 2 Task 1) | 2026-11-07 |
+| argon2-cffi | 25.1.0 | 2025-06-03 | https://pypi.org/pypi/argon2-cffi/json. Argon2id password hashes (ADR-0012, Phase 2 Task 3) | 2026-11-07 |
+| pyjwt[crypto] | 2.15.1 | 2026-09-28 | https://pypi.org/pypi/pyjwt/json. EdDSA access tokens and OIDC ID-token checks; `[crypto]` brings `cryptography` (ADR-0012, Phase 2 Task 3) | 2026-11-07 |
+| filetype | 1.2.0 | 2022-11-02 | https://pypi.org/pypi/filetype/json. Magic-number sniffing of uploaded attachments; the declared type is never trusted (API §3.4, Phase 2 Task 6) | 2026-11-07 |
 | hypothesis | 6.170.14 | 2026-10-30 | https://pypi.org/pypi/hypothesis/json. Property-based and stateful tests (testing strategy §3, §4) | 2026-11-01 |
+| schemathesis | 4.33.1 | 2026-11-04 | https://pypi.org/pypi/schemathesis/json. Contract tests of every operation against the OpenAPI document (testing strategy §2, Phase 2 Task 9) | 2026-11-07 |
 | pre-commit | 4.7.0 | 2026-10-12 | https://pypi.org/pypi/pre-commit/json. Runs the optional local hooks in `.pre-commit-config.yaml` | 2026-10-18 |
 
 None of these excludes Python 3.14 through `requires-python` (highest floor: `>=3.11`, SQLAlchemy, pydantic-settings, starlette and pre-commit).
