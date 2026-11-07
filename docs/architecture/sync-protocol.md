@@ -47,7 +47,9 @@ Every committed revision, whatever its source, follows this order. The PostgreSQ
 | 3 | Revision in PostgreSQL and log, vault file still at the previous revision | Recovery re-materializes the vault file from the history object, if the file still has the previous revision's hash |
 | 4 | Fully committed, response lost | Client retry returns the stored result |
 
-If step 4 or recovery finds the vault file changed by something else (its hash matches neither the previous nor the new revision), the file is not overwritten. The on-disk content is submitted as an `update` with `base_revision` = the previous revision and merged per §6, so neither side is lost.
+After step 4 the server records the revision it wrote in the file's `written_revision` (its own small transaction; a crash before it is caught up by the next recovery when the file holds that revision).
+
+If step 4 or recovery finds the vault file changed by something else (its hash matches neither the previous nor the new revision), the file is not overwritten. The on-disk content is submitted as an `update` and merged per §6, so neither side is lost. Its `base_revision` is the revision the vault last held: `written_revision` when recorded, else the previous revision. So an edit made after a completed write (the server down, the note edited offline) is an edit on top of the new revision, and a line it deleted stays deleted; an edit made on top of a write that never happened is merged against the previous revision. Recovery also never re-writes a file whose recorded write completed, so putting a note back to its older bytes offline is kept as an edit.
 
 Because steps 1 and 3 are durable before any response, a log-only rebuild after losing PostgreSQL contains every revision a client was told about (I1).
 

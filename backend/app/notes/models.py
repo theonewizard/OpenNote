@@ -26,6 +26,8 @@ class File(Base):
     content_hash: Mapped[str]
     revision: Mapped[int] = mapped_column(default=0)
     deleted: Mapped[bool] = mapped_column(default=False)
+    # The revision step 4 last wrote to the vault (sync §2.3); recovery merges against it.
+    written_revision: Mapped[int | None] = mapped_column(default=None)
 
 
 class Note(Base):

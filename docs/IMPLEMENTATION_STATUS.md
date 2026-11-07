@@ -13,6 +13,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 - P0-01: architecture specification, ADR-0001 to ADR-0017 (*Accepted* since 2026-11-01), contracts, sync protocol, testing strategy, threat model and roadmap, merged to `main` with the Phase 0 plan on 2026-10-17.
 - P0-02 to P0-12 except P0-07 and P0-09 (below): repository skeleton and versions record ([versions.md](development/versions.md)); backend app, database and migration baseline, readiness checks and worker; web app; Apple packages and app targets; OpenAPI export with generated TypeScript and Swift clients; Kubernetes, Helm and OpenShift skeletons ([deployment guide](deployment/kubernetes.md)).
 - P0-10 security baseline: closed on 2026-11-01 with the criterion narrowed to zero *fixable* HIGH and CRITICAL findings (Flemming's decision, [ROADMAP.md](ROADMAP.md)); what runs and where is in "Verified where", what the gate does not show is under "Open items".
+- Crash-recovery merge base (sync protocol §2.3, the Phase 1 review's open question, Flemming's "go" of 2026-11-05): `files.written_revision` (migration `0005`) records the revision the vault last held, and recovery merges an external edit against it, so an offline edit after a completed write keeps its deletions ([record](../.conversations/2026-11-01-phase-1-storage-sync.md), R152).
 - How to set up a working copy and run every check: [setup.md](development/setup.md).
 
 ## In progress
@@ -61,7 +62,6 @@ These are repository settings only the owner can change ([workflow.md](developme
 
 - Phase 1, from the final review (2026-11-01), decided for later rather than fixed ([record](../.conversations/2026-11-01-phase-1-storage-sync.md), R149):
   - Concurrency: the commit path serializes in PostgreSQL only up to the database step; the log and vault steps run after it. Phase 1 has one caller per vault. Before Phase 2 wires the watcher and HTTP requests to one vault, a per-vault lock must be held through the vault write, or two commits of one file can revert a revision.
-  - Crash recovery base (sync protocol §2.3, needs Flemming): when the disk matches neither the previous nor the current revision, recovery merges the disk against the previous revision. That is right after a crash before the vault write, and wrong when the write had completed and the user then edited the note offline (a deletion of lines the last revision added can come back). The fix needs a record of the last written sequence number.
   - Memory: the commit path takes whole blobs, so a 2 GiB attachment is held in memory several times on ingest and commit; streaming is P5-02 (resumable blob upload).
 - The remote branch `probe/ubi-python`, a throwaway CI probe one commit ahead of `main` (the whole tree of `main` at `84eefbc` plus `.github/workflows/probe.yml`), could not be deleted from the Claude Code environment. Delete it on GitHub; it is never merged.
 - `backend/migrations/script.py.mako`, the template `alembic revision` uses, renders files that ruff flags. The first real migration (Phase 1) adds a ruff post-write hook or adapts the template.
@@ -97,7 +97,7 @@ D2–D6 in the [specification §4](superpowers/specs/2026-10-17-opennote-archite
 
 | Suite | Tests | Where |
 |---|---|---|
-| Backend (unit, compatibility and integration) | 505 passed and 3 skipped locally (two read-only-directory tests skip as root; one corpus case is a read-only note with no edit round trip) | Local and CI (pull request #26) |
+| Backend (unit, compatibility and integration) | 508 passed and 3 skipped locally (two read-only-directory tests skip as root; one corpus case is a read-only note with no edit round trip) | Local and CI |
 | Sync simulation (`make sync-sim`) | zero violations over seeds 0 to 9,999 on `4673673` (224 tests passed, 1 h 11 min wall); 500 seeds inside the backend suite | Local; nightly in CI after the merge |
 | Web unit (Vitest) | 5 | Local and CI |
 | Web end-to-end (Playwright) | 2 | Local and CI |

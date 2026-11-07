@@ -40,3 +40,11 @@ Pull request from `feature/phase-1-storage-sync`; status in [IMPLEMENTATION_STAT
 | 05:00 | Flemming | "P1-12 waits on the first nightly 10,000-seed run. … Why are we waiting?" |
 
 - R151: there was no reason to wait. The `sync-sim-nightly` job now also runs on `workflow_dispatch`, so the 10,000-seed run can be started by hand; it was dispatched on this branch (main's code plus the one-line condition) to close P1-12 without waiting for the schedule.
+
+## Follow-up 2026-11-05
+
+| Time (UTC) | From | Prompt |
+|---|---|---|
+| 18:22 | Flemming | "go" |
+
+- R152: "go" with the crash-recovery merge base the only open item was read as: fix it as the status document proposed (a record of the last written revision). `files.written_revision` (migration `0005`) is set after each successful vault write; when the disk matches neither revision, recovery merges against it instead of always against the previous revision, and a file whose recorded write completed is never re-written by recovery (an offline revert to older bytes is an edit). Rows from before the migration have NULL and keep the old behaviour. A crash between the vault write and the record leaves the old behaviour for that one file until the next recovery sees the file at the new revision. Cost if wrong: one nullable column and one small transaction per vault write.
