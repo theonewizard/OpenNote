@@ -34,7 +34,9 @@ export default defineConfig({
   },
   // The Playwright tests run against `vite preview`; it sends the CSP that nginx sends
   // (infrastructure/containers/web/nginx.conf) so a violation fails the tests too.
+  // No API proxy here (preview would inherit server.proxy): the tests mock the API.
   preview: {
+    proxy: {},
     headers: {
       "Content-Security-Policy":
         "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
