@@ -31,7 +31,7 @@ The complete initial `KEYLESS_ROUTES` list. Adding to it needs review.
 | `GET /readyz` | Readiness probe: 200 `{"status": "ok"}` when PostgreSQL (`SELECT 1`) and Valkey (`PING`) answer and `vault_root` and `history_root` are writable directories, otherwise 503 `{"status": "fail"}`; no details in the body |
 | `GET /api/v1/meta` | Server version, API and sync protocol versions, enabled login methods |
 | `GET /api/v1/meta/path-rules` | Shared filename rules for clients |
-| `GET /api/v1/auth/authorize`, `POST /api/v1/auth/token`, `GET /api/v1/auth/oidc/{provider}/callback`, `POST /api/v1/auth/login` | Login and token exchange (protected by PKCE, CSRF state and rate limits) |
+| `GET /api/v1/auth/authorize`, `POST /api/v1/auth/token`, `GET /api/v1/auth/oidc/{provider}/callback`, `POST /api/v1/auth/login` | Login and token exchange (protected by PKCE, CSRF state and rate limits). `authorize?provider=<name>` starts an upstream OIDC login, so no separate start route is needed |
 
 ## 3. Resources
 
@@ -87,7 +87,7 @@ The complete initial `KEYLESS_ROUTES` list. Adding to it needs review.
 
 ## 4. Endpoints
 
-Phase in brackets. All except `KEYLESS_ROUTES` require authentication.
+Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every route marked [2] is implemented (Phase 2); `openapi.json` is the authoritative description.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -106,6 +106,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication.
 | GET | `/api/v1/folders?vault_id=` | Folder tree [2] |
 | POST / PATCH / DELETE | `/api/v1/folders` | Create, move/rename (batch of file moves), delete (only empty, or recursive with `?recursive=true` producing tombstones) [2] |
 | POST | `/api/v1/attachments` | Multipart upload `{ vault_id, path, file }` [2] |
+| GET | `/api/v1/attachments?vault_id=&folder=&cursor=&limit=` | List attachments [2] |
 | GET / DELETE | `/api/v1/attachments/{id}`, `/content` | [2] |
 | GET | `/api/v1/tags?vault_id=` | Tag list with counts [2] |
 | GET | `/api/v1/search?vault_id=&q=&cursor=&limit=` | Search, grammar in §5 [2] |
@@ -114,11 +115,14 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication.
 | GET | `/api/v1/sync/{vault_id}/changes?cursor=` | Pull [5] |
 | GET | `/api/v1/sync/{vault_id}/snapshot` | Full file list for reconcile [5] |
 | POST | `/api/v1/sync/{vault_id}/push` | Push operations [5] |
-| GET / POST / DELETE | `/api/v1/devices` | Device registration and revocation [2] |
+| GET / DELETE | `/api/v1/devices`, `/devices/{device_id}` | List and revoke devices; a device is created by its first token exchange (`device_name`, `device_platform` on `/auth/token`) [2] |
 | GET / PATCH | `/api/v1/conflicts?vault_id=`, `/conflicts/{id}` | List, mark resolved [5] |
 | WS | `/api/v1/events` | Change hints `{ vault_id, seq }` for subscribed vaults [5] |
 | GET / POST / DELETE | `/api/v1/tokens` | Personal access tokens [2] |
 | GET | `/api/v1/me` | Current user, roles [2] |
+| GET / POST | `/api/v1/users` | List users, create a local account (admin) [2] |
+| GET / PUT / DELETE | `/api/v1/vaults/{vault_id}/members`, `/members/{user_id}` | Vault roles (owner); the last owner cannot be removed [2] |
+| POST | `/api/v1/auth/logout` | End the web session or revoke the device's refresh tokens [2] |
 
 The REST note endpoints and the sync endpoints share one commit path in the `sync` module; a `PUT` with `If-Match: "41"` behaves like a sync `update` with `base_revision = 41` except that it returns `412` instead of attempting a merge. Clients that want merge semantics use sync push.
 
