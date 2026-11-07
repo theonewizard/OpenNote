@@ -9,7 +9,7 @@ import datetime as dt
 import uuid
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 
 Role = Literal["viewer", "editor", "owner"]
 NoteSort = Literal[
@@ -18,9 +18,19 @@ NoteSort = Literal[
 
 
 class _Body(BaseModel):
-    """Request bodies reject unknown fields, so a typo is a 422, not a silent no-op."""
+    """Request bodies reject unknown fields, and booleans are `StrictBool` (no `"0"` for
+    `false`), so a mistake is a 422, not a silent no-op or a coerced value."""
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("*", mode="after")
+    @classmethod
+    def _no_nul(cls, value: Any) -> Any:
+        """PostgreSQL text and file names cannot hold NUL."""
+        texts = value if isinstance(value, list) else [value]
+        if any(isinstance(text, str) and "\x00" in text for text in texts):
+            raise ValueError("must not contain NUL characters")
+        return value
 
 
 # Pagination -------------------------------------------------------------------------------
@@ -84,7 +94,7 @@ class UserCreate(_Body):
     password: str = Field(min_length=12, max_length=1024)
     display_name: str | None = Field(default=None, max_length=255)
     email: str | None = Field(default=None, max_length=320)
-    is_admin: bool = False
+    is_admin: StrictBool = False
 
 
 class UserPage(_Page):
@@ -139,8 +149,8 @@ class VaultSettings(BaseModel):
 
 
 class VaultSettingsPatch(_Body):
-    sync_obsidian_config: bool | None = None
-    ai_enabled: bool | None = None
+    sync_obsidian_config: StrictBool | None = None
+    ai_enabled: StrictBool | None = None
 
 
 class Vault(BaseModel):

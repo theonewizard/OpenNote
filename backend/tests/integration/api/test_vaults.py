@@ -206,3 +206,11 @@ async def test_members_and_the_last_owner(api):
     actions = _actions(api)
     assert actions.count("vault.member_put") == 2
     assert actions.count("vault.member_remove") == 1
+
+
+async def test_nul_in_a_body_string_is_422_not_500(api):
+    admin = api.user("root", admin=True)
+    headers = await api.bearer(admin)
+    for body in ({"name": "a\x00b"}, {"name": "ok", "directory": "x\x00y"}):
+        response = await api.client.post("/api/v1/vaults", json=body, headers=headers)
+        assert response.status_code == 422, response.text

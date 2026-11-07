@@ -130,7 +130,7 @@ def _stem(path: str) -> str:
     return posixpath.basename(path).rsplit(".", 1)[0]
 
 
-def _query() -> Select[File, NoteRow, dt.datetime, dt.datetime, str]:
+def note_query() -> Select[File, NoteRow, dt.datetime, dt.datetime, str]:
     """Live notes with their index row and first and current revision."""
     return (
         select(File, NoteRow, _first.committed_at, _current.committed_at, _current.device_id)
@@ -168,7 +168,7 @@ def _note(row: Sequence[Any], tags: list[str]) -> Note:
     )
 
 
-async def _notes(db: DB, rows: Sequence[Sequence[Any]]) -> list[Note]:
+async def load_note_rows(db: DB, rows: Sequence[Sequence[Any]]) -> list[Note]:
     tags: dict[uuid.UUID, list[str]] = {}
     ids = [row[0].file_id for row in rows]
     if ids:
@@ -186,7 +186,7 @@ async def _load(
     db: DB, principal: Principal, note_id: uuid.UUID, min_role: Role
 ) -> tuple[File, Vault, Note]:
     """The note, its vault and its metadata; 404 for a note the caller cannot see."""
-    row = (await db.execute(_query().where(File.file_id == note_id))).first()
+    row = (await db.execute(note_query().where(File.file_id == note_id))).first()
     if row is None:
         raise not_found("Note")
     try:
@@ -195,7 +195,7 @@ async def _load(
         if err.status_code == 404:
             raise not_found("Note") from None
         raise
-    return row[0], vault, (await _notes(db, [row]))[0]
+    return row[0], vault, (await load_note_rows(db, [row]))[0]
 
 
 async def _bytes(request: Request, vault: Vault, content_hash: str) -> bytes:
@@ -294,7 +294,7 @@ async def list_notes(
     await require_vault(db, caller, vault_id, "viewer")
     name, descending = sort.lstrip("-"), sort.startswith("-")
     key = _SORT_KEYS[name]
-    query = _query().add_columns(key).where(File.vault_id == vault_id)
+    query = note_query().add_columns(key).where(File.vault_id == vault_id)
     if folder is not None:
         prefix = casefold_key(folder.strip("/"))
         prefix += "/" if prefix else ""
@@ -327,7 +327,7 @@ async def list_notes(
         query = query.where(here < position if descending else here > position)
     order = (key.desc(), File.file_id.desc()) if descending else (key, File.file_id)
     rows = (await db.execute(query.order_by(*order).limit(limit + 1))).all()
-    items = await _notes(db, rows[:limit])
+    items = await load_note_rows(db, rows[:limit])
     next_cursor = None
     if len(rows) > limit:
         last = rows[limit - 1]
