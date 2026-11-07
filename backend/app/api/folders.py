@@ -201,7 +201,7 @@ async def _is_folder(db: DB, vault: Vault, path: str) -> bool:
 
 
 async def _files_under(db: DB, vault: Vault, path: str) -> list[File]:
-    query = select(File).where(*_under(vault.id, path)).order_by(File.path)
+    query = select(File).where(*_under(vault.id, path)).order_by(File.path.collate("C"))
     return list((await db.scalars(query.execution_options(populate_existing=True))).all())
 
 
