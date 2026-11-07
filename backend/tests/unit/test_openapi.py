@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from fastapi import APIRouter, Depends
+from fastapi.routing import APIRoute, iter_route_contexts
 from fastapi.testclient import TestClient
 
 from app import __version__
@@ -44,17 +45,21 @@ def test_info_names_the_api_and_its_version_without_servers():
 
 
 def test_operation_ids_are_the_endpoint_names():
+    app = create_app(placeholder_settings())
     operation_ids = {
         (method, path): operation["operationId"]
-        for path, operations in openapi()["paths"].items()
+        for path, operations in app.openapi()["paths"].items()
         for method, operation in operations.items()
     }
-    assert operation_ids == {
-        ("get", "/healthz"): "healthz",
-        ("get", "/readyz"): "readyz",
-        ("get", "/api/v1/meta"): "get_meta",
-        ("get", "/api/v1/meta/path-rules"): "get_path_rules",
+    expected = {
+        (method.lower(), route.path): route.original_route.name
+        for route in iter_route_contexts(app.routes)
+        if isinstance(route.original_route, APIRoute)
+        for method in route.methods or ()
     }
+    assert operation_ids == expected
+    assert operation_ids[("get", "/api/v1/meta")] == "get_meta"
+    assert operation_ids[("put", "/api/v1/notes/{note_id}/content")] == "put_note_content"
 
 
 def test_every_operation_answers_errors_with_problem_details():

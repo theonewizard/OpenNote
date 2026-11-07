@@ -17,8 +17,8 @@ from fastapi.routing import APIRoute, iter_route_contexts
 from starlette.exceptions import HTTPException
 
 from app import __version__
-from app.api import health, meta
-from app.auth.dependencies import get_api_key, get_current_principal
+from app.api import attachments, auth, folders, health, meta, notes, search, users, vaults
+from app.auth.dependencies import get_api_key, get_caller, get_current_principal
 from app.core.config import Settings, SettingsError, get_settings
 from app.core.db import engine_from_settings
 from app.core.logging import configure_logging, request_id_var
@@ -30,7 +30,17 @@ from app.core.problems import (
     handle_validation_error,
 )
 
-ROUTERS: list[APIRouter] = [health.router, meta.router]
+ROUTERS: list[APIRouter] = [
+    health.router,
+    meta.router,
+    auth.router,
+    users.router,
+    vaults.router,
+    notes.router,
+    folders.router,
+    attachments.router,
+    search.router,
+]
 
 # The only routes callable without credentials; adding one needs review (API contract §2).
 KEYLESS_ROUTES: frozenset[tuple[str, str]] = frozenset(
@@ -39,10 +49,14 @@ KEYLESS_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("GET", "/readyz"),
         ("GET", "/api/v1/meta"),
         ("GET", "/api/v1/meta/path-rules"),
+        ("GET", "/api/v1/auth/authorize"),
+        ("POST", "/api/v1/auth/login"),
+        ("POST", "/api/v1/auth/token"),
+        ("GET", "/api/v1/auth/oidc/{provider}/callback"),
     }
 )
 
-_AUTH_DEPENDENCIES = (get_current_principal, get_api_key)
+_AUTH_DEPENDENCIES = (get_current_principal, get_api_key, get_caller)
 _VALID_REQUEST_ID = re.compile(r"[\x20-\x7e]{1,128}")  # printable ASCII
 
 # Every error is an RFC 9457 problem (CLAUDE.md §13), so each operation documents one as its
