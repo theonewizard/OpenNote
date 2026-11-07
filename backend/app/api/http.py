@@ -9,8 +9,6 @@ from typing import Annotated
 
 from fastapi import Header, Query
 
-from app.core.problems import ProblemError
-
 IfMatch = Annotated[
     str | None,
     Header(
@@ -28,10 +26,3 @@ IdempotencyKey = Annotated[
 Limit = Annotated[int, Query(ge=1, le=500, description="Page size")]
 Cursor = Annotated[str | None, Query(description="`next_cursor` of the previous page")]
 VaultIdQuery = Annotated[uuid.UUID, Query(description="The vault to list")]
-
-
-def not_implemented() -> ProblemError:
-    """The answer of an endpoint whose contract is published but whose code is not merged."""
-    return ProblemError(
-        501, "Not implemented", "not-implemented", "This endpoint is not implemented yet."
-    )

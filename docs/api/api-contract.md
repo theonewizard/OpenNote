@@ -87,7 +87,7 @@ The complete initial `KEYLESS_ROUTES` list. Adding to it needs review.
 
 ## 4. Endpoints
 
-Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Since 2026-11-07 every route marked [2] exists in `openapi.json` with its final shape; until its implementation is merged it answers `501` with problem type `not-implemented` (Phase 2 plan, R-P2-001).
+Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every route marked [2] is implemented (Phase 2); `openapi.json` is the authoritative description.
 
 | Method | Path | Purpose |
 |---|---|---|
