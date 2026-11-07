@@ -80,6 +80,9 @@ class Settings(BaseSettings):
     )
     vault_root: Path = Field(description="Directory holding the vaults")
     history_root: Path = Field(description="Directory holding note history")
+    max_blob_bytes: int = Field(
+        default=512 * 1024 * 1024, ge=1, description="Largest attachment upload, in bytes"
+    )
     log_level: str = "INFO"
     environment: Literal["development", "test", "production"] = "production"
     # Requests per minute under /api/ (app.api.ratelimit); 0 turns that limit off.
