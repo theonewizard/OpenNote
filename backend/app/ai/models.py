@@ -1,4 +1,4 @@
-"""ORM models for the AI tables (migration 0006). Everything but ai_vault_settings is
+"""ORM models for the AI tables (migration 0008). Everything but ai_vault_settings is
 derived from the vault and can be dropped and rebuilt."""
 
 import uuid
