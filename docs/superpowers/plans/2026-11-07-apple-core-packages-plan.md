@@ -1,0 +1,31 @@
+# Apple core packages (P4-01, P4-02, P4-04)
+
+Date: 2026-11-07. Branch `feature/apple-core`, worktree `.worktrees/apple-core/`. Record: [.conversations/2026-11-07-apple-core-packages.md](../../../.conversations/2026-11-07-apple-core-packages.md).
+
+Workstream 1 of the parallel Phase 3 to 8 plan (Flemming, 2026-11-07: "Run most of the phases in parallel"). It depends only on Phase 1. The Swift packages mirror the Python code of Phase 1 so that both clients read and write a vault by the same rules ([storage contract](../../architecture/storage-contract.md)); nothing here talks to the server, which is P4-03 and P5-03.
+
+## Scope
+
+| Item | Package | What exists after this work | Acceptance (ROADMAP) and how it is checked |
+|---|---|---|---|
+| P4-01 | `OpenNoteCore` | `NoteDocument` (BOM, dominant line ending, frontmatter span, one-span replacement), `VaultPath` (classification, NFC, case-fold key, validation), `Frontmatter.readProperties`, `Extractor.extract` (links, embeds, tags, external URLs), `LinkResolver.resolve` | Same `expected.json` results: `CorpusTests` run every corpus case on macOS and Linux; `ParityTests` compare against `tests/compatibility/parity/*.json`, which the Python parsers generate |
+| P4-02 | `OpenNoteStorage` | `Vault` (scan, read, never-clobber writes, recovery-area deletes, stale temp cleanup), `StateStore` (SQLite file table and meta), `LocalVault` (the two together: reconcile, save, create, delete) | Local save < 100 ms and round trips: `localSaveIsUnder100Milliseconds` (median of five saves of a 100 KB note, state update included) and `corpusNotesWriteAndReadBackByteForByte`, on macOS and Linux |
+| P4-04 | `OpenNoteEditor` | `EditorDocument`, `MarkdownStyler`, `MarkdownEditorController` over a TextKit 2 `NSTextView`/`UITextView`, SwiftUI `MarkdownEditor` | Corpus edits preserve bytes: `corpusNotesSurviveTheTextViewByteForByte` and `typingReturnInACRLFNoteInsertsCRLFAndNothingElseChanges` drive the real `NSTextView` on the macOS runner |
+
+## Design choices
+
+1. **One reference, two implementations.** The Python code is the reference. Where the corpus is thin, `backend/tests/compatibility/parity.py` lists inputs one rule at a time (YAML scalars, path rules, extraction) and writes Python's answers to `tests/compatibility/parity/`; `test_parity_fixtures.py` fails when those files drift from the Python code, and the Swift tests read the same files. A parser change in either language therefore fails a test until both agree.
+2. **YAML: Yams for structure, our own scalar rules.** Yams (libyaml) parses to nodes with the `basic` resolver; `Frontmatter.swift` resolves plain scalars with ruamel.yaml's YAML 1.2 rules (booleans `true`/`false` only, `0o` octal, underscores, timestamps to Python's `isoformat()` including ruamel's rounding, `<<` merge keys, Python's `str()` of keys). Duplicate keys and multi-document blocks are errors, as in ruamel.
+3. **Masking: cmark for blocks.** Python masks markdown-it's `fence`, `code_block` and `html_block` tokens by line. The Swift side asks swift-cmark (CommonMark, no GFM extensions) for code and HTML block line ranges and masks the same lines, then runs the same regular expressions. Python's `\s` and `^` are spelled out for ICU, and offsets are Unicode scalars (Python code points), so masking and ordering match even with emoji.
+4. **Writes as in contract §4.** A flushed (`F_FULLFSYNC` on Apple platforms) dot-prefixed temp file is swapped with the target in one step (`renamex_np(RENAME_SWAP)`; `renameat2(RENAME_EXCHANGE)` on Linux, through a small C target because Swift's Glibc overlay does not declare it). The displaced bytes are hashed after the swap; if they are not the expected base they go back, or to the recovery area if the target changed again, and the caller gets `.externalChange`. New files use `RENAME_EXCL`/`RENAME_NOREPLACE`. Filesystems without the swap fall back to check-then-rename. `NSFileCoordinator` wraps every write and delete on Apple platforms. Deletes rename the file aside first, check it, then move it to the recovery area (copy and unlink across volumes).
+5. **State is a cache.** `StateStore` keeps what each file looked like at the last scan or OpenNote write, so reconciliation re-hashes only files whose size, mtime or inode moved and does not report OpenNote's own writes. Sync bases, outbox and cursor are P5-03 and arrive as schema version 2.
+6. **The editor never re-renders.** The view's string is the note's text (frontmatter included, like Obsidian's source mode); styling only sets attributes; saving replaces the whole text after the BOM through `NoteDocument.replacing`. Typed and pasted line breaks are converted to the note's dominant ending. Smart quotes, dashes, text replacement, autocorrection and link detection are off on both platforms, so nothing the user did not type changes.
+
+## Departures and known limits
+
+- Metadata editing in Swift (the round-trip YAML splice of `splice_keys`) is not part of P4-01; the apps edit the whole text in P4-04, and property editing in the UI comes with P4-05/P4-06.
+- Where Python fails rather than answers, Swift picks the safe reading and the fixture leaves the case out: an impossible date (`2024-02-30`) is a `frontmatter_error` in Swift but raises `ValueError` out of `read_properties` in Python; an explicitly tagged scalar (`!!str 5`) is its text in Swift but a non-JSON `TaggedScalar` in Python. Both Python behaviours are reported to the Phase 2 thread.
+- Non-scalar mapping keys (`? [a]`) are an error in Swift; Python stringifies the tuple.
+- `MarkdownStyler` is a line-based highlighter, not a parser, and restyles the whole note on every edit; a 10 MB note is slow to type in. Restyling only the edited paragraphs is later work.
+- `Vault.scan` reads directory listings through `FileManager`, so a folder swapped for a symlink between listing and `lstat` is caught by `lstat`, but there is no directory-fd walk as in Python's `openat` scan. The client vault belongs to the user, which makes this acceptable on Apple platforms.
+- The swap-and-put-back path for a concurrent external save has no deterministic test (it needs a write landing between two syscalls); the never-clobber checks before the swap are tested.

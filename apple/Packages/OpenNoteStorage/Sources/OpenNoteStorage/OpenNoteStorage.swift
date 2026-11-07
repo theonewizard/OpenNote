@@ -1,6 +1,11 @@
 import Foundation
 import OpenNoteCore
 
+/// The module's name, which OpenNoteSync's placeholder lists among its dependencies.
+public enum OpenNoteStorage {
+    public static let moduleName = "OpenNoteStorage"
+}
+
 /// One vault on this device: the folder plus its state database and recovery area, which live
 /// in `supportDirectory` (Application Support on macOS, the app container's Library on iOS),
 /// never inside the vault (storage contract §1.3).
