@@ -56,6 +56,7 @@ How to read the rows:
 | python-multipart | 0.0.33 | 2026-10-31 | https://pypi.org/pypi/python-multipart/json. Form and multipart bodies (`/auth/token`, attachment upload); FastAPI needs it for `Form` and `File` (Phase 2 Task 1) | 2026-11-07 |
 | argon2-cffi | 25.1.0 | 2025-06-03 | https://pypi.org/pypi/argon2-cffi/json. Argon2id password hashes (ADR-0012, Phase 2 Task 3) | 2026-11-07 |
 | pyjwt[crypto] | 2.15.1 | 2026-09-28 | https://pypi.org/pypi/pyjwt/json. EdDSA access tokens and OIDC ID-token checks; `[crypto]` brings `cryptography` (ADR-0012, Phase 2 Task 3) | 2026-11-07 |
+| filetype | 1.2.0 | 2022-11-02 | https://pypi.org/pypi/filetype/json. Magic-number sniffing of uploaded attachments; the declared type is never trusted (API §3.4, Phase 2 Task 6) | 2026-11-07 |
 | hypothesis | 6.170.14 | 2026-10-30 | https://pypi.org/pypi/hypothesis/json. Property-based and stateful tests (testing strategy §3, §4) | 2026-11-01 |
 | pre-commit | 4.7.0 | 2026-10-12 | https://pypi.org/pypi/pre-commit/json. Runs the optional local hooks in `.pre-commit-config.yaml` | 2026-10-18 |
 

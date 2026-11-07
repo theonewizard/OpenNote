@@ -40,6 +40,7 @@ The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each
 | `OPENNOTE_VALKEY_URL` | `redis://<host>:6379/0` |
 | `OPENNOTE_VAULT_ROOT`, `OPENNOTE_HISTORY_ROOT` | writable directories |
 | `OPENNOTE_LOG_LEVEL` | default `INFO` |
+| `OPENNOTE_MAX_BLOB_BYTES` | largest attachment upload in bytes; default 536870912 (512 MiB) |
 | `OPENNOTE_ENVIRONMENT` | `development`, `test` or `production`; default `production` |
 
 The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); Valkey speaks the Redis protocol, so its URL uses `redis://`.
