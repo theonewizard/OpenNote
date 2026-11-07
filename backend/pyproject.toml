@@ -43,5 +43,6 @@ xfail_strict = true
 markers = [
     "compatibility: the shared Markdown compatibility corpus (testing strategy §3)",
     "sync_sim: the seeded multi-client sync simulation (testing strategy §4)",
+    "slow: long-running checks such as the 100k-note search benchmark; run with -m slow",
 ]
 filterwarnings = ["error"]
