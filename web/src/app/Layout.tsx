@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { getJson } from "@/api/client";
-import type { Folder, NoteMeta, Page, Vault } from "@/api/types";
+import type { FolderList, NoteMeta, NotePage, VaultPage } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { NoteEditor } from "@/features/NoteEditor";
 import { saveStateText, type SaveState } from "@/features/saveState";
@@ -28,19 +28,19 @@ export function Layout() {
 
   const vaults = useQuery({
     queryKey: ["vaults"],
-    queryFn: () => getJson<Page<Vault>>("/api/v1/vaults"),
+    queryFn: () => getJson<VaultPage>("/api/v1/vaults"),
   });
   const vault = vaults.data?.items.find((v) => v.id === vaultId) ?? vaults.data?.items[0];
 
   const folders = useQuery({
     queryKey: ["folders", vault?.id],
-    queryFn: () => getJson<{ items: Folder[] }>(`/api/v1/folders?${query({ vault_id: vault!.id })}`),
+    queryFn: () => getJson<FolderList>(`/api/v1/folders?${query({ vault_id: vault!.id })}`),
     enabled: !!vault,
   });
   const notes = useInfiniteQuery({
     queryKey: ["notes", vault?.id, folder],
     queryFn: ({ pageParam }) =>
-      getJson<Page<NoteMeta>>(`/api/v1/notes?${query({ vault_id: vault!.id, folder, cursor: pageParam })}`),
+      getJson<NotePage>(`/api/v1/notes?${query({ vault_id: vault!.id, folder, cursor: pageParam })}`),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.next_cursor ?? undefined,
     enabled: !!vault,

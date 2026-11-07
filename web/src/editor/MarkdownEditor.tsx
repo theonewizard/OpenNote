@@ -1,5 +1,6 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
+import { yamlFrontmatter } from "@codemirror/lang-yaml";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import {
@@ -27,6 +28,7 @@ const markdownStyle = HighlightStyle.define([
   { tag: tags.monospace, fontFamily: "ui-monospace, monospace" },
   { tag: [tags.link, tags.url], color: "var(--color-primary)" },
   { tag: [tags.processingInstruction, tags.meta], opacity: "0.55" },
+  { tag: tags.propertyName, opacity: "0.7" },
 ]);
 
 // [[target]], [[target|alias]] and ![[embed]] (Obsidian wiki-links).
@@ -97,7 +99,9 @@ export function MarkdownEditor({ text, lineSeparator, readOnly, onChange, onSave
             ...defaultKeymap,
             ...historyKeymap,
           ]),
-          markdown(),
+          // YAML frontmatter is parsed as YAML; without this, "key: value" above the closing
+          // "---" reads as a Markdown setext heading.
+          yamlFrontmatter({ content: markdown() }),
           syntaxHighlighting(markdownStyle),
           wikiLinkPlugin,
           theme,

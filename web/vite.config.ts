@@ -25,6 +25,13 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
+  // `npm run dev` forwards the API to a backend on this machine (setup.md §5), as nginx
+  // does in the web container.
+  server: {
+    proxy: {
+      "/api": process.env.OPENNOTE_API_URL ?? "http://127.0.0.1:8000",
+    },
+  },
   // The Playwright tests run against `vite preview`; it sends the CSP that nginx sends
   // (infrastructure/containers/web/nginx.conf) so a violation fails the tests too.
   preview: {

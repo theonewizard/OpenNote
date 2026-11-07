@@ -54,3 +54,14 @@ test("the editor is styled under the production CSP", async ({ page }) => {
   const heading = page.getByTestId("note-editor").locator(".cm-line").first().locator("span").first();
   await expect(heading).toHaveCSS("font-weight", "700");
 });
+
+test("frontmatter is not styled as a heading", async ({ page }) => {
+  await mockApi(page, [{ path: "Front.md", bytes: Buffer.from("---\ntags: [a]\n---\nBody\n") }]);
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Front/ }).click();
+  const editor = page.getByTestId("note-editor");
+  await expect(editor.locator(".cm-line").nth(1)).toHaveText("tags: [a]");
+  for (const span of await editor.locator(".cm-line").nth(1).locator("span").all()) {
+    await expect(span).not.toHaveCSS("font-weight", "700");
+  }
+});

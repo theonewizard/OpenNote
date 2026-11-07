@@ -7,11 +7,20 @@ import type { Folder, NoteMeta, Vault } from "@/api/types";
 
 const VAULT_ID = "0192a0c4-6a1e-7c3e-9a0b-5d0e1f2a3b4c";
 
-const vaults: Vault[] = [{ id: VAULT_ID, name: "Work", role: "owner", revision: 1 }];
+const vaults: Vault[] = [
+  {
+    id: VAULT_ID,
+    name: "Work",
+    role: "owner",
+    revision: 1,
+    created_at: "2026-11-07T10:00:00.000Z",
+    settings: { ai_enabled: false, sync_obsidian_config: false },
+  },
+];
 const folders: Folder[] = [
-  { path: "Meetings", name: "Meetings", parent: null },
-  { path: "Projects", name: "Projects", parent: null },
-  { path: "Projects/Alpha", name: "Alpha", parent: "Projects" },
+  { path: "Meetings", name: "Meetings", parent: null, note_count: 1, attachment_count: 0 },
+  { path: "Projects", name: "Projects", parent: null, note_count: 0, attachment_count: 0 },
+  { path: "Projects/Alpha", name: "Alpha", parent: "Projects", note_count: 1, attachment_count: 0 },
 ];
 
 const enc = (text: string) => new TextEncoder().encode(text);
@@ -30,8 +39,17 @@ function note(n: number, path: string, bytes: Uint8Array): MockNote {
       path,
       title,
       revision: 1,
+      created_at: "2026-11-07T10:00:00.000Z",
       modified_at: "2026-11-07T10:00:00.000Z",
+      modified_by_device: "web",
+      content_hash: "sha256:0",
+      size: bytes.length,
       tags: [],
+      aliases: [],
+      properties: null,
+      frontmatter_error: false,
+      path_warning: null,
+      has_id_in_file: false,
       read_only: false,
     },
     bytes,
