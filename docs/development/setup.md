@@ -41,8 +41,19 @@ The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each
 | `OPENNOTE_VAULT_ROOT`, `OPENNOTE_HISTORY_ROOT` | writable directories |
 | `OPENNOTE_LOG_LEVEL` | default `INFO` |
 | `OPENNOTE_ENVIRONMENT` | `development`, `test` or `production`; default `production` |
+| `OPENNOTE_RATE_LIMIT_PER_PRINCIPAL`, `OPENNOTE_RATE_LIMIT_PER_IP`, `OPENNOTE_RATE_LIMIT_AUTH_PER_IP` | requests per minute; defaults `600`, `1200`, `10`; `0` turns a limit off (see below) |
 
 The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); Valkey speaks the Redis protocol, so its URL uses `redis://`.
+
+### Rate limits
+
+Requests under `/api/` are counted in Valkey in fixed one-minute windows, before routing and authentication, so failed sign-ins count too:
+
+- per client IP: `OPENNOTE_RATE_LIMIT_PER_IP` (default 1200);
+- per credential (the `Authorization` header, `X-API-Key` or the session cookie; Valkey keys hold a SHA-256 digest of it, never the secret): `OPENNOTE_RATE_LIMIT_PER_PRINCIPAL` (default 600);
+- per client IP on `/api/v1/auth/login`, `/auth/token`, `/auth/authorize` and `/auth/oidc/*`, on top of the above: `OPENNOTE_RATE_LIMIT_AUTH_PER_IP` (default 10).
+
+API responses carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds) for the limit closest to running out; over a limit the answer is a `429` `rate-limited` problem with `Retry-After`. `/healthz` and `/readyz` are never limited. If Valkey is unreachable the limits are skipped (fail open), with a warning logged at most once a minute; `/readyz` reports Valkey down meanwhile. The client IP is the address uvicorn reports: the connection's, or the `X-Forwarded-For` client when the connection comes from an address in uvicorn's `--forwarded-allow-ips` (env `FORWARDED_ALLOW_IPS`, default `127.0.0.1`). Behind the web container or another proxy, set it to the proxy's address, or every client is counted as the proxy; the api image does not set it yet. The test fixtures turn the limits off; `tests/integration/api/test_ratelimit.py` turns them on.
 
 ## 3. Start PostgreSQL and Valkey
 
