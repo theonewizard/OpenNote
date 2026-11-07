@@ -92,6 +92,10 @@ The pins in the requirement files and the constraints are name and version only,
 | class-variance-authority | 0.7.1 | 2024-11-26 | https://registry.npmjs.org/class-variance-authority. Declared by the shadcn base-nova init item | 2026-10-18 |
 | clsx | 2.1.1 | 2024-04-23 | https://registry.npmjs.org/clsx. With tailwind-merge, behind `cn` in `src/lib/utils.ts` | 2026-10-18 |
 | tailwind-merge | 3.7.0 | 2026-09-12 | https://registry.npmjs.org/tailwind-merge | 2026-10-18 |
+| @codemirror/state, @codemirror/view, @codemirror/commands, @codemirror/language, @codemirror/lang-markdown | 6.7.6, 6.43.15, 6.11.1, 6.13.1, 6.5.2 | 2026-09-22, 2026-10-19, 2026-09-15, 2026-10-07, 2026-08-04 | https://registry.npmjs.org/@codemirror%2fview (and the other four). The note editor (P3-04, ADR web editor choice); the separate packages instead of the `codemirror` bundle, which adds autocompletion, search and lint that the editor does not use | 2026-11-07 |
+| @lezer/highlight | 1.2.5 | 2026-09-28 | https://registry.npmjs.org/@lezer%2fhighlight. Already a dependency of the CodeMirror packages; declared because `src/editor/MarkdownEditor.tsx` imports its `tags` | 2026-11-07 |
+| @tanstack/react-query | 5.107.1 | 2026-11-06 | https://registry.npmjs.org/@tanstack%2freact-query. Server state (spec §5.5); peers `react ^18 \|\| ^19` | 2026-11-07 |
+| msw | 3.0.4 | 2026-11-06 | https://registry.npmjs.org/msw. devDependency: API mocks for the unit tests and `npm run dev:mock`; peers `typescript >=5.9.x`, `vite >=6` (optional); engines `node >=22.12.0`. The dev server serves its worker script from `node_modules` (`vite.config.ts`), so nothing of it is copied into `public/` or a build | 2026-11-07 |
 
 All rows except typescript are the `latest` dist-tag.
 
