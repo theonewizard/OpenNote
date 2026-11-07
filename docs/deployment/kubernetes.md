@@ -2,7 +2,7 @@
 
 OpenNote ships a Helm chart (`infrastructure/helm/opennote`), a kustomize base (`infrastructure/kubernetes/base`) and an OpenShift overlay of that base (`infrastructure/openshift`). They deploy the API, the background worker and the web app.
 
-**Status.** CI lints the chart, renders every variant and validates the output against the Kubernetes schemas (the `manifests` job), and deploys the chart and the OpenShift overlay to throwaway kind clusters at Kubernetes 1.29 and 1.37 in a namespace that enforces Pod Security `restricted`, with what OpenShift's `restricted-v2` SCC does to a pod simulated (the `deploy` job, see [Validation](#validation)). Neither has run on a real OpenShift cluster yet: the Route and real SCC admission are unverified. **No images are published yet:** build them from `infrastructure/containers` and push them to a registry your cluster can pull from (see [Images](#images)).
+**Status.** CI lints the chart, renders every variant and validates the output against the Kubernetes schemas (the `manifests` job), and deploys the chart and the OpenShift overlay to throwaway kind clusters at Kubernetes 1.29 and 1.37 in a namespace that enforces Pod Security `restricted`, with what OpenShift's `restricted-v2` SCC does to a pod simulated (the `deploy` job, see [Deployment test](#deployment-test)). Neither has run on a real OpenShift cluster yet: the Route and real SCC admission are unverified. **No images are published yet:** build them from `infrastructure/containers` and push them to a registry your cluster can pull from (see [Images](#images)).
 
 ## What is deployed
 
@@ -165,7 +165,7 @@ What it does not show: the OpenShift router and Route, real SCC admission (the U
 
 The `manifests` job of `.github/workflows/containers.yml` runs whenever that workflow does (docs/development/setup.md, "Continuous integration"):
 
-- `helm lint --strict --kube-version 1.29.0` for the defaults, `openshift.enabled=true`, and an Ingress with a host and TLS, and a `helm template --kube-version 1.28.9` that must fail (the chart's `kubeVersion` floor);
+- `helm lint --strict --kube-version 1.29.0` for the defaults, `openshift.enabled=true`, and an Ingress with a host and TLS plus the network policy, and a `helm template --kube-version 1.28.9` that must fail (the chart's `kubeVersion` floor);
 - `helm template --kube-version 1.29.0` of the same three variants, and `kubectl kustomize` of the base and the OpenShift overlay;
 - a check of what kubeconform cannot see: no render contains a Secret, `secretKeyRef` or `secretRef`; the four pods set `fsGroup: 1001` on Kubernetes and none does on OpenShift, and all four set `fsGroupChangePolicy: OnRootMismatch` and `readOnlyRootFilesystem: true` (on their containers) in every render; `automountServiceAccountToken: false` appears twice in each chart render (the ServiceAccount and the migration Job) and on all four pods in each kustomize render; web's `OPENNOTE_API_UPSTREAM` is the api Service's fully qualified name on port 80;
 - `kubeconform -strict` of all five renders against the Kubernetes 1.29.0 schemas and the newest ones, with the Route schema from the community CRD catalog (`datreeio/CRDs-catalog`, OpenShift 4.15).
