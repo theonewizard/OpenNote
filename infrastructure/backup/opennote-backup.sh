@@ -99,9 +99,10 @@ echo "opennote-backup 1" >"$stage/FORMAT"
 log "3/4 history objects and 4/4 vaults, into $name"
 # Member names start with history/ and vaults/ whatever the directories are called. The live
 # logs are left out: history-log/ holds the copy taken before the dump. Symbolic links are
-# stored as links, never followed. A file that changes while it is read makes tar exit 1;
-# OpenNote's writes replace files by rename, so only an edit made in place outside OpenNote
-# can do that, and its next scan commits the file again.
+# stored as links, never followed. tar exits 1 when a file or directory changes while it is
+# read: routinely a directory that gains a file during the backup, which the database
+# snapshot does not need; OpenNote replaces files by rename, so only an edit made in place
+# outside OpenNote can leave a half-written file in the archive.
 history_parent=$(dirname "$history_root") history_base=$(basename "$history_root")
 vault_parent=$(dirname "$vault_root") vault_base=$(basename "$vault_root")
 for base in "$history_base" "$vault_base"; do

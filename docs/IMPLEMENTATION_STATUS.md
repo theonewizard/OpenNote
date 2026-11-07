@@ -22,6 +22,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 |---|---|---|
 | P0-07 Container images and Compose | TESTING | `podman compose` has never been run; CI uses Docker |
 | P1-12 sync prototype | COMPLETED | 10,000 seeds (500 to 10,499) zero violations in CI on `main`'s code 88c08c7 ([sync-sim-nightly run](https://github.com/theonewizard/OpenNote/actions/runs/41581414871), manual dispatch, 224 tests passed, 46 min). The pull request's CI was green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped; 10,000 seeds zero violations over seeds 0 to 9,999 on `4673673` |
+| P8-04 Backup and restore | TESTING | Restore drill green in the `containers` workflow on the Compose stack ([backup.md](deployment/backup.md#restore-drill)); the chart's backup CronJob is rendered and validated but has not run on a cluster; until Phase 2 the server does not run recovery on start, so a restore is followed by `backup_drill.py verify` |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
 
 ## Verified where

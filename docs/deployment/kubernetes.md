@@ -78,6 +78,7 @@ The values (`infrastructure/helm/opennote/values.yaml` describes each one; `valu
 | `openshift.enabled`, `openshift.route.host` | `false`, empty (the router generates a host) | |
 | `ingress.enabled`, `ingress.className`, `ingress.annotations`, `ingress.host`, `ingress.tlsSecretName` | `false`, empty, `{}`, empty (any host), empty (no TLS) | |
 | `persistence.accessMode`, `persistence.storageClassName`, `persistence.vaults.size`, `persistence.history.size` | `ReadWriteMany`, empty (the default class), `10Gi`, `10Gi` | |
+| `backup.enabled`, `backup.schedule`, `backup.keep`, `backup.publicKeyConfigMap`, `backup.tmpSize`, `backup.persistence.*`, `backup.resources`; `image.postgresRepository` | `false`, `0 2 * * *`, `7`, `opennote-backup-key`, `2Gi`, a new 20 GiB claim, small; `ghcr.io/theonewizard/opennote-postgres` | The backup CronJob, see [backup and restore](backup.md) |
 | `api.replicas`, `worker.replicas`, `web.replicas` | `1` | |
 | `api.resources`, `worker.resources` | requests 250m CPU and 256Mi, limits 1 CPU and 512Mi | The migration Job uses `api.resources` |
 | `web.resources` | requests 50m and 64Mi, limits 250m and 128Mi | |
