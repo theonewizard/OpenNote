@@ -14,6 +14,7 @@ from typing import Any
 
 from ruamel.yaml import YAML
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.constructor import RoundTripConstructor
 from ruamel.yaml.error import YAMLError
 
 from app.notes.document import NoteDocument, replace_span, with_newlines
@@ -33,8 +34,21 @@ class PropertyNotEditable(Exception):
     """User edits may only change tags, aliases, id and the opennote namespace."""
 
 
+class _Constructor(RoundTripConstructor):
+    """Keeps a float that resolves to infinity or NaN (`.inf`, `.NaN`, `1e400`) as its
+    source text, which JSON can hold and the Swift parser also returns."""
+
+    def construct_yaml_float(self, node: Any) -> Any:
+        value = super().construct_yaml_float(node)
+        return value if math.isfinite(value) else node.value
+
+
+_Constructor.add_constructor("tag:yaml.org,2002:float", _Constructor.construct_yaml_float)
+
+
 def _yaml() -> YAML:
     yaml = YAML(typ="rt")
+    yaml.Constructor = _Constructor
     yaml.allow_duplicate_keys = False
     return yaml
 
@@ -57,7 +71,7 @@ def load_frontmatter(doc: NoteDocument) -> CommentedMap | None:
 
 def _plain(value: Any) -> Any:
     """JSON-safe copy: mappings to dicts, sequences to lists, dates to ISO strings; any
-    other scalar JSON cannot hold (an explicitly tagged `!!str 5` or `!foo bar`, `.nan`)
+    other scalar JSON cannot hold (an explicitly tagged `!!str 5` or `!foo bar`)
     becomes its text."""
     if isinstance(value, Mapping):
         return {str(k): _plain(v) for k, v in value.items()}
@@ -65,8 +79,6 @@ def _plain(value: Any) -> Any:
         return [_plain(v) for v in value]
     if isinstance(value, dt.date | dt.datetime):
         return value.isoformat()
-    if isinstance(value, float) and not math.isfinite(value):
-        return str(value)
     if value is None or isinstance(value, str | int | float):  # bool is an int
         return value
     return str(getattr(value, "value", value))

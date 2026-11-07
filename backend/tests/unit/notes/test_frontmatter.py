@@ -132,7 +132,8 @@ def test_tagged_and_non_finite_scalars_become_json_safe_text():
     from app.notes.document import parse_note
     from app.notes.frontmatter import read_properties
 
-    props, error = read_properties(parse_note(b"---\na: !!str 5\nb: !foo bar\nc: .nan\n---\n"))
+    raw = b"---\na: !!str 5\nb: !foo bar\nc: .NaN\nd: -.inf\ne: 1e400\nf: 1.5\n---\n"
+    props, error = read_properties(parse_note(raw))
     assert error is False
-    assert props == {"a": "5", "b": "bar", "c": "nan"}
+    assert props == {"a": "5", "b": "bar", "c": ".NaN", "d": "-.inf", "e": "1e400", "f": 1.5}
     json.dumps(props, allow_nan=False)
