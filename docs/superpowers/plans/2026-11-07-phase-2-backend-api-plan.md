@@ -79,9 +79,9 @@ Collision rules with other threads (proposed by the planning thread on 2026-11-0
 
 **Files:** Modify `backend/app/sync/commit.py`. Test `backend/tests/integration/sync/test_vault_lock.py`.
 
-- [ ] **Step 1:** Failing test: two threads, each with its own `Committer` on one vault, commit updates of one note based on the same revision while a `crash` hook in the first holds it between the `db` and `vault` steps; assert the vault file ends with the bytes of the higher revision and `files.written_revision` equals `files.revision`.
-- [ ] **Step 2:** `_vault_lock()` context manager: on depth 0 open a connection from the session factory's engine, `SELECT pg_advisory_lock(hashtextextended(:vault_id, 0))`, unlock and close on exit; wrap `commit` and `recover`.
-- [ ] **Step 3:** Run the sync integration tests and 500 simulation seeds; expected: PASS.
+- [x] **Step 1:** Failing test: two threads, each with its own `Committer` on one vault, commit updates of one note based on the same revision while a `crash` hook in the first holds it between the `db` and `vault` steps; assert the vault file ends with the bytes of the higher revision and `files.written_revision` equals `files.revision`.
+- [x] **Step 2:** `_vault_lock()` context manager: on depth 0 open a connection from the session factory's engine, `SELECT pg_advisory_lock(hashtextextended(:vault_id, 0))`, unlock and close on exit; wrap `commit` and `recover`.
+- [x] **Step 3:** Run the sync integration tests and 500 simulation seeds; expected: PASS.
 
 ### Task 3: Foundation: credential store, principal, vault access, HTTP conventions (P2-01, P2-02 core)
 
@@ -128,3 +128,4 @@ Sync endpoints, conflicts, history endpoints and the events WebSocket (Phase 5),
 ## Errata
 
 (Departures from this plan are listed here as they happen.)
+- Task 2: besides the advisory lock, a process-local lock per vault is taken first, so threads of one process queue on it instead of each holding a pooled database connection while blocked in `pg_advisory_lock` (which could starve the pool and stall the lock holder).

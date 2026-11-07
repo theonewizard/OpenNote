@@ -1,21 +1,25 @@
 """Committing sync operations (sync protocol §2.3, §3 and §6).
 
 Every revision is made durable in this order: history object, PostgreSQL (the commit
-point, serialized per vault by a row lock), JSONL log, vault file. `recover` repairs what a
-crash between those steps leaves behind. A vault file changed by someone else is never
-overwritten: its bytes are committed as an update from `server-fs` and merged.
+point), JSONL log, vault file. A PostgreSQL advisory lock on the vault serializes whole
+commits, vault write included, across threads and processes (API workers, watcher).
+`recover` repairs what a crash between those steps leaves behind. A vault file changed
+by someone else is never overwritten: its bytes are committed as an update from
+`server-fs` and merged.
 """
 
 import dataclasses
 import datetime as dt
 import hashlib
 import logging
+import threading
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -40,6 +44,16 @@ from app.vaults.scan import MAX_NOTE_BYTES
 log = logging.getLogger(__name__)
 
 SERVER_FS = "server-fs"  # the device id of changes made directly on the server's vault
+
+# One lock per vault in this process, taken before the advisory lock, so that threads of
+# one process queue here instead of each holding a pooled connection while they wait.
+_process_locks: dict[uuid.UUID, threading.Lock] = {}
+_process_locks_guard = threading.Lock()
+
+
+def _process_lock(vault_id: uuid.UUID) -> threading.Lock:
+    with _process_locks_guard:
+        return _process_locks.setdefault(vault_id, threading.Lock())
 
 
 @dataclass(frozen=True)
@@ -183,10 +197,41 @@ class Committer:
         # Files whose step 4 failed after the commit; recover() retries them before the
         # watcher's changes are ingested, so a missing write is never read as an edit.
         self.unsettled: set[uuid.UUID] = set()
+        self._local = threading.local()  # lock depth per thread: nested commits re-enter
+
+    @contextmanager
+    def _vault_lock(self) -> Iterator[None]:
+        """Hold the vault's advisory lock from the first step to the vault write. The
+        outermost call takes it on a connection of its own; nested commits (absorbing an
+        external edit, recovery) run inside the lock they are already under."""
+        depth = getattr(self._local, "depth", 0)
+        if depth:
+            self._local.depth = depth + 1
+            try:
+                yield
+            finally:
+                self._local.depth = depth
+            return
+        engine = self.session_factory.kw["bind"]
+        key = {"key": str(self.vault_id)}
+        with _process_lock(self.vault_id), engine.connect() as conn:
+            conn.execute(text("SELECT pg_advisory_lock(hashtextextended(:key, 0))"), key)
+            conn.commit()  # the lock is session-level; end the transaction that took it
+            self._local.depth = 1
+            try:
+                yield
+            finally:
+                self._local.depth = 0
+                conn.execute(text("SELECT pg_advisory_unlock(hashtextextended(:key, 0))"), key)
+                conn.commit()
 
     # The five steps --------------------------------------------------------------------
 
     def commit(self, op: Operation, device_id: str, blob: bytes | None) -> OpResult:
+        with self._vault_lock():
+            return self._commit(op, device_id, blob)
+
+    def _commit(self, op: Operation, device_id: str, blob: bytes | None) -> OpResult:
         with self.session_factory() as session:
             if prior := session.get(ClientOp, (self.vault_id, op.client_op_id)):
                 return dataclasses.replace(OpResult.from_json(prior.result), status="duplicate")
@@ -593,6 +638,10 @@ class Committer:
     def recover(self, file_ids: set[uuid.UUID] | None = None) -> None:
         """Repair what a crash between the commit steps left (sync §2.3 crash table): the
         whole vault at startup, or only `file_ids` (the unsettled files) before an ingest."""
+        with self._vault_lock():
+            self._recover(file_ids)
+
+    def _recover(self, file_ids: set[uuid.UUID] | None) -> None:
         with self.session_factory() as s:
             revs = select(Revision).where(Revision.vault_id == self.vault_id)
             rows = select(File).where(File.vault_id == self.vault_id)
