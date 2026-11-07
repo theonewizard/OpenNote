@@ -144,5 +144,5 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | NOT_STARTED |
 | P8-06 | OpenShift production deployment (Helm, Routes, restricted SCC) | P0-11 | P0 | Deploys on OpenShift 4.16+ | NOT_STARTED |
 | P8-07 | User, operator and API documentation | — | P0 | — | NOT_STARTED |
-| P8-08 | Release automation, image signing, app notarization/TestFlight | — | P0 | — | NOT_STARTED |
+| P8-08 | Release automation, image signing, app notarization/TestFlight | — | P0 | — | IN_PROGRESS: server side done and dry-run tested: a tag `vX.Y.Z` builds, scans, pushes and keyless-signs the four images and the Helm chart on ghcr.io with SBOM attestations and creates the GitHub release (`.github/workflows/release.yml`, [release.md](development/release.md)); the dry run passes in CI, the first real tag is unexercised. App notarization and TestFlight not started: they need Flemming's paid Apple account and his approval |
 | P8-09 | Beta program | P8-01…P8-08 | P0 | — | NOT_STARTED |
