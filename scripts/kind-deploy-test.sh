@@ -61,10 +61,15 @@ done
 
 # A namespace that enforces Pod Security "restricted", and warns about it too: enforcement
 # applies to pods, the warning also to the Deployments and Jobs that would create them.
+# A pod without any securityContext must be refused, or the checks below prove nothing.
 make_namespace() {
   kubectl create namespace "$1"
   kubectl label namespace "$1" pod-security.kubernetes.io/enforce=restricted \
     pod-security.kubernetes.io/warn=restricted
+  ! kubectl -n "$1" run psa-canary --image=opennote-api:dev --restart=Never --dry-run=server \
+    >/dev/null 2>"$work/canary.err" || fail "namespace $1 admits a pod that violates restricted"
+  grep -q 'violates PodSecurity "restricted' "$work/canary.err" ||
+    { cat "$work/canary.err" >&2; fail "namespace $1 refused the canary pod for another reason"; }
 }
 
 # PostgreSQL and Valkey from the repository's images, and the Secret opennote with their URLs.
