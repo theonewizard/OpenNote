@@ -41,6 +41,7 @@ The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each
 | `OPENNOTE_VAULT_ROOT`, `OPENNOTE_HISTORY_ROOT` | writable directories |
 | `OPENNOTE_LOG_LEVEL` | default `INFO` |
 | `OPENNOTE_ENVIRONMENT` | `development`, `test` or `production`; default `production` |
+| `OPENNOTE_AI_*` | optional AI, off by default: [AI guide](../deployment/ai.md) |
 
 The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); Valkey speaks the Redis protocol, so its URL uses `redis://`.
 
