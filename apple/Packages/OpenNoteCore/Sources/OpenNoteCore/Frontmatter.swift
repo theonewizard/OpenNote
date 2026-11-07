@@ -182,7 +182,8 @@ public enum Frontmatter {
         case .null: return .null
         case let .bool(b): return .bool(b)
         case let .int(i): return .int(i)
-        case let .double(d): return .double(d)
+        // JSON has no infinity or NaN; the backend reports such a value as its text too.
+        case let .double(d): return d.isFinite ? .double(d) : .string(s.string)
         case let .string(str): return .string(str)
         case let .timestamp(iso, _): return .string(iso)
         }
