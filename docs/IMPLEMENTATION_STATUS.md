@@ -1,8 +1,10 @@
 # Implementation Status
 
-Last updated: 2026-11-01
+Last updated: 2026-11-07
 
 ## Current phase
+
+**Phase 2 — Backend API, implemented on `feature/phase-2-api`; in review.** The work of the [Phase 2 plan](superpowers/plans/2026-11-07-phase-2-backend-api-plan.md) (P2-01 to P2-10). The v1 contract was published first (pull request #34: every route with its final schemas, answering 501), so the web and Apple threads could build against it; the implementation pull request fills every route in. What exists: authentication (local password login with Argon2id, OAuth 2.0 code + PKCE for native and command-line clients, refresh-token rotation that revokes a device on reuse, upstream OIDC, web session cookie with double-submit CSRF, personal access tokens limited to vaults and a scope, devices, `python -m app.auth.admin create-user`), vault endpoints with owner/editor/viewer roles (404 for vaults the caller cannot see), note endpoints on the sync commit path (bytes unchanged, `If-Match` required, 412 with the current note), folders, attachments (server-side type sniffing, single Range), tags, search (the API §5 grammar over PostgreSQL full-text search plus trigram, scoped to the caller's vaults first), an append-only audit log and rate limits in Valkey. Migrations `0006_auth` and `0007_search`. The Phase 1 carry-over, a per-vault lock held through the vault write, is in (`app/sync/commit.py`). Status P2-01 to P2-10: `TESTING` until the pull request's CI is green ([ROADMAP.md, Phase 2](ROADMAP.md)).
 
 **Phase 1 — Vault storage engine and sync prototype, completed (pull request #26, merged 2026-11-03 as 88c08c7).** The work of the [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-sync-plan.md) (P1-01 to P1-13) is a Python library under `backend/app/vaults`, `backend/app/notes` and `backend/app/sync` with migrations `0002` to `0004`: it opens an existing Obsidian vault without writing to it, reads and edits notes byte for byte, writes atomically without clobbering external saves, detects external changes and renames, keeps a rebuildable index and a content-addressed history, and commits, merges and serves changes for a server-side sync prototype checked by a seeded multi-client simulation. The only new HTTP route is the keyless `GET /api/v1/meta/path-rules`; the note and sync endpoints, authentication and the process that runs the watcher are Phase 2. P1-01 to P1-13 are `COMPLETED` (local and CI evidence; P1-12 by a 10,000-seed CI run on `main`'s code) ([ROADMAP.md, Phase 1](ROADMAP.md#phase-1--vault-storage-engine--sync-prototype-m1)).
 
@@ -22,7 +24,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 |---|---|---|
 | P0-07 Container images and Compose | TESTING | `podman compose` has never been run; CI uses Docker |
 | P1-12 sync prototype | COMPLETED | 10,000 seeds (500 to 10,499) zero violations in CI on `main`'s code 88c08c7 ([sync-sim-nightly run](https://github.com/theonewizard/OpenNote/actions/runs/41581414871), manual dispatch, 224 tests passed, 46 min). The pull request's CI was green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped; 10,000 seeds zero violations over seeds 0 to 9,999 on `4673673` |
-| P7-01, P7-02 optional AI | IN_PROGRESS | Started early, in parallel with Phase 2 (Flemming, 2026-11-07). Provider interface (Ollama, OpenAI-compatible), per-vault opt-in, embedding pipeline and worker job ([AI guide](deployment/ai.md)). Locally: 57 new tests (unit tests against a stub HTTP server, integration tests against PostgreSQL 16 with pgvector 0.6), backend suite 565 passed, 3 skipped; one run by hand through the real worker against a stub Ollama endpoint. Not verified: a real Ollama or llama.cpp server and real models (none in this container). Open: faster-whisper (P7-07), and the enqueue after a commit (Phase 2) |
+| P7-01, P7-02 optional AI | IN_PROGRESS | Started early, in parallel with Phase 2 (Flemming, 2026-11-07). Provider interface (Ollama, OpenAI-compatible), per-vault opt-in, embedding pipeline and worker job ([AI guide](deployment/ai.md)). Locally: 57 new tests (unit tests against a stub HTTP server, integration tests against PostgreSQL 16 with pgvector 0.6), backend suite 565 passed, 3 skipped; one run by hand through the real worker against a stub Ollama endpoint. Not verified: a real Ollama or llama.cpp server and real models (none in this container). Since Phase 2 merged, every API commit enqueues the embedding job (migration renumbered to `0008`). Open: faster-whisper (P7-07) |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
 
 ## Verified where
@@ -62,7 +64,6 @@ These are repository settings only the owner can change ([workflow.md](developme
 ## Open items
 
 - Phase 1, from the final review (2026-11-01), decided for later rather than fixed ([record](../.conversations/2026-11-01-phase-1-storage-sync.md), R149):
-  - Concurrency: the commit path serializes in PostgreSQL only up to the database step; the log and vault steps run after it. Phase 1 has one caller per vault. Before Phase 2 wires the watcher and HTTP requests to one vault, a per-vault lock must be held through the vault write, or two commits of one file can revert a revision.
   - Memory: the commit path takes whole blobs, so a 2 GiB attachment is held in memory several times on ingest and commit; streaming is P5-02 (resumable blob upload).
 - The remote branch `probe/ubi-python`, a throwaway CI probe one commit ahead of `main` (the whole tree of `main` at `84eefbc` plus `.github/workflows/probe.yml`), could not be deleted from the Claude Code environment. Delete it on GitHub; it is never merged.
 - `backend/migrations/script.py.mako`, the template `alembic revision` uses, renders files that ruff flags. The first real migration (Phase 1) adds a ruff post-write hook or adapts the template.
@@ -82,6 +83,14 @@ These are repository settings only the owner can change ([workflow.md](developme
 
 ## Known limits
 
+- Phase 2 (details in the plan's Errata and the [record](../.conversations/2026-11-07-phase-2-backend-api.md)):
+  - Behind the web container every client counts as one IP for rate limits until the proxy's forwarded headers are trusted (`FORWARDED_ALLOW_IPS`); the choice is put to Flemming.
+  - A folder move or recursive delete commits one revision per file with no rollback: a failure part-way leaves the files already moved where they are and returns the error.
+  - An attachment edited outside OpenNote to exactly the same size, before the watcher sees it, is served with the new bytes (downloads compare size, not hash).
+  - Upstream OIDC relies on state and nonce, not PKCE; the callback URL is built from the request's host and scheme, so a reverse proxy must pass the forwarded headers.
+  - `POST /tokens` does not replay an `Idempotency-Key` (that would store the shown-once secret); a retry makes a second token.
+  - Search snippets come from the raw Markdown; a nested tag `project/alpha` is one word for free-text search (`tag:` finds children).
+  - The note list and folder list read whole vault listings per call; fine for small vaults, measured by P8-01.
 - Phase 1's crash tests inject failures between the steps of a write and of a commit (`test_crash_at_each_point_leaves_old_or_new_bytes`, the four commit crash points); a real power loss, and `fsync` behaviour of a given filesystem, is not tested.
 - `renameat2(RENAME_EXCHANGE)` closes the check-to-rename window of the external-change guard; filesystems without it (NFS, some RWX volumes) fall back to check-then-rename and log a warning the first time ([deployment guide](deployment/kubernetes.md)).
 - Obsidian link resolution compares every link with every path (`app/notes/links.py`), which is fine for the corpus and small vaults and is measured by P8-01's 100k-note vault.
@@ -98,7 +107,7 @@ D2–D6 in the [specification §4](superpowers/specs/2026-10-17-opennote-archite
 
 | Suite | Tests | Where |
 |---|---|---|
-| Backend (unit, compatibility and integration) | 508 passed and 3 skipped locally (two read-only-directory tests skip as root; one corpus case is a read-only note with no edit round trip) | Local and CI |
+| Backend (unit, compatibility, integration and contract) | 791 passed and 4 skipped locally on the Phase 2 branch (two read-only-directory tests skip as root; one corpus case is a read-only note; the 100k-note search benchmark runs only with `-m slow`: p95 165 ms locally on PostgreSQL 16); Schemathesis runs 100 examples per operation inside the suite | Local and CI |
 | Sync simulation (`make sync-sim`) | zero violations over seeds 0 to 9,999 on `4673673` (224 tests passed, 1 h 11 min wall); 500 seeds inside the backend suite | Local; nightly in CI after the merge |
 | Web unit (Vitest) | 5 | Local and CI |
 | Web end-to-end (Playwright) | 2 | Local and CI |
@@ -110,4 +119,4 @@ None known.
 
 ## Next planned work
 
-Merge Phase 1 after review, observe one nightly 10,000-seed run, then Phase 2 (authentication and the note and vault endpoints on the sync commit path).
+Merge the Phase 2 pull request after review and green CI; then Phase 3 (web) and Phase 4 (Apple) on the real endpoints, and Phase 5 sync endpoints on the same commit path.

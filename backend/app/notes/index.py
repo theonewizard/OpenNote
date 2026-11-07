@@ -1,6 +1,7 @@
 """The derived note index: titles, properties, tags and links, rebuildable from the vault.
 
-Only `notes`, `note_tags` and `note_links` are written here; `files` (identity) is read.
+Only `notes`, `note_tags`, `note_links` and `search_documents` are written here; `files`
+(identity) is read.
 """
 
 import os
@@ -15,11 +16,15 @@ from app.notes.document import parse_note
 from app.notes.extract import Link, extract
 from app.notes.frontmatter import read_properties
 from app.notes.links import resolve
-from app.notes.models import File, Note, NoteLink, NoteTag
+from app.notes.models import File, Note, NoteLink, NoteTag, SearchDocument
 from app.vaults.fsio import open_root, read_file
 from app.vaults.paths import casefold_key
 
 BATCH = 500
+# The derived rows of one file, dropped and rewritten together.
+DERIVED = (NoteLink, NoteTag, SearchDocument, Note)
+# A tsvector holds at most 1 MiB of lexemes; text past this is not searchable.
+MAX_SEARCH_CHARS = 200_000
 
 
 def index_file(
@@ -27,7 +32,7 @@ def index_file(
 ) -> None:
     """Replace the derived rows of one note, then re-resolve the links this note could
     now satisfy (unresolved ones, and ones resolved to a file with the same name)."""
-    _write_rows(session, file_id, raw, path)
+    _write_rows(session, vault_id, file_id, raw, path)
     session.flush()
     leaf = casefold_key(posixpath.basename(path))
     same_name = select(File.file_id).where(
@@ -47,7 +52,7 @@ def index_file(
 def rebuild_index(session: Session, vault_id: uuid.UUID, root: Path) -> None:
     """Drop and recreate the derived rows of every live note, reading it from disk."""
     vault_files = select(File.file_id).where(File.vault_id == vault_id)
-    for model in (NoteLink, NoteTag, Note):
+    for model in DERIVED:
         session.execute(delete(model).where(model.file_id.in_(vault_files)))
     live_notes = (
         select(File.file_id, File.path)
@@ -59,7 +64,7 @@ def rebuild_index(session: Session, vault_id: uuid.UUID, root: Path) -> None:
         last = ""
         while batch := session.execute(live_notes.where(File.path > last).limit(BATCH)).all():
             for file_id, path in batch:
-                _write_rows(session, file_id, read_file(root_fd, path), path)
+                _write_rows(session, vault_id, file_id, read_file(root_fd, path), path)
             session.flush()
             last = batch[-1].path
     finally:
@@ -67,8 +72,10 @@ def rebuild_index(session: Session, vault_id: uuid.UUID, root: Path) -> None:
     _resolve_links(session, vault_id, NoteLink.file_id.in_(vault_files))
 
 
-def _write_rows(session: Session, file_id: uuid.UUID, raw: bytes, path: str) -> None:
-    for model in (NoteLink, NoteTag, Note):
+def _write_rows(
+    session: Session, vault_id: uuid.UUID, file_id: uuid.UUID, raw: bytes, path: str
+) -> None:
+    for model in DERIVED:
         session.execute(delete(model).where(model.file_id == file_id))
     doc = parse_note(raw)
     props, error = read_properties(doc)
@@ -86,11 +93,21 @@ def _write_rows(session: Session, file_id: uuid.UUID, raw: bytes, path: str) -> 
     )
     found = extract(doc)
     tags = [t for t in (props or {}).get("tags") or [] if isinstance(t, str)] + found.tags
-    seen: set[str] = set()
+    seen: dict[str, str] = {}
     for tag in (t.strip().lstrip("#") for t in tags):
         if tag and (key := casefold_key(tag)) not in seen:
-            seen.add(key)
+            seen[key] = tag
             session.add(NoteTag(file_id=file_id, tag=tag, tag_key=key))
+    aliases = [a for a in (props or {}).get("aliases") or [] if isinstance(a, str)]
+    session.add(
+        SearchDocument(
+            file_id=file_id,
+            vault_id=vault_id,
+            title=_searchable(title),
+            keywords=_searchable(" ".join([*aliases, *seen.values()])),
+            body=_searchable(doc.text[doc.body] if doc.text else ""),
+        )
+    )
     for ordinal, link in enumerate(found.links):
         session.add(
             NoteLink(
@@ -103,6 +120,11 @@ def _write_rows(session: Session, file_id: uuid.UUID, raw: bytes, path: str) -> 
                 alias=link.alias,
             )
         )
+
+
+def _searchable(text: str) -> str:
+    """PostgreSQL text holds no NUL; a tsvector holds at most 1 MiB."""
+    return text.replace("\x00", "")[:MAX_SEARCH_CHARS]
 
 
 def _resolve_links(session: Session, vault_id: uuid.UUID, which: ColumnElement[bool]) -> None:
@@ -129,7 +151,7 @@ def _resolve_links(session: Session, vault_id: uuid.UUID, which: ColumnElement[b
 
 def remove_file(session: Session, file_id: uuid.UUID) -> None:
     """Drop the derived rows of a deleted file; links to it become unresolved."""
-    for model in (NoteLink, NoteTag, Note):
+    for model in DERIVED:
         session.execute(delete(model).where(model.file_id == file_id))
     session.execute(
         update(NoteLink).where(NoteLink.resolved_file_id == file_id).values(resolved_file_id=None)

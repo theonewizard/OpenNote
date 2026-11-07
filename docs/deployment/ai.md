@@ -6,7 +6,7 @@ What exists today (P7-01, P7-02): the provider interface and the embedding pipel
 
 ## Server settings
 
-Read by the worker and by `python -m app.ai`.
+Read by the worker and by `python -m app.ai`; the API reads `OPENNOTE_AI_PROVIDER` only, to decide whether a save enqueues an embedding run, so set it there too.
 
 | Variable | Form |
 |---|---|
@@ -38,6 +38,6 @@ They read the same `OPENNOTE_*` settings as the worker. An API for this comes wi
 
 A note's body (frontmatter left out) is cut into chunks of at most 2,000 characters: paragraphs are joined, and every Markdown heading starts a new chunk. Each chunk is embedded with the note's title in front and stored in `ai_chunks` as a pgvector `vector` with the model's dimension; `ai_note_state` records which file content and model the chunks came from. A run embeds only notes whose content or model changed, and within a changed note only chunks whose text changed. Deleted notes lose their chunks on the next run. Notes that are not valid UTF-8 get no chunks.
 
-The worker job `embed_vault_job(<vault-id>)` runs one vault at a time (a PostgreSQL advisory lock); a message that finds the vault busy comes back 30 seconds later. A provider that is down fails the job, which Dramatiq retries three times with backoff. Nothing enqueues the job after a note changes yet: that call belongs in the process that commits changes, which arrives with Phase 2. Until then, run `python -m app.ai embed`.
+The worker job `embed_vault_job(<vault-id>)` runs one vault at a time (a PostgreSQL advisory lock); a message that finds the vault busy comes back 30 seconds later. A provider that is down fails the job, which Dramatiq retries three times with backoff. Every note, folder or attachment change committed through the API enqueues the job for its vault (`app.ai.notify`, called from `app.api.deps.commit`), but only when `OPENNOTE_AI_PROVIDER` is set; if Valkey is unreachable the save still succeeds and the next one asks again. Changes the API did not make (a file edited on the server's disk) are picked up by the next run, or by `python -m app.ai embed`.
 
 The similarity index arrives with semantic search (P7-03): an index needs a fixed dimension, which depends on the model chosen.

@@ -83,9 +83,9 @@ reports.
 - name: secrets
   secret:
     secretName: {{ .Values.existingSecret }}
-{{- /* A full /tmp evicts the pod instead of filling the node; revisit with attachments in
-Phase 1. */}}
+{{- /* A full /tmp evicts the pod instead of filling the node. Attachment uploads are
+buffered here (Phase 2, up to OPENNOTE_MAX_BLOB_BYTES, default 512 MiB), so it holds two. */}}
 - name: tmp
   emptyDir:
-    sizeLimit: 256Mi
+    sizeLimit: 1Gi
 {{- end -}}
