@@ -27,10 +27,10 @@ Collision rules with other threads (proposed by the planning thread on 2026-11-0
 | Lock fix | 2 | `.worktrees/api` / `feature/phase-2-api` | — |
 | Foundation | 3 | `.worktrees/api` / `feature/phase-2-api` | `0006_auth` |
 | Auth flows | 4 | `.worktrees/auth` / `feature/phase-2-auth` | — (uses 0006) |
-| Vaults, notes, folders | 5 | `.worktrees/notes` / `feature/phase-2-notes` | `0007_vault_meta` |
+| Vaults, notes, folders | 5 | `.worktrees/notes` / `feature/phase-2-notes` | — (vault columns are in 0006) |
 | Attachments | 6 | `.worktrees/attachments` / `feature/phase-2-attachments` | — |
-| Tags and search | 7 | `.worktrees/search` / `feature/phase-2-search` | `0008_search` |
-| Audit and rate limits | 8 | `.worktrees/audit` / `feature/phase-2-audit` | `0009_audit` |
+| Tags and search | 7 | `.worktrees/search` / `feature/phase-2-search` | `0007_search` |
+| Audit and rate limits | 8 | `.worktrees/audit` / `feature/phase-2-audit` | — (`audit_events` is in 0006) |
 
 ## Decisions taken in this plan (rulings, no owner decision needed)
 
@@ -129,3 +129,4 @@ Sync endpoints, conflicts, history endpoints and the events WebSocket (Phase 5),
 
 (Departures from this plan are listed here as they happen.)
 - Task 2: besides the advisory lock, a process-local lock per vault is taken first, so threads of one process queue on it instead of each holding a pooled database connection while blocked in `pg_advisory_lock` (which could starve the pool and stall the lock holder).
+- Task 3: `0006_auth` also holds the vault metadata columns and `audit_events` (append-only by trigger) with the `app.core.audit.audit()` helper, so the streams that call it (auth, notes) do not wait for Task 8; search's migration becomes `0007_search`. The AI thread's pull request #37 also adds a `0006`: whichever merges second renumbers its migration onto the other's head.

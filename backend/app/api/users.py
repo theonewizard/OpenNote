@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from app.api.deps import DB, not_found
 from app.api.http import Cursor, IdempotencyKey, Limit, not_implemented
 from app.api.schemas import (
     DevicePage,
@@ -16,15 +17,19 @@ from app.api.schemas import (
     UserPage,
 )
 from app.auth.dependencies import Principal, get_current_principal
+from app.auth.models import User as UserRow
 
 router = APIRouter(prefix="/api/v1", tags=["users"])
 Caller = Annotated[Principal, Depends(get_current_principal)]
 
 
 @router.get("/me")
-async def get_me(principal: Caller) -> User:
+async def get_me(principal: Caller, db: DB) -> User:
     """The signed-in user."""
-    raise not_implemented()
+    user = await db.get(UserRow, principal.user_id)
+    if user is None:  # deleted between authentication and here
+        raise not_found("User")
+    return User.model_validate(user, from_attributes=True)
 
 
 @router.get("/users")

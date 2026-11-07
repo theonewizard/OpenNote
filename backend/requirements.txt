@@ -1,5 +1,6 @@
 # Runtime dependencies, pinned exactly (ADR-0014). Versions: docs/development/versions.md.
 alembic==1.20.1
+argon2-cffi==25.1.0
 dramatiq[redis]==2.2.1
 fastapi==0.162.0
 markdown-it-py==4.2.0
@@ -7,6 +8,7 @@ merge3==1.0.0
 psycopg[binary]==3.3.6
 pydantic==2.14.2
 pydantic-settings==2.16.2
+pyjwt[crypto]==2.15.1
 python-multipart==0.0.33
 redis==8.1.0
 ruamel.yaml==0.19.1

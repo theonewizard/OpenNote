@@ -18,6 +18,7 @@ from starlette.exceptions import HTTPException
 
 from app import __version__
 from app.api import attachments, auth, folders, health, meta, notes, search, users, vaults
+from app.api.deps import Committers
 from app.auth.dependencies import get_api_key, get_caller, get_current_principal
 from app.core.config import Settings, SettingsError, get_settings
 from app.core.db import engine_from_settings
@@ -114,9 +115,11 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     The route guard runs again first, so a route added after create_app() stops the start."""
     assert_routes_authenticated(app)
     app.state.engine = engine_from_settings(app.state.settings)
+    app.state.committers = Committers(app.state.settings)
     try:
         yield
     finally:
+        app.state.committers.close()
         await app.state.engine.dispose()
 
 

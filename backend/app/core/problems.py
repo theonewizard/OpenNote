@@ -46,10 +46,14 @@ class ProblemError(HTTPException):
         title: str,
         type_slug: str,
         detail: str | None = None,
+        *,
+        extensions: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
-        super().__init__(status_code=status, detail=detail)
+        super().__init__(status_code=status, detail=detail, headers=dict(headers or {}) or None)
         self.title = title
         self.type_slug = type_slug
+        self.extensions = dict(extensions or {})
 
 
 def problem_response(
@@ -81,7 +85,15 @@ async def handle_http_exception(request: Request, exc: HTTPException) -> Respons
         return Response(status_code=exc.status_code, headers=exc.headers)
     path = request.url.path
     if isinstance(exc, ProblemError):
-        return problem_response(exc.status_code, exc.title, exc.type_slug, exc.detail, path)
+        return problem_response(
+            exc.status_code,
+            exc.title,
+            exc.type_slug,
+            exc.detail,
+            path,
+            extensions=exc.extensions,
+            headers=exc.headers,
+        )
     # exc.detail is free text from wherever it was raised; the status phrase is safe.
     detail = status_phrases.get(exc.status_code)
     return problem_response(
