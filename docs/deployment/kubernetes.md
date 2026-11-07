@@ -10,9 +10,10 @@ OpenNote ships a Helm chart (`infrastructure/helm/opennote`), a kustomize base (
 |---|---|---|---|
 | Deployment | `opennote-api` | `api` | uvicorn on port 8000. Startup and liveness probes on `/healthz`, readiness on `/readyz` (database, Valkey and both volumes) |
 | Deployment | `opennote-worker` | `worker` | The api image with `python -m app.workers`. No probes in Phase 0 (no HTTP endpoint). 60 s grace period: on SIGTERM the worker waits up to 50 s for running jobs; a job still running after that is delivered again |
+| Deployment | `opennote-watcher` | `watcher` | The api image with `python -m app.vaults`: watches every vault, imports the notes already in a registered folder and commits edits made outside OpenNote. Always one replica, `Recreate` strategy (a second copy would wait on a PostgreSQL advisory lock). No probes (no HTTP endpoint). On a volume that delivers no inotify events (NFS and most RWX types) external edits are found by the full rescan every 15 minutes |
 | Deployment | `opennote-web` | `web` | nginx on port 8080, probes on `/`. Serves the web app and forwards `/api/`, `/healthz` and `/readyz` to the api Service |
 | Service | `opennote-api`, `opennote-web` | `api`, `web` | Port 80 to the containers' `http` port |
-| PersistentVolumeClaim | `opennote-vaults`, `opennote-history` | `vaults`, `history` | `ReadWriteMany`, 10 GiB each by default; mounted by api and worker at `/var/lib/opennote/vaults` and `/var/lib/opennote/history`. The chart keeps them on `helm uninstall` |
+| PersistentVolumeClaim | `opennote-vaults`, `opennote-history` | `vaults`, `history` | `ReadWriteMany`, 10 GiB each by default; mounted by api, worker and watcher at `/var/lib/opennote/vaults` and `/var/lib/opennote/history`. The chart keeps them on `helm uninstall` |
 | ConfigMap | `opennote`, `opennote-web` | `opennote`, `web` | The non-secret settings: `OPENNOTE_ENVIRONMENT=production`, `OPENNOTE_LOG_LEVEL`, the two volume paths, `OPENNOTE_MIGRATE_ON_START=false`; for web, `OPENNOTE_API_UPSTREAM` |
 | Job | `opennote-migrate` | `migrate` | `alembic upgrade head`, reading only the database URL from the Secret. In the chart it is a `pre-install,pre-upgrade` hook |
 | ServiceAccount | `opennote` | (the namespace's `default`) | No API token is mounted into any pod |
@@ -80,6 +81,7 @@ The values (`infrastructure/helm/opennote/values.yaml` describes each one; `valu
 | `persistence.accessMode`, `persistence.storageClassName`, `persistence.vaults.size`, `persistence.history.size` | `ReadWriteMany`, empty (the default class), `10Gi`, `10Gi` | |
 | `api.replicas`, `worker.replicas`, `web.replicas` | `1` | |
 | `api.resources`, `worker.resources` | requests 250m CPU and 256Mi, limits 1 CPU and 512Mi | The migration Job uses `api.resources` |
+| `watcher.resources` | requests 100m CPU and 256Mi, limits 1 CPU and 512Mi | The watcher always runs one replica, so it has no `replicas` value |
 | `web.resources` | requests 50m and 64Mi, limits 250m and 128Mi | |
 
 An Ingress, for an ingress controller you already run:

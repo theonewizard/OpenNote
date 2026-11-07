@@ -78,6 +78,13 @@ services:
     # period ends is killed and delivered again later (at-least-once).
     stop_grace_period: 60s
 
+  watcher:
+    <<: *backend
+    command: ["python", "-m", "app.vaults"]
+    # Watches every vault and commits what changes on disk outside OpenNote, including the
+    # notes already in a folder when it is registered. One instance only: a second copy
+    # waits on a database lock. No HTTP endpoint, so no healthcheck.
+
   web:
     <<: *defaults
     image: opennote-web:dev

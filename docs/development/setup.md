@@ -88,7 +88,7 @@ Apple packages are tested with `swift test --package-path apple/Packages/<Packag
 
 The web app's Playwright tests (`npm run test:e2e` in `web/`, section 9) build the app and serve it on port 4173 with `--strictPort`, never reusing a server already there, so only one e2e run per host at a time. `OPENNOTE_PW_EXECUTABLE`, read by `web/playwright.config.ts`, points Playwright at a Chromium already installed instead of the build `npx playwright install chromium` downloads.
 
-## 5. Run the worker
+## 5. Run the worker and the vault watcher
 
 With the variables of section 2 set and Valkey running:
 
@@ -97,6 +97,14 @@ cd backend && ../.venv/bin/python -m app.workers
 ```
 
 It validates every `OPENNOTE_*` setting at start and, if any is missing or invalid, exits with one line naming the fields; it uses `OPENNOTE_VALKEY_URL` and `OPENNOTE_LOG_LEVEL`. One worker process with four threads takes jobs from Valkey and logs JSON lines on stdout. On SIGTERM or Ctrl-C it lets running jobs finish, waiting at most 50 s, then exits. Do not point it at the test Valkey database (section 3): the worker tests' jobs and key cleanup would collide with it.
+
+The vault watcher indexes the notes already in a registered folder and commits what changes in a vault outside OpenNote:
+
+```bash
+cd backend && ../.venv/bin/python -m app.vaults
+```
+
+It needs the database and the vault and history directories. Every 5 s it starts watching new vaults (the first full scan imports their notes) and stops watching deleted ones. Only one copy runs per database: a second waits on a PostgreSQL advisory lock until the first exits. SIGTERM or Ctrl-C stops it. Without it, notes saved through the API still work, but files added or edited directly in a vault folder are never indexed.
 
 ### Run the API without containers
 

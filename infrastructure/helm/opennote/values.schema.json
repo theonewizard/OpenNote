@@ -65,6 +65,7 @@
     },
     "api": {"$ref": "#/definitions/workload"},
     "worker": {"$ref": "#/definitions/workload"},
+    "watcher": {"$ref": "#/definitions/workload"},
     "web": {"$ref": "#/definitions/workload"}
   }
 }
