@@ -2,8 +2,8 @@
 # run them as an arbitrary UID, and scan the images with Trivy; on every push and pull
 # request, and on Mondays to pick up findings published since the last run and newer
 # unpinned RPMs (the base images are pinned by digest). A second job, manifests, lints,
-# renders and validates the Kubernetes, Helm and OpenShift manifests
-# (docs/development/setup.md, "Continuous integration").
+# renders and validates the Kubernetes, Helm and OpenShift manifests; a third, deploy,
+# installs them on kind clusters (docs/development/setup.md, "Continuous integration").
 name: containers
 
 on:
@@ -189,6 +189,49 @@ jobs:
           done
           exit "$status"
 
+  # The chart and the OpenShift overlay deployed to a throwaway kind cluster, at the oldest
+  # Kubernetes the chart supports (1.29, OpenShift 4.16) and the newest kind ships: Pod
+  # Security "restricted" enforced, the restricted-v2 SCC's arbitrary UID simulated, smoke
+  # tests through web (scripts/kind-deploy-test.sh, docs/deployment/kubernetes.md).
+  deploy:
+    name: deploy (kind ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - v1.29.14@sha256:8703bd94ee24e51b778d5556ae310c6c0fa67d761fae6379c8e0bb480e6fea29
+          - v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      # kind from its Go module: the Go checksum database pins what is built.
+      - name: Install kind
+        run: |
+          GOBIN=$RUNNER_TEMP/bin go install sigs.k8s.io/kind@v0.33.0
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Build the images
+        run: docker compose -f "$FULL" build
+
+      - name: Create the cluster and load the images
+        run: |
+          kind version
+          kind create cluster --name opennote --image "kindest/node:${{ matrix.node }}" --wait 120s
+          kubectl version
+          kind load docker-image --name opennote \
+            opennote-api:dev opennote-web:dev opennote-postgres:dev opennote-valkey:dev
+
+      - name: Deployment test
+        run: scripts/kind-deploy-test.sh
+
   # The Helm chart (defaults, OpenShift, Ingress) and the kustomize base and OpenShift
   # overlay: lint, render and validate against the Kubernetes 1.29.0 schemas (the chart's
   # kubeVersion floor, OpenShift 4.16) and the newest ones. No cluster is involved
@@ -224,7 +267,8 @@ jobs:
           helm lint --strict "$CHART" --kube-version 1.29.0
           helm lint --strict "$CHART" --kube-version 1.29.0 --set openshift.enabled=true
           helm lint --strict "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
-            --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls
+            --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
+            --set networkPolicy.enabled=true
           ! helm template opennote "$CHART" --kube-version 1.28.9 >/dev/null 2>&1 || { echo "kubeVersion floor not enforced"; exit 1; }
 
       - name: Render the chart and the kustomizations
@@ -236,7 +280,7 @@ jobs:
             > "$out/helm-openshift.yaml"
           helm template opennote "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
             --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
-            > "$out/helm-ingress.yaml"
+            --set networkPolicy.enabled=true > "$out/helm-ingress.yaml"
           kubectl kustomize infrastructure/kubernetes/base > "$out/kustomize-base.yaml"
           kubectl kustomize infrastructure/openshift > "$out/kustomize-openshift.yaml"
 
