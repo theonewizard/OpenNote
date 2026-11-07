@@ -24,8 +24,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.problems import PROBLEM_TYPE_BASE
-from app.notes.index import index_file, remove_file
-from app.notes.models import File, Note, NoteLink, NoteTag
+from app.notes.index import DERIVED, index_file, remove_file
+from app.notes.models import File
 from app.sync.history import HistoryStore, RevisionLogEntry
 from app.sync.merge import conflict_copy_path, merge_note
 from app.sync.models import ClientOp, Conflict, Revision, VaultSeq
@@ -627,7 +627,7 @@ class Committer:
                     if rev.deleted:
                         remove_file(s, rev.file_id)
                     elif rev.kind == "note" and rev.content_hash and rev.size > MAX_NOTE_BYTES:
-                        for model in (NoteLink, NoteTag, Note):  # grown opaque: not parsed
+                        for model in DERIVED:  # grown opaque: not parsed
                             s.execute(delete(model).where(model.file_id == rev.file_id))
                     elif rev.kind == "note" and rev.content_hash:
                         data = self.history.get(rev.content_hash)
