@@ -7,7 +7,9 @@ public enum LineEnding: String, Sendable {
 }
 
 /// The note is not valid UTF-8: it is readable and synced as bytes, never edited.
-public struct ReadOnlyNote: Error, Equatable {}
+public struct ReadOnlyNote: Error, Equatable {
+    public init() {}
+}
 
 /// The byte-preserving note model (storage contract §2.1, §2.2), the Swift twin of
 /// `backend/app/notes/document.py`.
