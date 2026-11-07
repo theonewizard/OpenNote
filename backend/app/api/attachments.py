@@ -23,6 +23,7 @@ from app.api.deps import (
     DB,
     ROLE_RANK,
     Role,
+    StaleRevision,
     commit,
     forbidden,
     not_found,
@@ -353,13 +354,18 @@ async def delete_attachment(
     current = model.model_dump(mode="json")
     conventions.check_if_match(if_match, row.revision, current)
     op = Delete(uuid.uuid7(), row.file_id, row.revision)
-    result = await commit(request, vault, op, caller.device_id, None)
-    if result.status == "merged":  # an edit landed after our read: the edit wins
+    try:
+        result = await commit(
+            request, vault, op, caller.device_id, None, expected_revision=row.revision
+        )
+    except StaleRevision:  # a write landed after our read: answer 412 with it
+        result = None
+    if result is None or result.status == "merged":
         await db.refresh(row)
         (model,) = await _models(request, db, vault, [row])
         conventions.check_if_match(if_match, row.revision, model.model_dump(mode="json"))
-    if result.status != "applied":
-        raise _problem(result)
+    if result is None or result.status != "applied":
+        raise _problem(result) if result else ProblemError(409, "Conflict", "conflict")
     audit(
         db,
         request,
