@@ -65,3 +65,7 @@ dump.rdb
 *.swp
 *~
 .DS_Store
+
+# Backups and backup keys next to the Compose file (docs/deployment/backup.md)
+infrastructure/compose/backups/
+infrastructure/compose/*.asc

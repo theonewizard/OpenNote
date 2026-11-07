@@ -1,0 +1,121 @@
+{{- if .Values.backup.enabled }}
+# opennote-backup from the opennote-postgres image on a schedule (docs/deployment/backup.md):
+# reads the database (the URL from the Secret, as a file), the vaults and the history
+# read-only, and writes an encrypted backup to the backups volume. Only the public key is
+# mounted; the private key never enters the cluster.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "opennote.fullname" . }}-backup
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "opennote.labels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- include "opennote.podSecurityContext" . | nindent 12 }}
+          containers:
+            - name: backup
+              image: "{{ .Values.image.postgresRepository }}:{{ include "opennote.tag" . }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["opennote-backup"]
+              env:
+                - name: OPENNOTE_DATABASE_URL_FILE
+                  value: /run/secrets/opennote/OPENNOTE_DATABASE_URL
+                - name: OPENNOTE_VAULT_ROOT
+                  value: /var/lib/opennote/vaults
+                - name: OPENNOTE_HISTORY_ROOT
+                  value: /var/lib/opennote/history
+                - name: OPENNOTE_BACKUP_DIR
+                  value: /backups
+                - name: OPENNOTE_BACKUP_PUBLIC_KEY_FILE
+                  value: /run/opennote-backup-key/public.asc
+                - name: OPENNOTE_BACKUP_KEEP
+                  value: {{ .Values.backup.keep | quote }}
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+              securityContext:
+                {{- include "opennote.containerSecurityContext" . | nindent 16 }}
+              volumeMounts:
+                - name: vaults
+                  mountPath: /var/lib/opennote/vaults
+                  readOnly: true
+                - name: history
+                  mountPath: /var/lib/opennote/history
+                  readOnly: true
+                - name: backups
+                  mountPath: /backups
+                - name: secrets
+                  mountPath: /run/secrets/opennote
+                  readOnly: true
+                - name: key
+                  mountPath: /run/opennote-backup-key
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: vaults
+              persistentVolumeClaim:
+                claimName: {{ include "opennote.fullname" . }}-vaults
+                readOnly: true
+            - name: history
+              persistentVolumeClaim:
+                claimName: {{ include "opennote.fullname" . }}-history
+                readOnly: true
+            - name: backups
+              persistentVolumeClaim:
+                claimName: {{ .Values.backup.persistence.existingClaim | default (printf "%s-backups" (include "opennote.fullname" .)) }}
+            - name: secrets
+              secret:
+                secretName: {{ .Values.existingSecret }}
+                items: [{key: OPENNOTE_DATABASE_URL, path: OPENNOTE_DATABASE_URL}]
+            - name: key
+              configMap:
+                name: {{ .Values.backup.publicKeyConfigMap }}
+                items: [{key: public.asc, path: public.asc}]
+            {{- /* The database dump is staged here before it goes into the archive. */}}
+            - name: tmp
+              emptyDir:
+                sizeLimit: {{ .Values.backup.tmpSize }}
+{{- if not .Values.backup.persistence.existingClaim }}
+---
+# The backups. Kept on `helm uninstall`, like the data they protect. Put them on storage
+# that does not fail with the data volumes, or copy them off the cluster.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "opennote.fullname" . }}-backups
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.backup.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.backup.persistence.size }}
+{{- end }}
+{{- end }}

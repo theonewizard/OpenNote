@@ -7,6 +7,8 @@ image:
   # push them to a registry the cluster can pull from and point these at them.
   apiRepository: ghcr.io/theonewizard/opennote-api
   webRepository: ghcr.io/theonewizard/opennote-web
+  # The backup CronJob's image (backup.enabled): opennote-postgres carries opennote-backup.
+  postgresRepository: ghcr.io/theonewizard/opennote-postgres
   # Empty: the chart's appVersion.
   tag: ""
   pullPolicy: IfNotPresent
@@ -92,3 +94,30 @@ web:
     limits:
       cpu: 250m
       memory: 128Mi
+
+# Encrypted backups of the database, the history and the vaults on a schedule
+# (docs/deployment/backup.md). Needs the vaults and history volumes mountable by a second
+# pod at the same time (ReadWriteMany, as above) and a ConfigMap holding the OpenPGP public
+# key under the key public.asc. The private key is never put into the cluster.
+backup:
+  enabled: false
+  # Cron syntax, in the kube-controller-manager's time zone (UTC on most clusters).
+  schedule: "0 2 * * *"
+  # Backups kept on the backups volume; 0 keeps all.
+  keep: 7
+  publicKeyConfigMap: opennote-backup-key
+  # Where the database dump is staged before it is archived (an emptyDir).
+  tmpSize: 2Gi
+  persistence:
+    # An existing PersistentVolumeClaim for the backups; empty: the chart creates
+    # <fullname>-backups (ReadWriteOnce), kept on `helm uninstall`.
+    existingClaim: ""
+    storageClassName: ""
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
