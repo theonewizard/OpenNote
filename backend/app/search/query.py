@@ -146,7 +146,8 @@ def _filter(node: Filter) -> ColumnElement[bool]:
         return _revision_in(which, start, last + dt.timedelta(days=1) if last else None)
     if key in ("before", "after"):
         day = parse_date(value)
-        assert day is not None  # noqa: S101 - the parser only makes valid date filters
+        if day is None:  # the parser only makes valid date filters
+            raise RuntimeError(f"invalid date filter {value!r}")
         if key == "before":
             return _revision_in(File.revision, None, day)
         return _revision_in(File.revision, day + dt.timedelta(days=1), None)

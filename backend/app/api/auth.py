@@ -305,7 +305,7 @@ async def token(
     await db.commit()
     return TokenResponse(
         access_token=access,
-        token_type="Bearer",  # noqa: S106 (the token type, not a secret)
+        token_type="Bearer",  # noqa: S106 (the token type, not a secret)  # nosec B106
         expires_in=expires_in,
         refresh_token=refresh,
         device_id=device.id,

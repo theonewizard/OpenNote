@@ -208,7 +208,8 @@ class _Parser:
             return node
         if tok == "OR":
             return Word("OR")
-        assert not isinstance(tok, str)  # noqa: S101 - "-" was consumed by term()
+        if isinstance(tok, str):  # "-" was consumed by term()
+            raise RuntimeError(f"unexpected token {tok!r}")
         return tok
 
 

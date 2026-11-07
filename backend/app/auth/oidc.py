@@ -25,7 +25,10 @@ def _failed() -> ProblemError:
 
 def _get_json(request: str | urllib.request.Request) -> dict[str, Any]:
     # Only http(s): the issuer is checked in settings, the endpoints by discover().
-    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:  # noqa: S310
+    url = request if isinstance(request, str) else request.full_url
+    if not url.startswith(("https://", "http://")):
+        raise ValueError("not an http(s) URL")
+    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:  # noqa: S310  # nosec B310
         body = json.load(response)
     if not isinstance(body, dict):
         raise ValueError("not a JSON object")

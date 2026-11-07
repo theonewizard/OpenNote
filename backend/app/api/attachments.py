@@ -329,7 +329,8 @@ async def upload_attachment(
     if result.status not in ("applied", "conflict"):
         raise _problem(result)
     row = await db.get(FileRow, result.file_id)
-    assert row is not None  # noqa: S101 - the commit above created it
+    if row is None:  # the commit above created it
+        raise RuntimeError("committed attachment row missing")
     (model,) = await _models(request, db, vault, [row])
     response = _json(model, 201, Location=f"/api/v1/attachments/{model.id}")
     await conventions.remember(db, caller, idempotency_key, fingerprint, response)
