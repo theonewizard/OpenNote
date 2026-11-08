@@ -90,6 +90,7 @@ These are repository settings only the owner can change ([workflow.md](developme
   - `POST /tokens` does not replay an `Idempotency-Key` (that would store the shown-once secret); a retry makes a second token.
   - Search snippets come from the raw Markdown; a nested tag `project/alpha` is one word for free-text search (`tag:` finds children).
   - The note list and folder list read whole vault listings per call; fine for small vaults, measured by P8-01.
+  - The vault watcher (`python -m app.vaults`, added after the merge when a registered folder's notes did not appear) starts watching a new vault within 5 s, and its first scan of a large vault holds up the vaults registered after it. It has no health check (no HTTP endpoint).
 - Phase 1's crash tests inject failures between the steps of a write and of a commit (`test_crash_at_each_point_leaves_old_or_new_bytes`, the four commit crash points); a real power loss, and `fsync` behaviour of a given filesystem, is not tested.
 - `renameat2(RENAME_EXCHANGE)` closes the check-to-rename window of the external-change guard; filesystems without it (NFS, some RWX volumes) fall back to check-then-rename and log a warning the first time ([deployment guide](deployment/kubernetes.md)).
 - Obsidian link resolution compares every link with every path (`app/notes/links.py`), which is fine for the corpus and small vaults and is measured by P8-01's 100k-note vault.

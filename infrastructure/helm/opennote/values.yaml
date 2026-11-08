@@ -83,6 +83,16 @@ worker:
       cpu: "1"
       memory: 512Mi
 
+# Always one replica; only the resources are set here.
+watcher:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
 web:
   replicas: 1
   resources:
