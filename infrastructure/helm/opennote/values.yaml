@@ -31,6 +31,12 @@ logLevel: INFO
 # name if it contains "opennote", else <release>-opennote.
 clusterDomain: cluster.local
 
+# Addresses or CIDRs (comma-separated) the api trusts for X-Forwarded-For, set as uvicorn's
+# FORWARDED_ALLOW_IPS. Set it to the pod CIDR the web pods get addresses from, so rate
+# limits count each client instead of the web pod. Empty: only 127.0.0.1 is trusted, and
+# every request through web counts as web's address.
+trustedProxies: ""
+
 # The images run as UID 1001, group 0; fsGroup makes the volumes writable on Kubernetes. Left
 # out when openshift.enabled is true, because the restricted SCC assigns the group.
 fsGroup: 1001

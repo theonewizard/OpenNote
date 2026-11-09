@@ -76,6 +76,7 @@ The values (`infrastructure/helm/opennote/values.yaml` describes each one; `valu
 | `logLevel` | `INFO` | `OPENNOTE_LOG_LEVEL`, one of CRITICAL, ERROR, WARNING, INFO, DEBUG; `OPENNOTE_ENVIRONMENT` is always `production` |
 | `clusterDomain` | `cluster.local` | Used for web's `OPENNOTE_API_UPSTREAM`, `<fullname>-api.<namespace>.svc.<clusterDomain>:80`, where `<fullname>` is the release name if it contains `opennote`, else `<release>-opennote`. nginx's resolver ignores the resolv.conf search list, so the name must be fully qualified |
 | `fsGroup` | `1001` | Left out when `openshift.enabled` is true. `fsGroupChangePolicy: OnRootMismatch` is not a value: every pod sets it, on OpenShift too |
+| `trustedProxies` | `""` | Addresses or CIDRs, comma-separated, set as the api's `FORWARDED_ALLOW_IPS`: the api takes the client from `X-Forwarded-For` only on requests from them. Set it to the pod CIDR web's pods get addresses from, or rate limits count every client as the web pod. `*` is refused, so a caller elsewhere cannot fake its address. The kustomize base does not set it |
 | `openshift.enabled`, `openshift.route.host` | `false`, empty (the router generates a host) | |
 | `ingress.enabled`, `ingress.className`, `ingress.annotations`, `ingress.host`, `ingress.tlsSecretName` | `false`, empty, `{}`, empty (any host), empty (no TLS) | |
 | `persistence.accessMode`, `persistence.storageClassName`, `persistence.vaults.size`, `persistence.history.size` | `ReadWriteMany`, empty (the default class), `10Gi`, `10Gi` | |

@@ -59,6 +59,9 @@ services:
       # false unless .env or the shell sets it: production applies migrations deliberately
       # (infrastructure/containers/api/entrypoint.sh).
       OPENNOTE_MIGRATE_ON_START: ${OPENNOTE_MIGRATE_ON_START:-false}
+      # uvicorn takes the client address from X-Forwarded-For only on requests from web's
+      # fixed address, so rate limits see each client; anyone else's header is ignored.
+      FORWARDED_ALLOW_IPS: ${OPENNOTE_WEB_ADDRESS:-172.30.80.10}
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
@@ -93,6 +96,9 @@ services:
       dockerfile: infrastructure/containers/web/Containerfile
     ports:
       - "127.0.0.1:8080:8080"
+    networks:
+      default:
+        ipv4_address: ${OPENNOTE_WEB_ADDRESS:-172.30.80.10}
     depends_on:
       api:
         condition: service_healthy
@@ -144,6 +150,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 12
+
+# A fixed subnet, so web has a fixed address the api can trust for X-Forwarded-For.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${OPENNOTE_NETWORK_SUBNET:-172.30.80.0/24}
 
 volumes:
   vaults:
