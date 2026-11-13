@@ -140,7 +140,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | NOT_STARTED |
 | P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | NOT_STARTED |
 | P8-03 | Accessibility review (VoiceOver, keyboard, WCAG 2.2 AA web) | M5 | P0 | — | NOT_STARTED |
-| P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | NOT_STARTED |
+| P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | TESTING: `opennote-backup` and `opennote-restore` in the opennote-postgres image, online and OpenPGP-encrypted, for Compose and as a Helm CronJob ([backup.md](deployment/backup.md)); the restore drill (`scripts/backup-drill.sh`) runs in the `containers` workflow: an exact restore, and a restore of a backup taken during commits, both verified after recovery. The Kubernetes CronJob is rendered and validated, not yet run on a cluster; the server does not run recovery on start until Phase 2 |
 | P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | NOT_STARTED |
 | P8-06 | OpenShift production deployment (Helm, Routes, restricted SCC) | P0-11 | P0 | Deploys on OpenShift 4.16+ | NOT_STARTED |
 | P8-07 | User, operator and API documentation | — | P0 | — | NOT_STARTED |

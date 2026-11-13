@@ -1,6 +1,8 @@
 # opennote-postgres: PostgreSQL 18 with pgvector on UBI 9 minimal, from the PostgreSQL
 # project's RPM repository (PGDG), which builds both for RHEL 9 (ADR-0010). The UBI
-# repositories carry no PostgreSQL server.
+# repositories carry no PostgreSQL server. The image also carries OpenNote's backup tools,
+# opennote-backup and opennote-restore (docs/deployment/backup.md): they need PostgreSQL 18's
+# pg_dump and pg_restore, which only this image has.
 #
 # Build from the repository root:
 #   docker build -f infrastructure/containers/postgres/Containerfile -t opennote-postgres:dev .
@@ -11,7 +13,7 @@
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c
 
 LABEL org.opencontainers.image.title="opennote-postgres" \
-      org.opencontainers.image.description="PostgreSQL 18 with pgvector for OpenNote" \
+      org.opencontainers.image.description="PostgreSQL 18 with pgvector, and the backup tools, for OpenNote" \
       org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
       org.opencontainers.image.licenses="PostgreSQL"
 
@@ -47,18 +49,24 @@ RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
         > /etc/yum.repos.d/pgdg18.repo \
     && microdnf install -y --nodocs --setopt=install_weak_deps=0 \
         postgresql18-server-18.6 postgresql18-contrib-18.6 pgvector_18-0.8.7 \
+        tar gzip gnupg2 findutils \
     && microdnf clean all
 
 COPY infrastructure/containers/postgres/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY infrastructure/backup/opennote-backup.sh /usr/local/bin/opennote-backup
+COPY infrastructure/backup/opennote-restore.sh /usr/local/bin/opennote-restore
 
 # initdb needs a passwd entry for the UID it runs as, which may be any UID. The root
 # filesystem is read-only, so /etc/passwd points to /tmp/passwd, which entrypoint.sh writes
 # from this copy plus the current UID. The data volume is owned by group 0 so any UID in
-# group 0 can create the cluster directory in it. This step goes last: after it, user
-# lookups in the image fail until the entrypoint has run.
-RUN mkdir -p /var/lib/postgresql/data \
-    && chown -R 1001:0 /var/lib/postgresql \
+# group 0 can create the cluster directory in it. The vault and history mount points are
+# made as in the api image, so a fresh volume first mounted here by opennote-restore is
+# writable by group 0 too. This step goes last: after it, user lookups in the image fail
+# until the entrypoint has run.
+RUN mkdir -p /var/lib/postgresql/data /var/lib/opennote/vaults /var/lib/opennote/history \
+    && chown -R 1001:0 /var/lib/postgresql /var/lib/opennote \
     && chmod -R 0770 /var/lib/postgresql \
+    && chmod -R g=u /var/lib/opennote \
     && cp /etc/passwd /etc/passwd.image \
     && ln -sf /tmp/passwd /etc/passwd
 

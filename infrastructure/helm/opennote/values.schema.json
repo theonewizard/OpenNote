@@ -24,6 +24,7 @@
       "properties": {
         "apiRepository": {"$ref": "#/definitions/name"},
         "webRepository": {"$ref": "#/definitions/name"},
+        "postgresRepository": {"$ref": "#/definitions/name"},
         "tag": {"type": "string"},
         "pullPolicy": {"type": "string", "enum": ["Always", "IfNotPresent", "Never"]}
       }
@@ -40,6 +41,27 @@
         "enabled": {"type": "boolean"},
         "route": {"type": "object", "additionalProperties": false,
                   "properties": {"host": {"type": "string"}}}
+      }
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "schedule": {"type": "string", "minLength": 9},
+        "keep": {"type": "integer", "minimum": 0},
+        "publicKeyConfigMap": {"$ref": "#/definitions/name"},
+        "tmpSize": {"type": "string", "minLength": 1},
+        "persistence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingClaim": {"type": "string"},
+            "storageClassName": {"type": "string"},
+            "size": {"type": "string", "minLength": 1}
+          }
+        },
+        "resources": {"type": "object"}
       }
     },
     "ingress": {
