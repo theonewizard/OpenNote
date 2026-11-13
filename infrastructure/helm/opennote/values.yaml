@@ -41,6 +41,15 @@ openshift:
   route:
     # Empty: the router generates a host name under the cluster's apps domain.
     host: ""
+    # Router annotations, for example haproxy.router.openshift.io/timeout: 60s or
+    # haproxy.router.openshift.io/hsts_header: max-age=31536000 (docs/deployment/kubernetes.md).
+    annotations: {}
+
+# true: only the release's web pods may connect to the API, and nothing to the worker
+# (docs/deployment/kubernetes.md, "Network policy"). Needs a network plugin that enforces
+# NetworkPolicy, as OpenShift's does.
+networkPolicy:
+  enabled: false
 
 ingress:
   enabled: false
