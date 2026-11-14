@@ -81,6 +81,7 @@ The pins in the requirement files and the constraints are name and version only,
 | @tailwindcss/vite | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/@tailwindcss%2fvite | 2026-10-17 |
 | shadcn (shadcn/ui CLI) | 4.22.0 | 2026-10-16 | https://registry.npmjs.org/shadcn. Run with `npx shadcn@4.22.0` only; not a dependency of `web/`. As a dependency it brought seven high `npm audit --audit-level=high` advisories (braces <= 3.0.3, GHSA-vfj7-8cjw-p6xm, no fixed release; via micromatch, fast-glob, @shadcn/registry and ts-morph), so a `shadcn add` that re-adds the package must be checked against them | 2026-10-17 |
 | vitest | 5.0.5 | 2026-10-15 | https://registry.npmjs.org/vitest | 2026-10-17 |
+| @axe-core/playwright | 4.14.0 (axe-core ~4.14.0, resolves 4.14.0) | 2026-10-15 | https://registry.npmjs.org/@axe-core%2fplaywright | 2026-11-14 |
 | @playwright/test | 1.64.1 | 2026-10-14 | https://registry.npmjs.org/@playwright%2ftest | 2026-10-17 |
 | openapi-typescript | 7.13.0 | 2026-02-11 | https://registry.npmjs.org/openapi-typescript | 2026-10-17 |
 | @eslint/js | 10.0.1 | 2026-02-06 | https://registry.npmjs.org/@eslint%2fjs | 2026-10-18 |
