@@ -143,6 +143,6 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | NOT_STARTED |
 | P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | NOT_STARTED |
 | P8-06 | OpenShift production deployment (Helm, Routes, restricted SCC) | P0-11 | P0 | Deploys on OpenShift 4.16+ | NOT_STARTED |
-| P8-07 | User, operator and API documentation | — | P0 | — | NOT_STARTED |
+| P8-07 | User, operator and API documentation | — | P0 | — | TESTING ([user-guide.md](user-guide.md), [operator-guide.md](deployment/operator-guide.md), [using-the-api.md](api/using-the-api.md); the user guide grows with the web and Apple apps) |
 | P8-08 | Release automation, image signing, app notarization/TestFlight | — | P0 | — | NOT_STARTED |
 | P8-09 | Beta program | P8-01…P8-08 | P0 | — | NOT_STARTED |
