@@ -121,7 +121,7 @@ def test_writer_streams_into_an_object_get_can_read(store):
     for i in range(0, len(data), 65536):
         writer.write(data[i : i + 65536])
     digest = "sha256:" + hashlib.sha256(data).hexdigest()
-    assert writer.finish(digest) is True
+    assert writer.finish(digest) == digest
     assert store.has(digest)
     assert store.get(digest) == data
     assert b"".join(store.stream(digest, chunk_size=4096)) == data
@@ -131,7 +131,7 @@ def test_writer_streams_into_an_object_get_can_read(store):
 def test_writer_with_the_wrong_hash_stores_nothing(store):
     writer = store.writer()
     writer.write(b"abc")
-    assert writer.finish("sha256:" + "0" * 64) is False
+    assert writer.finish("sha256:" + "0" * 64) is None
     assert not [p for p in (store.root / "objects").rglob("*") if p.is_file()]
 
 
@@ -145,3 +145,30 @@ def test_writer_abort_removes_the_temporary_file(store):
 def test_stream_of_a_missing_object_fails_at_once(store):
     with pytest.raises(FileNotFoundError):
         store.stream("sha256:" + "1" * 64)
+
+
+def test_put_stream_and_size(store):
+    data = b"x" * 100_000
+    digest = store.put_stream(iter([data[:50_000], data[50_000:]]))
+    assert digest == "sha256:" + hashlib.sha256(data).hexdigest()
+    assert store.size(digest) == len(data)  # streamed: no size in the frame header
+    assert store.size(store.put(b"abc")) == 3  # one-shot: size from the header
+
+
+def test_append_upload_resumes_and_completes(store):
+    from app.sync.history import UploadHashMismatch, UploadOffsetMismatch
+
+    data = b"0123456789"
+    digest = "sha256:" + hashlib.sha256(data).hexdigest()
+    assert store.append_upload(digest, 0, data[:4], 10) == 4
+    assert store.upload_offset(digest) == 4
+    with pytest.raises(UploadOffsetMismatch) as err:
+        store.append_upload(digest, 0, data[:4], 10)
+    assert err.value.offset == 4
+    assert store.append_upload(digest, 4, data[4:], 10) == 10
+    assert store.get(digest) == data
+    assert store.upload_offset(digest) == 0
+    wrong = "sha256:" + "2" * 64
+    with pytest.raises(UploadHashMismatch):
+        store.append_upload(wrong, 0, b"zz", 2)
+    assert store.upload_offset(wrong) == 0

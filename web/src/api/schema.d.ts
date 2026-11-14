@@ -188,6 +188,11 @@ export interface paths {
          * Put Blob
          * @description Upload a blob before pushing the operation that names it. The bytes must hash to
          *     `sha256` (else 422); uploading a blob the store already holds is a no-op.
+         *
+         *     Large blobs go in chunks with `Content-Range`: each chunk answers 202 with the new
+         *     `Upload-Offset`, the last one 204 once the whole blob is stored. After an interruption,
+         *     `HEAD` gives the offset to continue from; a chunk that does not start there is a 409
+         *     carrying the offset.
          */
         put: operations["put_blob"];
         post?: never;
@@ -196,6 +201,8 @@ export interface paths {
         /**
          * Head Blob
          * @description 200 when the vault's store holds the blob, else 404: upload only what is missing.
+         *     `Upload-Offset` says how many bytes of a resumable upload have arrived (0 for none):
+         *     continue from there.
          */
         head: operations["head_blob"];
         patch?: never;
@@ -2370,7 +2377,10 @@ export interface operations {
                 /** @description The vault to list */
                 vault_id: string;
             };
-            header?: never;
+            header?: {
+                /** @description `bytes <first>-<last>/<total>` for one chunk of a resumable upload (at most 8388608 bytes, starting at the `Upload-Offset` `HEAD` gives) */
+                "Content-Range"?: string | null;
+            };
             path: {
                 /** @description Lowercase hex SHA-256 of the bytes */
                 sha256: string;
@@ -2383,6 +2393,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Chunk stored; the upload is not complete */
+            202: {
+                headers: {
+                    /** @description Bytes of the upload received so far */
+                    "Upload-Offset"?: number;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Successful Response */
             204: {
                 headers: {

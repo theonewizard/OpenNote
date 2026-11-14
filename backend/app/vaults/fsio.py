@@ -15,6 +15,7 @@ import stat
 import time
 import unicodedata
 import uuid
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 from app.vaults.paths import MAX_SEGMENT_BYTES, TEMP_SUFFIX, truncate_utf8, validate
@@ -126,6 +127,18 @@ def read_file(root_fd: int, rel: str) -> bytes:
         return fh.read()
 
 
+def stream_file(root_fd: int, rel: str, chunk_size: int = 1 << 20) -> Iterator[bytes]:
+    """The bytes of an existing vault file in chunks, opened on the first read (a missing
+    file raises FileNotFoundError there)."""
+
+    def chunks() -> Iterator[bytes]:
+        with os.fdopen(open_file(root_fd, rel), "rb") as fh:
+            while block := fh.read(chunk_size):
+                yield block
+
+    return chunks()
+
+
 def hash_path(root_fd: int, rel: str) -> str | None:
     """The content hash of a vault file, or None when it (or its folder) does not exist."""
     try:
@@ -192,23 +205,33 @@ def _warn_no_exchange(dir_fd: int) -> None:
         )
 
 
-def _write_temp(dir_fd: int, name: str, data: bytes, mode: int) -> str:
+def _write_temp(
+    dir_fd: int, name: str, chunks: Iterable[bytes], mode: int, new_hash: str | None
+) -> tuple[str, str]:
+    """A synced temp file beside `name` holding `chunks`, and its hash. ValueError (and no
+    temp file) when `new_hash` is given and the bytes do not match it."""
     tag = f".{secrets.token_hex(6)}{TEMP_SUFFIX}"
     tmp = "." + truncate_utf8(name, MAX_SEGMENT_BYTES - 1 - len(tag)) + tag
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC
     fd = os.open(tmp, flags, mode, dir_fd=dir_fd)
+    digest = hashlib.sha256()
     try:
         os.fchmod(fd, mode)  # the umask must not narrow the target's mode
-        view = memoryview(data)
-        while view:
-            view = view[os.write(fd, view) :]
+        for chunk in chunks:
+            digest.update(chunk)
+            view = memoryview(chunk)
+            while view:
+                view = view[os.write(fd, view) :]
+        written = "sha256:" + digest.hexdigest()
+        if new_hash is not None and written != new_hash:
+            raise ValueError("bytes do not match their content hash")
         os.fsync(fd)
     except BaseException:
         os.close(fd)
         os.unlink(tmp, dir_fd=dir_fd)
         raise
     os.close(fd)
-    return tmp
+    return tmp, written
 
 
 def _move_out(dir_fd: int, name: str, dest_dir: Path, label: str) -> Path:
@@ -237,11 +260,19 @@ def _settle(dir_fd: int, tmp: str, ours: str, recovery_dir: Path, label: str) ->
 
 
 def atomic_write(
-    root_fd: int, rel: str, data: bytes, *, expected_hash: str | None, recovery_dir: Path
+    root_fd: int,
+    rel: str,
+    data: bytes | Iterable[bytes],
+    *,
+    expected_hash: str | None,
+    recovery_dir: Path,
+    new_hash: str | None = None,
 ) -> str:
-    """Replace (or, with `expected_hash=None`, create) `rel` with `data` and return the new
-    hash. ExternalChangeError when the file is not what the caller expected, before or
-    during the write; external bytes are never unlinked unverified."""
+    """Replace (or, with `expected_hash=None`, create) `rel` with `data` (bytes, or chunks
+    streamed into the temp file) and return the new hash. ExternalChangeError when the
+    file is not what the caller expected, before or during the write; external bytes are
+    never unlinked unverified. With `new_hash`, ValueError and nothing written when the
+    bytes do not match it."""
     dir_fd, name = open_parent(root_fd, rel, create=True)
     try:
         found = _current_hash(dir_fd, name)
@@ -250,14 +281,15 @@ def atomic_write(
         mode = 0o644
         if expected_hash is not None:
             mode = stat.S_IMODE(os.stat(name, dir_fd=dir_fd, follow_symlinks=False).st_mode)
-        new_hash = "sha256:" + hashlib.sha256(data).hexdigest()
-        tmp = _write_temp(dir_fd, name, data, mode)  # points temp_written, temp_synced
+        chunks = [data] if isinstance(data, bytes) else data
+        # points temp_written, temp_synced
+        tmp, written = _write_temp(dir_fd, name, chunks, mode, new_hash)
         if expected_hash is None:
             _create(dir_fd, tmp, name, rel)
         else:
-            _replace(dir_fd, tmp, name, rel, expected_hash, new_hash, recovery_dir)
+            _replace(dir_fd, tmp, name, rel, expected_hash, written, recovery_dir)
         os.fsync(dir_fd)  # point dir_synced
-        return new_hash
+        return written
     finally:
         os.close(dir_fd)
 
