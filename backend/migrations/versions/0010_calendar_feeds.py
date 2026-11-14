@@ -1,16 +1,16 @@
 """Calendar feed tokens (P6-03): a read-only iCalendar subscription of a vault's dated
 tasks. Revoking a feed deletes its row.
 
-Revision ID: 0009
-Revises: 0008
+Revision ID: 0010
+Revises: 0009
 Create Date: 2026-11-14
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0009"
-down_revision: str | None = "0008"
+revision: str = "0010"
+down_revision: str | None = "0009"
 branch_labels: str | None = None
 depends_on: str | None = None
 

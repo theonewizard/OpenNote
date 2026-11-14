@@ -18,6 +18,7 @@ DRAMATIQ_ARGS = [
     # Dramatiq calls this first in each worker process, then imports the jobs.
     "app.workers.__main__:setup_worker_process",
     "app.workers.jobs",
+    "app.ai.jobs",  # inert unless AI is configured and enabled for a vault
     "--processes",
     "1",
     "--threads",
