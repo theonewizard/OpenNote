@@ -11,8 +11,10 @@ from typing import Any
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from fastapi.routing import iter_route_contexts
 from fastapi.utils import is_body_allowed_for_status_code
 from starlette.exceptions import HTTPException
+from starlette.routing import compile_path
 
 PROBLEM_TYPE_BASE = "https://opennote.dev/problems/"
 PROBLEM_MEDIA_TYPE = "application/problem+json"
@@ -46,10 +48,14 @@ class ProblemError(HTTPException):
         title: str,
         type_slug: str,
         detail: str | None = None,
+        *,
+        extensions: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
-        super().__init__(status_code=status, detail=detail)
+        super().__init__(status_code=status, detail=detail, headers=dict(headers or {}) or None)
         self.title = title
         self.type_slug = type_slug
+        self.extensions = dict(extensions or {})
 
 
 def problem_response(
@@ -81,12 +87,33 @@ async def handle_http_exception(request: Request, exc: HTTPException) -> Respons
         return Response(status_code=exc.status_code, headers=exc.headers)
     path = request.url.path
     if isinstance(exc, ProblemError):
-        return problem_response(exc.status_code, exc.title, exc.type_slug, exc.detail, path)
+        return problem_response(
+            exc.status_code,
+            exc.title,
+            exc.type_slug,
+            exc.detail,
+            path,
+            extensions=exc.extensions,
+            headers=exc.headers,
+        )
     # exc.detail is free text from wherever it was raised; the status phrase is safe.
     detail = status_phrases.get(exc.status_code)
+    headers = dict(exc.headers or {})
+    if exc.status_code == 405:
+        headers["Allow"] = _allowed_methods(request)
     return problem_response(
-        exc.status_code, "HTTP error", "http-error", detail, path, headers=exc.headers
+        exc.status_code, "HTTP error", "http-error", detail, path, headers=headers
     )
+
+
+def _allowed_methods(request: Request) -> str:
+    """Every method the path supports. Starlette names only the first route that matches
+    the path, so `GET /x` and `POST /x` as two routes would answer `Allow: GET`."""
+    methods: set[str] = set()
+    for route in iter_route_contexts(request.app.routes):
+        if route.path and compile_path(route.path)[0].fullmatch(request.url.path):
+            methods |= set(route.methods or ())
+    return ", ".join(sorted(methods))
 
 
 async def handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:

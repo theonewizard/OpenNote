@@ -6,7 +6,7 @@ from pathlib import Path
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.notes.index import index_file, rebuild_index
+from app.notes.index import MAX_SEARCH_CHARS, index_file, rebuild_index
 from app.notes.models import File, Note
 from app.vaults.paths import casefold_key
 from app.vaults.registry import open_vault
@@ -19,6 +19,8 @@ DERIVED = {
     "note_links": "SELECT f.path, l.ordinal, l.target, r.path, l.embed, l.heading, l.block, "
     "l.alias FROM note_links l JOIN files f USING (file_id) "
     "LEFT JOIN files r ON r.file_id = l.resolved_file_id",
+    "search_documents": "SELECT f.path, d.vault_id, d.title, d.keywords, d.body, d.tsv::text "
+    "FROM search_documents d JOIN files f USING (file_id)",
 }
 
 
@@ -75,6 +77,10 @@ def test_drop_and_rebuild_gives_identical_index(obsidian_vault, session):
     assert notes["Links.md"][1:2] == ("Custom title",) and notes["Links.md"][3:] == (False, False)
     assert ("Latin1.md", "Latin1", None, False, True) in first["notes"]
     assert ("Broken.md", "Broken", None, True, False) in first["notes"]
+    docs = {row[0]: row[2:5] for row in first["search_documents"]}
+    assert docs["Links.md"][:2] == ("Custom title", "Topic Other inline")
+    assert docs["Links.md"][2].startswith("See [[Plan]]")  # frontmatter left out
+    assert docs["Latin1.md"] == ("Latin1", "", "")
     tags = {(p, k) for p, _, k in first["note_tags"] if p == "Links.md"}
     assert tags == {("Links.md", "topic"), ("Links.md", "other"), ("Links.md", "inline")}
     links = {(row[2], row[3]) for row in first["note_links"] if row[0] == "Links.md"}
@@ -151,3 +157,12 @@ def test_downgrade_drops_the_index_tables(pg_url, engine):
     alembic_downgrade(pg_url, "0002")
     engine.dispose()
     assert set(inspect(engine).get_table_names()) == {"alembic_version", "vaults"}
+
+
+def test_search_text_drops_nul_and_is_capped(obsidian_vault, session):
+    (obsidian_vault / "Nul.md").write_bytes(b"before\x00after " + b"x" * 300_000)
+    vault_id = open_vault(session, obsidian_vault)
+    add_files(session, vault_id, obsidian_vault)
+    rebuild_index(session, vault_id, obsidian_vault)
+    body = session.scalar(text("SELECT body FROM search_documents WHERE title = 'Nul'"))
+    assert body.startswith("beforeafter ") and len(body) == MAX_SEARCH_CHARS

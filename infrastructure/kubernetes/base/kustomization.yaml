@@ -1,4 +1,4 @@
-# OpenNote on Kubernetes: the api, worker and web Deployments, their Services, the vaults
+# OpenNote on Kubernetes: the api, worker, watcher and web Deployments, their Services, the vaults
 # and history volumes, the non-secret settings and the migration Job
 # (docs/deployment/kubernetes.md). PostgreSQL and Valkey are external. The Secret
 # `opennote` with the keys OPENNOTE_DATABASE_URL and OPENNOTE_VALKEY_URL must exist first.
@@ -20,6 +20,7 @@ resources:
   - pvc.yaml
   - api.yaml
   - worker.yaml
+  - watcher.yaml
   - web.yaml
   - service.yaml
   - job-migrate.yaml

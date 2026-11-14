@@ -101,16 +101,31 @@ def snapshot(session: Session, vault_id: uuid.UUID) -> list[ChangeEntry]:
 
 def ingest_fs_changes(committer: Committer, fs_changes: list[FsChange]) -> list[OpResult]:
     """Commit changes found on the server's vault as `server-fs` operations, each based
-    on the file's last known revision (sync §7)."""
-    if committer.unsettled:  # first finish writes that failed after their commit
-        committer.recover(set(committer.unsettled))
-    results = []
-    for change in fs_changes:
-        if change.file_id in committer.unsettled:
-            continue  # disk and registry differ because our write failed, not an edit
-        for op, blob in _ops_for(committer, change):
-            results.append(committer.commit(op, SERVER_FS, blob))
-    return results
+    on the file's last known revision (sync §7).
+
+    Disk and registry are read under the vault lock, after recovering the changed files
+    whose last revision is not on disk yet (written_revision behind revision):
+    a write another process has committed but not yet put on disk is finished, not read
+    back as an edit that would undo it."""
+    with committer._vault_lock():
+        changed = {c.file_id for c in fs_changes if c.file_id is not None}
+        with committer.session_factory() as s:
+            unwritten = s.scalars(
+                select(File.file_id).where(
+                    File.file_id.in_(changed),
+                    func.coalesce(File.written_revision, 0) < File.revision,
+                )
+            )
+            pending = set(committer.unsettled) | set(unwritten)
+        if pending:
+            committer.recover(pending)
+        results = []
+        for change in fs_changes:
+            if change.file_id in committer.unsettled:
+                continue  # disk and registry differ because our write failed, not an edit
+            for op, blob in _ops_for(committer, change):
+                results.append(committer.commit(op, SERVER_FS, blob))
+        return results
 
 
 def _ops_for(committer: Committer, change: FsChange) -> list[tuple[Operation, bytes | None]]:

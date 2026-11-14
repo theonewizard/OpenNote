@@ -45,7 +45,8 @@ def _blank(text: str, start: int, end: int) -> str:
     return text[:start] + re.sub(r"[^\n]", " ", text[start:end]) + text[end:]
 
 
-def _mask(body: str) -> str:
+def mask(body: str) -> str:
+    """`body` with code, HTML blocks and comments blanked, offsets kept (also used by tasks)."""
     line_starts = [0]
     for line in body.splitlines(keepends=True):
         line_starts.append(line_starts[-1] + len(line))
@@ -79,7 +80,7 @@ def _wiki(match: re.Match[str]) -> Link:
 def extract(doc: NoteDocument) -> Extraction:
     if doc.text is None:
         return Extraction()
-    body = _mask(doc.text[doc.body])
+    body = mask(doc.text[doc.body])
     found: list[tuple[int, Link]] = [(m.start(), _wiki(m)) for m in _WIKI.finditer(body)]
     urls: list[tuple[int, str]] = []
     for m in _MARKDOWN.finditer(body):

@@ -49,31 +49,31 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P2-01 | API infrastructure: problem details, ETag/If-Match, idempotency keys, cursor pagination, request IDs | P0-03 | P0 | Convention tests for 412/428/idempotent replay | NOT_STARTED |
-| P2-02 | Auth: OAuth 2.0 code + PKCE, local login (Argon2id), OIDC upstream, refresh rotation, devices, PATs, web cookie + CSRF | P2-01 | P0 | Auth matrix tests; revocation works; no route without auth | NOT_STARTED |
-| P2-03 | Vault endpoints + ACL roles | P2-02, P1-01 | P0 | Authorization matrix tests | NOT_STARTED |
-| P2-04 | Note endpoints (list, create, metadata, content, move, metadata edit, delete) on the sync commit path | P2-03, P1-12 | P0 | Stale writes rejected; bytes preserved through API | NOT_STARTED |
-| P2-05 | Folder endpoints | P2-04 | P0 | Folder move is one batch of revisions | NOT_STARTED |
-| P2-06 | Attachment endpoints (upload, range download, type sniffing) | P2-03, P1-09 | P0 | Upload validation tests; Range works | NOT_STARTED |
-| P2-07 | Tags endpoint | P2-04 | P0 | Counts match corpus | NOT_STARTED |
-| P2-08 | Search: grammar parser, PostgreSQL FTS + trigram, vault scoping | P2-04 | P0 | Grammar tests; p95 < 500 ms on 100k-note fixture | NOT_STARTED |
-| P2-09 | Audit log and rate limiting | P2-02 | P0 | Events recorded; 429 with headers | NOT_STARTED |
-| P2-10 | OpenAPI completeness, Schemathesis contract tests, generated clients | P2-04…P2-08, P0-12 | P0 | Schemathesis passes; clients compile | NOT_STARTED |
+| P2-01 | API infrastructure: problem details, ETag/If-Match, idempotency keys, cursor pagination, request IDs | P0-03 | P0 | Convention tests for 412/428/idempotent replay | TESTING |
+| P2-02 | Auth: OAuth 2.0 code + PKCE, local login (Argon2id), OIDC upstream, refresh rotation, devices, PATs, web cookie + CSRF | P2-01 | P0 | Auth matrix tests; revocation works; no route without auth | TESTING |
+| P2-03 | Vault endpoints + ACL roles | P2-02, P1-01 | P0 | Authorization matrix tests | TESTING |
+| P2-04 | Note endpoints (list, create, metadata, content, move, metadata edit, delete) on the sync commit path | P2-03, P1-12 | P0 | Stale writes rejected; bytes preserved through API | TESTING |
+| P2-05 | Folder endpoints | P2-04 | P0 | Folder move is one batch of revisions | TESTING |
+| P2-06 | Attachment endpoints (upload, range download, type sniffing) | P2-03, P1-09 | P0 | Upload validation tests; Range works | TESTING |
+| P2-07 | Tags endpoint | P2-04 | P0 | Counts match corpus | TESTING |
+| P2-08 | Search: grammar parser, PostgreSQL FTS + trigram, vault scoping | P2-04 | P0 | Grammar tests; p95 < 500 ms on 100k-note fixture | TESTING |
+| P2-09 | Audit log and rate limiting | P2-02 | P0 | Events recorded; 429 with headers | TESTING |
+| P2-10 | OpenAPI completeness, Schemathesis contract tests, generated clients | P2-04…P2-08, P0-12 | P0 | Schemathesis passes; clients compile | TESTING |
 
 ## Phase 3 — Web application (M3)
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P3-01 | Login/logout UI | P2-02 | P0 | Playwright login flow | NOT_STARTED |
-| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | NOT_STARTED |
-| P3-03 | Note list (sort, favorites, archive) | P2-04 | P0 | Playwright | NOT_STARTED |
-| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | NOT_STARTED |
-| P3-05 | Tags UI | P2-07 | P0 | — | NOT_STARTED |
-| P3-06 | Search UI with grammar hints | P2-08 | P0 | — | NOT_STARTED |
-| P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | NOT_STARTED |
+| P3-01 | Login/logout UI | P2-02 | P0 | Playwright login flow | TESTING |
+| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | TESTING |
+| P3-03 | Note list (sort, favorites, archive) | P2-04 | P0 | Playwright | TESTING |
+| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | TESTING |
+| P3-05 | Tags UI | P2-07 | P0 | — | TESTING |
+| P3-06 | Search UI with grammar hints | P2-08 | P0 | — | TESTING |
+| P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | TESTING |
 | P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | NOT_STARTED |
-| P3-09 | Settings, vault management | P2-03 | P0 | — | NOT_STARTED |
-| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | NOT_STARTED |
+| P3-09 | Settings, vault management | P2-03 | P0 | — | TESTING |
+| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | TESTING |
 
 ## Phase 4 — Apple applications (M4)
 
@@ -81,7 +81,7 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 |---|---|---|---|---|---|
 | P4-01 | `OpenNoteCore` parsing parity with Python on the corpus | P1-10 | P0 | Same `expected.json` results | NOT_STARTED |
 | P4-02 | `OpenNoteStorage`: local vault, atomic coordinated writes, SQLite state | P4-01 | P0 | Local save < 100 ms; round-trip tests | NOT_STARTED |
-| P4-03 | `OpenNoteAPI`: generated client, auth via ASWebAuthenticationSession, Keychain | P2-10 | P0 | Login on macOS and iOS | NOT_STARTED |
+| P4-03 | `OpenNoteAPI`: generated client, auth via ASWebAuthenticationSession, Keychain | P2-10 | P0 | Login on macOS and iOS | TESTING |
 | P4-04 | `OpenNoteEditor`: TextKit 2 Markdown editor with live styling | P4-02 | P0 | Corpus edits preserve bytes | NOT_STARTED |
 | P4-05 | macOS app: windows, menus, shortcuts, drag and drop, user-chosen vault folder | P4-02, P4-04 | P0 | XCUITest smoke | NOT_STARTED |
 | P4-06 | iOS app: app-container vault exposed in Files, camera attachments | P4-02, P4-04 | P0 | XCUITest smoke | NOT_STARTED |
@@ -109,14 +109,14 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | NOT_STARTED |
+| P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | IN_PROGRESS (parser and one-character toggle in `app/tasks/parse.py`; task index, view and the write wait for P2-04) |
 | P6-02 | Recurring tasks and reminders | P6-01 | P1 | — | NOT_STARTED |
 | P6-03 | Calendar integration (CalDAV server-side, EventKit on Apple) | P6-01 | P1 | — | NOT_STARTED |
 | P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | NOT_STARTED |
-| P6-05 | Templates | M5 | P1 | — | NOT_STARTED |
+| P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (Obsidian-compatible rendering in `app/notes/templates.py`; creating a note from a template waits for P2-04) |
 | P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | NOT_STARTED |
-| P6-07 | Saved searches | P2-08 | P1 | — | NOT_STARTED |
-| P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | NOT_STARTED |
+| P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
+| P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (backlink and graph queries in `app/notes/graph.py`; the HTTP route and the client panels follow the Phase 2 API) |
 | P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | NOT_STARTED |
 | P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | NOT_STARTED |
 
@@ -124,8 +124,8 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P7-01 | AI provider abstraction (Ollama, OpenAI-compatible, faster-whisper), off by default | M5 | P2 | Core works with AI disabled/absent | NOT_STARTED |
-| P7-02 | Embedding pipeline (chunking, pgvector, incremental on change) | P7-01 | P2 | Index updates after edits | NOT_STARTED |
+| P7-01 | AI provider abstraction (Ollama, OpenAI-compatible, faster-whisper), off by default | M5 | P2 | Core works with AI disabled/absent | IN_PROGRESS: `backend/app/ai` has the `AIProvider` protocol (`embed`, `generate`) with Ollama and OpenAI-compatible providers, off by default, external providers only for vaults that opt in ([AI guide](deployment/ai.md)); the full suite passes with AI unset. faster-whisper (`transcribe`) is left to P7-07, the first feature that needs it |
+| P7-02 | Embedding pipeline (chunking, pgvector, incremental on change) | P7-01 | P2 | Index updates after edits | TESTING: migration `0008`; every API commit enqueues `embed_vault_job` when a provider is set, and a run re-embeds only changed chunks (integration tests); `python -m app.ai embed` for changes made outside the API. Not verified against a real model |
 | P7-03 | Hybrid semantic search | P7-02, P2-08 | P2 | Results cite notes; vault-scoped | NOT_STARTED |
 | P7-04 | AI assistant with citations and injection defenses | P7-03 | P2 | Red-team cases pass | NOT_STARTED |
 | P7-05 | Auto-tagging and classification suggestions | P7-01 | P2 | Suggestions only; no unapproved writes | NOT_STARTED |
@@ -138,11 +138,11 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
 | P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | NOT_STARTED |
-| P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | NOT_STARTED |
+| P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | IN_PROGRESS (DAST: ZAP API scan in the containers workflow, `scripts/dast.sh`; the external review is still to be arranged) |
 | P8-03 | Accessibility review (VoiceOver, keyboard, WCAG 2.2 AA web) | M5 | P0 | — | NOT_STARTED |
 | P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | NOT_STARTED |
-| P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | NOT_STARTED |
+| P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | TESTING (`python -m app.sync.rebuild`, [disaster-recovery.md](deployment/disaster-recovery.md); integration tests and a manual drill; the Compose drill in CI follows P8-04's merge) |
 | P8-06 | OpenShift production deployment (Helm, Routes, restricted SCC) | P0-11 | P0 | Deploys on OpenShift 4.16+ | TESTING: the chart and the OpenShift overlay deploy in CI on kind at Kubernetes 1.29 and 1.37 under Pod Security `restricted`, with `restricted-v2`'s arbitrary UID and `fsGroup` simulated, smoke tests, network policy, upgrade and uninstall checked (`deploy` job, `scripts/kind-deploy-test.sh`); production settings in [kubernetes.md, Production on OpenShift](deployment/kubernetes.md#production-on-openshift). Not yet run on an OpenShift cluster: the Route and real SCC admission need one |
-| P8-07 | User, operator and API documentation | — | P0 | — | NOT_STARTED |
+| P8-07 | User, operator and API documentation | — | P0 | — | TESTING ([user-guide.md](user-guide.md), [operator-guide.md](deployment/operator-guide.md), [using-the-api.md](api/using-the-api.md); the user guide grows with the web and Apple apps) |
 | P8-08 | Release automation, image signing, app notarization/TestFlight | — | P0 | — | NOT_STARTED |
 | P8-09 | Beta program | P8-01…P8-08 | P0 | — | NOT_STARTED |
