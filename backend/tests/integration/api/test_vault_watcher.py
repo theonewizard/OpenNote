@@ -100,3 +100,20 @@ async def test_a_second_instance_waits_for_the_first(api, monkeypatch):
         b.join(5)
         first.close()
         second.close()
+
+
+async def test_retention_runs_for_every_live_vault(api, monkeypatch):
+    vault_id = api.vault(api.user("alice"))
+    pruned: list[tuple[uuid.UUID, int]] = []
+
+    def fake_prune(committer, **policy):
+        pruned.append((committer.vault_id, policy["tombstone_days"]))
+        raise RuntimeError("one vault failing does not stop the run")
+
+    monkeypatch.setattr(service, "prune", fake_prune)
+    committers = Committers(api.settings)
+    try:
+        await anyio.to_thread.run_sync(service.apply_retention, committers)
+    finally:
+        committers.close()
+    assert pruned == [(vault_id, api.settings.tombstone_retention_days)]

@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from app.notes.identity import FsChange
 from app.notes.models import File
 from app.sync.commit import SERVER_FS, Committer, Create, Delete, Move, Operation, OpResult, Update
-from app.sync.cursor import RETENTION_SEQ_WINDOW, CursorExpired, decode_cursor, encode_cursor
-from app.sync.models import Revision
+from app.sync.cursor import CursorExpired, decode_cursor, encode_cursor
+from app.sync.models import Revision, VaultSeq
 from app.vaults.fsio import hash_path
 from app.vaults.paths import classify
 from app.vaults.scan import MAX_NOTE_BYTES
@@ -71,10 +71,11 @@ def push(
 def changes(
     session: Session, vault_id: uuid.UUID, cursor: str | None, limit: int = 500
 ) -> ChangesPage:
-    """Revisions after `cursor`, in seq order. CursorExpired beyond the retention window."""
+    """Revisions after `cursor`, in seq order. CursorExpired when retention has removed a
+    tombstone the cursor has not seen (the vault's horizon, P5-07)."""
     after = decode_cursor(cursor, vault_id) if cursor else 0
-    last = session.scalar(select(func.max(Revision.seq)).where(Revision.vault_id == vault_id))
-    if cursor and last is not None and after < last - RETENTION_SEQ_WINDOW:
+    horizon = session.scalar(select(VaultSeq.horizon_seq).where(VaultSeq.vault_id == vault_id))
+    if cursor and horizon and after < horizon:
         raise CursorExpired("cursor is older than the retention window")
     rows = session.scalars(
         select(Revision)

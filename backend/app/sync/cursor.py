@@ -6,9 +6,6 @@ import struct
 import uuid
 
 PROTOCOL_VERSION = 1
-# Prototype retention in sequence numbers: the simulation cannot wait 90 days and no
-# decision may read a clock (I6). The production rule in days is Phase 5 (P5-07).
-RETENTION_SEQ_WINDOW = 100_000
 _FORMAT = ">B16sQ"
 
 

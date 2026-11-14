@@ -11,9 +11,11 @@ from pathlib import Path
 import httpx2
 import pytest
 import uvicorn
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.sync import service
+from app.sync.models import VaultSeq
 from app.vaults.models import Vault
 
 pytestmark = pytest.mark.anyio
@@ -196,13 +198,13 @@ async def test_bad_and_foreign_cursors_are_400(api, owner):
         assert response.json()["type"].endswith("/invalid-cursor")
 
 
-async def test_expired_cursor_is_410(api, owner, monkeypatch):
+async def test_expired_cursor_is_410(api, owner):
     vault, headers = owner
     await _create_file(api, headers, vault, "A.md", b"a\n")
     old = service.encode_cursor(vault, 0)
     await _create_file(api, headers, vault, "B.md", b"b\n")
-    await _create_file(api, headers, vault, "C.md", b"c\n")
-    monkeypatch.setattr(service, "RETENTION_SEQ_WINDOW", 1)
+    with Session(api.engine) as s, s.begin():  # retention forgot a tombstone at seq 2
+        s.execute(update(VaultSeq).where(VaultSeq.vault_id == vault).values(horizon_seq=2))
     response = await api.client.get(
         f"/api/v1/sync/{vault}/changes", params={"cursor": old}, headers=headers
     )

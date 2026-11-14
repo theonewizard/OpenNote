@@ -27,6 +27,7 @@ The protocol is judged by these invariants, which the simulation suite checks af
 | Cursor | Opaque string encoding `(vault_id, seq, protocol_version)`. Clients store it; only the server interprets it |
 | History | Every revision's bytes in the content-addressed history store ([storage contract §7](storage-contract.md#7-history-store-server)) |
 | Tombstone | A revision with `deleted = true`. Kept for at least the retention window (default 90 days) so offline clients learn about deletes |
+| Retention | Applied daily by the vault watcher (P5-07): every revision is kept 30 days, then the last revision of each UTC day until 365 days; a file's current revision and the revisions a conflict names are never removed. A deleted file whose tombstone is past the retention window is forgotten, and the vault's horizon moves to that tombstone's seq: cursors before it are expired. Stored operation results and resolved conflicts go after the same window; history objects nothing refers to, after 7 days |
 
 Commits are serialized per vault (PostgreSQL row lock on the vault's sequence row), which keeps `seq` gap-free and makes conflict decisions deterministic.
 

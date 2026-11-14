@@ -16,6 +16,7 @@ from pydantic import (
     RedisDsn,
     TypeAdapter,
     ValidationError,
+    ValidationInfo,
     field_validator,
     model_validator,
 )
@@ -83,6 +84,16 @@ class Settings(BaseSettings):
     max_blob_bytes: int = Field(
         default=512 * 1024 * 1024, ge=1, description="Largest attachment upload, in bytes"
     )
+    # Retention (design D6, sync protocol §2.1, P5-07); the vault watcher applies it daily.
+    history_keep_all_days: int = Field(30, ge=1, description="Every revision is kept this long")
+    history_keep_daily_days: int = Field(
+        365, ge=1, description="Then the last revision of each day, until this age"
+    )
+    tombstone_retention_days: int = Field(
+        90,
+        ge=8,  # clients drop outbox operations 7 days before this window ends
+        description="Deletes and operation results are kept this long",
+    )
     log_level: str = "INFO"
     environment: Literal["development", "test", "production"] = "production"
     # Requests per minute under /api/ (app.api.ratelimit); 0 turns that limit off.
@@ -101,6 +112,13 @@ class Settings(BaseSettings):
         if level == "NOTSET" or level not in logging.getLevelNamesMapping():
             raise ValueError("unknown log level")
         return level
+
+    @field_validator("history_keep_daily_days")
+    @classmethod
+    def _daily_after_all(cls, value: int, info: ValidationInfo) -> int:
+        if value < info.data.get("history_keep_all_days", 0):
+            raise ValueError("must not be below history_keep_all_days")
+        return value
 
 
 def _secrets_from_files(fields: Iterable[str] = SECRET_FIELDS) -> dict[str, Any]:
