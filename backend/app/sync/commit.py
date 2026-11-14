@@ -35,8 +35,8 @@ from app.vaults.fsio import (
     atomic_write,
     hash_path,
     move_to,
-    read_file,
     rename_noreplace,
+    stream_file,
 )
 from app.vaults.paths import casefold_key, classify, validate
 from app.vaults.scan import MAX_NOTE_BYTES
@@ -243,13 +243,18 @@ class Committer:
         with self.session_factory() as session:
             if prior := session.get(ClientOp, (self.vault_id, op.client_op_id)):
                 return dataclasses.replace(OpResult.from_json(prior.result), status="duplicate")
+        size = 0
         if isinstance(op, Create | Update):
-            if blob is None or _sha(blob) != op.content_hash:
+            # Bytes given in memory (REST notes) are stored here; otherwise the blob must
+            # already be in the history store (uploaded, or streamed in by ingest).
+            if blob is not None and _sha(blob) == op.content_hash:
+                self.history.put(blob)  # step 1
+            elif blob is not None or not self.history.has(op.content_hash):
                 problem = _Rejected(422, "blob-missing", "Blob missing or not matching").problem
                 return OpResult("rejected", op.file_id, None, None, None, None, problem)
-            self.history.put(blob)  # step 1
+            size = len(blob) if blob is not None else self.history.size(op.content_hash)
         self.crash("history")
-        result, revs = self._commit_db(op, device_id, blob, device_name)  # step 2
+        result, revs = self._commit_db(op, device_id, size, device_name)  # step 2
         if not revs:
             return result
         self.crash("db")
@@ -283,7 +288,7 @@ class Committer:
         self._apply(file_id, revision, on_disk, State(path, current, False))
 
     def _commit_db(
-        self, op: Operation, device_id: str, blob: bytes | None, device_name: str
+        self, op: Operation, device_id: str, size: int, device_name: str
     ) -> tuple[OpResult, list[_Rev]]:
         with self.session_factory.begin() as s:
             s.execute(
@@ -299,7 +304,7 @@ class Committer:
             now = self.clock()
             try:
                 day = now.date().isoformat()
-                result, revs = self._plan(s, op, device_id, device_name, blob, day)
+                result, revs = self._plan(s, op, device_id, device_name, size, day)
             except _Rejected as rejected:
                 result = OpResult("rejected", op.file_id, None, None, None, None, rejected.problem)
                 revs = []
@@ -384,15 +389,16 @@ class Committer:
         op: Operation,
         device_id: str,
         device_name: str,
-        blob: bytes | None,
+        size: int,
         day: str,
     ) -> tuple[OpResult, list[_Rev]]:
+        """`size` is the size of a create's or update's blob."""
         server_fs = device_id == SERVER_FS
         match op:
             case Create():
-                return self._plan_create(s, op, blob or b"", device_name, day, server_fs)
+                return self._plan_create(s, op, size, device_name, day, server_fs)
             case Update():
-                return self._plan_update(s, op, blob or b"", device_name, day, server_fs)
+                return self._plan_update(s, op, size, device_name, day, server_fs)
             case Move():
                 row = self._file(s, op.file_id)
                 self._check_base(row, op.base_revision)
@@ -435,15 +441,14 @@ class Committer:
                 if row.deleted and self._live_at(s, path):
                     raise _Rejected(409, "path-taken", "Path is taken")
                 before = State(row.path, row.content_hash, row.deleted)
-                size = len(self.history.get(old.content_hash))
                 rev = self._next(
-                    row, "restore", content_hash=old.content_hash, size=size, before=before
+                    row, "restore", content_hash=old.content_hash, size=old.size, before=before
                 )
                 return self._result("applied", rev), [rev]
         raise _Rejected(422, "unknown-operation", "Unknown operation")
 
     def _plan_create(
-        self, s: Session, op: Create, blob: bytes, device_name: str, day: str, server_fs: bool
+        self, s: Session, op: Create, size: int, device_name: str, day: str, server_fs: bool
     ) -> tuple[OpResult, list[_Rev]]:
         self._check_path(op.path, op.kind)
         if s.get(File, op.file_id) is not None:
@@ -457,55 +462,52 @@ class Committer:
             status = "conflict"
             problem = self._conflict(s, taken, op.file_id, 0)
         before = State(path, op.content_hash, False) if server_fs and path == op.path else None
-        rev = _Rev(
-            op.file_id, 1, path, op.kind, op.content_hash, False, "create", len(blob), before
-        )
+        rev = _Rev(op.file_id, 1, path, op.kind, op.content_hash, False, "create", size, before)
         return self._result(status, rev, problem), [rev]
 
     def _plan_update(
-        self, s: Session, op: Update, blob: bytes, device_name: str, day: str, server_fs: bool
+        self, s: Session, op: Update, size: int, device_name: str, day: str, server_fs: bool
     ) -> tuple[OpResult, list[_Rev]]:
         row = self._file(s, op.file_id)
         self._check_base(row, op.base_revision)
         on_disk = State(row.path, op.content_hash, False) if server_fs else None
         if row.deleted:  # update vs delete: edit wins, the file comes back
             if self._live_at(s, row.path):
-                return self._conflict_copy(s, row, op, blob, device_name, day)
+                return self._conflict_copy(s, row, op, size, device_name, day)
             before = on_disk or State(row.path, row.content_hash, True)
-            rev = self._next(
-                row, "update", content_hash=op.content_hash, size=len(blob), before=before
-            )
+            rev = self._next(row, "update", content_hash=op.content_hash, size=size, before=before)
             return self._result("applied", rev), [rev]
-        data = blob
+        content_hash = op.content_hash
         status: Status = "applied"
         if op.base_revision < row.revision:
             base = self._revision(s, row.file_id, op.base_revision)
-            theirs = self.history.get(row.content_hash)
-            opaque = max(len(blob), len(theirs)) > MAX_NOTE_BYTES
+            opaque = max(size, row.size) > MAX_NOTE_BYTES
             if row.kind != "note" or opaque or base is None or base.content_hash is None:
-                if blob != theirs:
-                    return self._conflict_copy(s, row, op, blob, device_name, day)
-            else:
-                merged = merge_note(self.history.get(base.content_hash), theirs, blob)
+                if op.content_hash != row.content_hash:
+                    return self._conflict_copy(s, row, op, size, device_name, day)
+            else:  # only notes up to MAX_NOTE_BYTES are read into memory, to merge
+                ours = self.history.get(op.content_hash)
+                theirs = self.history.get(row.content_hash)
+                merged = merge_note(self.history.get(base.content_hash), theirs, ours)
                 if not merged.clean or merged.data is None:
-                    return self._conflict_copy(s, row, op, blob, device_name, day)
-                data = merged.data
-                if data != blob:
-                    self.history.put(data)  # step 1 for the merged bytes, before the commit
+                    return self._conflict_copy(s, row, op, size, device_name, day)
+                if merged.data != ours:
+                    # step 1 for the merged bytes, before the commit
+                    content_hash, size = self.history.put(merged.data), len(merged.data)
                     status = "merged"
-        if _sha(data) == row.content_hash:
+        if content_hash == row.content_hash:
             return self._unchanged(row), []
         before = on_disk or State(row.path, row.content_hash, False)
-        rev = self._next(row, "update", content_hash=_sha(data), size=len(data), before=before)
+        rev = self._next(row, "update", content_hash=content_hash, size=size, before=before)
         return self._result(status, rev), [rev]
 
     def _conflict_copy(
-        self, s: Session, row: File, op: Update, blob: bytes, device_name: str, day: str
+        self, s: Session, row: File, op: Update, size: int, device_name: str, day: str
     ) -> tuple[OpResult, list[_Rev]]:
         path = conflict_copy_path(row.path, device_name, day, lambda p: bool(self._live_at(s, p)))
         copy_id = uuid.uuid7()
         problem = self._conflict(s, row, copy_id, op.base_revision)
-        rev = _Rev(copy_id, 1, path, row.kind, op.content_hash, False, "create", len(blob), None)
+        rev = _Rev(copy_id, 1, path, row.kind, op.content_hash, False, "create", size, None)
         return self._result("conflict", rev, problem), [rev]
 
     def _conflict(self, s: Session, row: File, copy_id: uuid.UUID, base: int) -> dict[str, Any]:
@@ -577,14 +579,14 @@ class Committer:
                 return True
             if after.content_hash is None:
                 return True
-            data = self.history.get(after.content_hash)
             if before is None or before.deleted:
                 atomic_write(
                     self.root_fd,
                     after.path,
-                    data,
+                    self.history.stream(after.content_hash),
                     expected_hash=None,
                     recovery_dir=self.recovery_dir,
+                    new_hash=after.content_hash,
                 )
                 return True
             if before.path != after.path:
@@ -605,9 +607,10 @@ class Committer:
                 atomic_write(
                     self.root_fd,
                     after.path,
-                    data,
+                    self.history.stream(after.content_hash),
                     expected_hash=before.content_hash,
                     recovery_dir=self.recovery_dir,
+                    new_hash=after.content_hash,
                 )
             return True
         except ExternalChangeError as err:
@@ -625,18 +628,25 @@ class Committer:
         """Commit external bytes found in the way: as an update on the previous revision,
         or, where the commit created the file, as an unrelated new file at that path."""
         try:
-            data = (
-                err.preserved.read_bytes() if err.preserved else read_file(self.root_fd, err.path)
-            )
+            if err.preserved:
+                with open(err.preserved, "rb") as fh:
+                    content = self.history.put_stream(iter(lambda: fh.read(1 << 20), b""))
+            else:
+                content = self._store_vault_file(err.path)
         except FileNotFoundError:
             log.warning("vault file removed during a commit; the watcher reconciles")
             return
         follow: Operation
         if new_file:
-            follow = Create(uuid.uuid7(), uuid.uuid7(), err.path, classify(err.path), _sha(data))
+            follow = Create(uuid.uuid7(), uuid.uuid7(), err.path, classify(err.path), content)
         else:
-            follow = Update(uuid.uuid7(), file_id, max(revision - 1, 1), _sha(data))
-        self.commit(follow, SERVER_FS, data)
+            follow = Update(uuid.uuid7(), file_id, max(revision - 1, 1), content)
+        self.commit(follow, SERVER_FS, None)
+
+    def _store_vault_file(self, path: str) -> str:
+        """Stream a vault file into the history store and return its hash, so a commit of
+        its bytes never holds them whole."""
+        return self.history.put_stream(stream_file(self.root_fd, path))
 
     def _index(self, revs: list[_Rev]) -> None:
         try:
@@ -703,8 +713,8 @@ class Committer:
             return
         if written == revision:  # the write finished: what differs was edited afterwards
             if actual is not None and not after.deleted:
-                data = read_file(self.root_fd, after.path)
-                self.commit(Update(uuid.uuid7(), file_id, revision, _sha(data)), SERVER_FS, data)
+                content = self._store_vault_file(after.path)
+                self.commit(Update(uuid.uuid7(), file_id, revision, content), SERVER_FS, None)
             return
         if before is None or before.deleted:
             at_before = actual is None
@@ -715,6 +725,6 @@ class Committer:
         if at_before:
             self._apply(file_id, revision, before, after)
         elif actual is not None:
-            data = read_file(self.root_fd, after.path)
+            content = self._store_vault_file(after.path)
             base = written or max(revision - 1, 1)  # the revision the vault last held
-            self.commit(Update(uuid.uuid7(), file_id, base, _sha(data)), SERVER_FS, data)
+            self.commit(Update(uuid.uuid7(), file_id, base, content), SERVER_FS, None)

@@ -3204,7 +3204,7 @@
         ]
       },
       "head": {
-        "description": "200 when the vault's store holds the blob, else 404: upload only what is missing.",
+        "description": "200 when the vault's store holds the blob, else 404: upload only what is missing.\n`Upload-Offset` says how many bytes of a resumable upload have arrived (0 for none):\ncontinue from there.",
         "operationId": "head_blob",
         "parameters": [
           {
@@ -3264,7 +3264,7 @@
         ]
       },
       "put": {
-        "description": "Upload a blob before pushing the operation that names it. The bytes must hash to\n`sha256` (else 422); uploading a blob the store already holds is a no-op.",
+        "description": "Upload a blob before pushing the operation that names it. The bytes must hash to\n`sha256` (else 422); uploading a blob the store already holds is a no-op.\n\nLarge blobs go in chunks with `Content-Range`: each chunk answers 202 with the new\n`Upload-Offset`, the last one 204 once the whole blob is stored. After an interruption,\n`HEAD` gives the offset to continue from; a chunk that does not start there is a 409\ncarrying the offset.",
         "operationId": "put_blob",
         "parameters": [
           {
@@ -3290,6 +3290,24 @@
               "title": "Vault Id",
               "type": "string"
             }
+          },
+          {
+            "description": "`bytes <first>-<last>/<total>` for one chunk of a resumable upload (at most 8388608 bytes, starting at the `Upload-Offset` `HEAD` gives)",
+            "in": "header",
+            "name": "Content-Range",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`bytes <first>-<last>/<total>` for one chunk of a resumable upload (at most 8388608 bytes, starting at the `Upload-Offset` `HEAD` gives)",
+              "title": "Content-Range"
+            }
           }
         ],
         "requestBody": {
@@ -3304,6 +3322,17 @@
           "required": true
         },
         "responses": {
+          "202": {
+            "description": "Chunk stored; the upload is not complete",
+            "headers": {
+              "Upload-Offset": {
+                "description": "Bytes of the upload received so far",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
           "204": {
             "description": "Successful Response"
           },

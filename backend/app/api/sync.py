@@ -7,13 +7,14 @@ Everything goes through the same Committer as the REST note endpoints, so a push
 
 import asyncio
 import json
+import re
 import time
 import uuid
 from collections.abc import AsyncIterator
 from typing import Annotated, Literal
 
 import anyio.to_thread
-from fastapi import APIRouter, Depends, Path, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, Path, Query, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
@@ -54,7 +55,7 @@ from app.sync.commit import Create, Delete, Move, Operation, OpResult, Restore, 
 from app.sync.cursor import CursorExpired
 from app.sync.cursor import encode_cursor as encode_sync_cursor
 from app.sync.events import channel
-from app.sync.history import HistoryStore
+from app.sync.history import HistoryStore, UploadBusy, UploadHashMismatch, UploadOffsetMismatch
 from app.sync.models import Conflict as ConflictRow
 from app.vaults.models import Vault, VaultMember
 from app.vaults.paths import normalize
@@ -66,7 +67,11 @@ Sha256 = Annotated[
 ]
 _BYTES = {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}
 _ETAG = {"ETag": {"description": 'The revision, `"<revision>"`', "schema": {"type": "string"}}}
-_CHUNK = 1 << 20
+MAX_CHUNK_BYTES = 8 * 1024 * 1024  # sync protocol §3
+_UPLOAD_OFFSET = {
+    "description": "Bytes of the upload received so far",
+    "schema": {"type": "integer"},
+}
 
 HEARTBEAT_SECONDS = 25.0  # below the 60 s idle timeout of nginx and most proxies
 STREAM_SECONDS = 15 * 60  # an access token's lifetime: the client reconnects with a fresh one
@@ -98,10 +103,20 @@ def _blob_too_large(limit: int) -> ProblemError:
 async def head_blob(
     sha256: Sha256, request: Request, caller: Caller, db: DB, vault_id: VaultIdQuery
 ) -> Response:
-    """200 when the vault's store holds the blob, else 404: upload only what is missing."""
+    """200 when the vault's store holds the blob, else 404: upload only what is missing.
+    `Upload-Offset` says how many bytes of a resumable upload have arrived (0 for none):
+    continue from there."""
     await require_vault(db, caller, vault_id, "viewer")
-    if not _history(request, vault_id).has("sha256:" + sha256):
-        raise _blob_not_found()
+    history, content_hash = _history(request, vault_id), "sha256:" + sha256
+    if not history.has(content_hash):
+        offset = await anyio.to_thread.run_sync(history.upload_offset, content_hash)
+        raise ProblemError(
+            404,
+            "Blob not found",
+            "blob-not-found",
+            "No blob with this hash.",
+            headers={"Upload-Offset": str(offset)},
+        )
     return Response(status_code=200)
 
 
@@ -130,12 +145,35 @@ async def get_blob(
     status_code=204,
     response_class=Response,
     openapi_extra={"requestBody": {"required": True, "content": _BYTES}},
+    responses={
+        202: {
+            "description": "Chunk stored; the upload is not complete",
+            "headers": {"Upload-Offset": _UPLOAD_OFFSET},
+        }
+    },
 )
 async def put_blob(
-    sha256: Sha256, request: Request, caller: Caller, db: DB, vault_id: VaultIdQuery
+    sha256: Sha256,
+    request: Request,
+    caller: Caller,
+    db: DB,
+    vault_id: VaultIdQuery,
+    content_range: Annotated[
+        str | None,
+        Header(
+            alias="Content-Range",
+            description="`bytes <first>-<last>/<total>` for one chunk of a resumable upload "
+            f"(at most {MAX_CHUNK_BYTES} bytes, starting at the `Upload-Offset` `HEAD` gives)",
+        ),
+    ] = None,
 ) -> Response:
     """Upload a blob before pushing the operation that names it. The bytes must hash to
-    `sha256` (else 422); uploading a blob the store already holds is a no-op."""
+    `sha256` (else 422); uploading a blob the store already holds is a no-op.
+
+    Large blobs go in chunks with `Content-Range`: each chunk answers 202 with the new
+    `Upload-Offset`, the last one 204 once the whole blob is stored. After an interruption,
+    `HEAD` gives the offset to continue from; a chunk that does not start there is a 409
+    carrying the offset."""
     await require_vault(db, caller, vault_id, "editor")
     limit: int = request.app.state.settings.max_blob_bytes
     declared = request.headers.get("content-length", "")
@@ -145,6 +183,8 @@ async def put_blob(
     content_hash = "sha256:" + sha256
     if history.has(content_hash):
         return Response(status_code=204)
+    if content_range is not None:
+        return await _put_chunk(request, history, content_hash, content_range, limit)
     writer = await anyio.to_thread.run_sync(history.writer)
     try:
         async for chunk in request.stream():
@@ -155,10 +195,69 @@ async def put_blob(
     except BaseException:
         await anyio.to_thread.run_sync(writer.abort)
         raise
-    if not stored:
+    if stored is None:
         raise ProblemError(
             422, "Hash mismatch", "blob-hash-mismatch", "The bytes do not match the hash."
         )
+    return Response(status_code=204)
+
+
+_RANGE = re.compile(r"bytes (\d{1,19})-(\d{1,19})/(\d{1,19})")
+
+
+async def _put_chunk(
+    request: Request, history: HistoryStore, content_hash: str, content_range: str, limit: int
+) -> Response:
+    match = _RANGE.fullmatch(content_range.strip())
+    first, last, total = (int(g) for g in match.groups()) if match else (0, -1, 0)
+    if not match or first > last or last >= total:
+        raise ProblemError(
+            400, "Invalid Content-Range", "invalid-content-range", "Send bytes first-last/total."
+        )
+    if total > limit:
+        raise _blob_too_large(limit)
+    length = last - first + 1
+    if length > MAX_CHUNK_BYTES:
+        raise ProblemError(
+            413,
+            "Chunk too large",
+            "chunk-too-large",
+            f"Chunks are limited to {MAX_CHUNK_BYTES} bytes.",
+        )
+    data = bytearray()
+    async for piece in request.stream():
+        data += piece
+        if len(data) > length:
+            break
+    if len(data) != length:
+        raise ProblemError(
+            400,
+            "Invalid Content-Range",
+            "invalid-content-range",
+            "The body is not the range's length.",
+        )
+    try:
+        offset = await anyio.to_thread.run_sync(
+            history.append_upload, content_hash, first, bytes(data), total
+        )
+    except UploadOffsetMismatch as err:
+        raise ProblemError(
+            409,
+            "Upload offset mismatch",
+            "upload-offset-mismatch",
+            "Continue the upload at `Upload-Offset`.",
+            headers={"Upload-Offset": str(err.offset)},
+        ) from None
+    except UploadBusy:
+        raise ProblemError(
+            409, "Upload in progress", "upload-in-progress", "Another request is sending this blob."
+        ) from None
+    except UploadHashMismatch:
+        raise ProblemError(
+            422, "Hash mismatch", "blob-hash-mismatch", "The bytes do not match the hash."
+        ) from None
+    if offset < total:
+        return Response(status_code=202, headers={"Upload-Offset": str(offset)})
     return Response(status_code=204)
 
 
@@ -294,14 +393,8 @@ async def push(
 
     def run() -> list[OpResult]:
         committer = committers.get(vault.id, vault.root_path)
-        results = []
-        for op in ops:
-            content_hash = getattr(op, "content_hash", None)
-            blob = None
-            if content_hash and committer.history.has(content_hash):
-                blob = committer.history.get(content_hash)
-            results.append(committer.commit(op, caller.device_id, blob, name))
-        return results
+        # No bytes passed: the commit reads each blob from the history store, streaming.
+        return [committer.commit(op, caller.device_id, None, name) for op in ops]
 
     results = await anyio.to_thread.run_sync(run)
     body_out = SyncPushResult(
