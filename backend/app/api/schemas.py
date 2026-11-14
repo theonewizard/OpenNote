@@ -339,3 +339,17 @@ class SearchHit(BaseModel):
 
 class SearchPage(_Page):
     items: list[SearchHit]
+
+
+# Imports ----------------------------------------------------------------------------------
+
+
+class ImportSkip(BaseModel):
+    title: str = Field(description="The note's title in the export; empty for the file itself")
+    reason: str
+
+
+class ImportResult(BaseModel):
+    notes: list[NoteRef] = Field(description="The notes created, in export order")
+    attachments: int = Field(description="Attachments created for them")
+    skipped: list[ImportSkip]

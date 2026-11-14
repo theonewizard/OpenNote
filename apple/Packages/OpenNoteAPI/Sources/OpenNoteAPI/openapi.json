@@ -88,6 +88,34 @@
         "title": "AttachmentPage",
         "type": "object"
       },
+      "Body_import_enex": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "An Evernote export (.enex)",
+            "title": "File",
+            "type": "string"
+          },
+          "folder": {
+            "default": "Evernote",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Folder",
+            "type": "string"
+          },
+          "vault_id": {
+            "format": "uuid",
+            "title": "Vault Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id",
+          "file"
+        ],
+        "title": "Body_import_enex",
+        "type": "object"
+      },
       "Body_token": {
         "properties": {
           "client_id": {
@@ -425,6 +453,56 @@
           "moved_files"
         ],
         "title": "FolderMoveResult",
+        "type": "object"
+      },
+      "ImportResult": {
+        "properties": {
+          "attachments": {
+            "description": "Attachments created for them",
+            "title": "Attachments",
+            "type": "integer"
+          },
+          "notes": {
+            "description": "The notes created, in export order",
+            "items": {
+              "$ref": "#/components/schemas/NoteRef"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/ImportSkip"
+            },
+            "title": "Skipped",
+            "type": "array"
+          }
+        },
+        "required": [
+          "notes",
+          "attachments",
+          "skipped"
+        ],
+        "title": "ImportResult",
+        "type": "object"
+      },
+      "ImportSkip": {
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "title": {
+            "description": "The note's title in the export; empty for the file itself",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "reason"
+        ],
+        "title": "ImportSkip",
         "type": "object"
       },
       "LoginRequest": {
@@ -2703,6 +2781,59 @@
         "summary": "Create Folder",
         "tags": [
           "folders"
+        ]
+      }
+    },
+    "/api/v1/imports/enex": {
+      "post": {
+        "description": "Import every note of an ENEX export into `folder` (R-P6-011). A note that cannot be\nwritten is listed in `skipped`; the others are imported.",
+        "operationId": "import_enex",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_import_enex"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Import Enex",
+        "tags": [
+          "imports"
         ]
       }
     },

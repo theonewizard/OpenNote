@@ -118,7 +118,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
 | P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (backlink and graph queries in `app/notes/graph.py`; the HTTP route and the client panels follow the Phase 2 API) |
 | P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | NOT_STARTED |
-| P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | NOT_STARTED |
+| P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | IN_PROGRESS (`POST /api/v1/imports/enex`; email-to-note remains) |
 
 ## Phase 7 — AI (M7)
 
