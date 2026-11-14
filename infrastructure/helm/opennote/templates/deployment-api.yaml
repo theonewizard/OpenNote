@@ -40,6 +40,10 @@ spec:
                 name: {{ include "opennote.fullname" . }}
           env:
             {{- include "opennote.secretEnv" . | nindent 12 }}
+            {{- with .Values.trustedProxies }}
+            - name: FORWARDED_ALLOW_IPS
+              value: {{ . | quote }}
+            {{- end }}
           startupProbe:
             httpGet:
               path: /healthz

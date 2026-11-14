@@ -26,6 +26,9 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 | P1-12 sync prototype | COMPLETED | 10,000 seeds (500 to 10,499) zero violations in CI on `main`'s code 88c08c7 ([sync-sim-nightly run](https://github.com/theonewizard/OpenNote/actions/runs/41581414871), manual dispatch, 224 tests passed, 46 min). The pull request's CI was green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped; 10,000 seeds zero violations over seeds 0 to 9,999 on `4673673` |
 | P4-01, P4-02, P4-04 Apple core packages | COMPLETED | Parser parity, local vault storage and the TextKit 2 editor in `apple/Packages` ([plan](superpowers/plans/2026-11-07-apple-core-packages-plan.md)); `swift test` green on macOS and Linux and both app schemes build ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511)). Not yet wired into the app windows (P4-05/P4-06) |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
+| P6-01 tasks (parse part) | IN_PROGRESS | `app/tasks/parse.py` finds tasks (any status character, nesting, quotes and callouts; not in code or comments) and computes the one-character toggle; nothing stores tasks or writes the toggle until P2-04 ([record](../.conversations/2026-11-07-links-tasks-templates.md)) |
+| P6-05 templates (parse part) | IN_PROGRESS | `app/notes/templates.py` renders `{{title}}`, `{{date}}`, `{{time}}` and `{{date:FORMAT}}` with Moment.js tokens; creating a note from a template waits for P2-04 |
+| P6-08 backlinks and graph | IN_PROGRESS | `app/notes/graph.py` queries backlinks, the vault graph and the local graph from `note_links`; the `/notes/{id}/links` route and client panels follow the Phase 2 API |
 
 ## Verified where
 
@@ -84,13 +87,14 @@ These are repository settings only the owner can change ([workflow.md](developme
 ## Known limits
 
 - Phase 2 (details in the plan's Errata and the [record](../.conversations/2026-11-07-phase-2-backend-api.md)):
-  - Behind the web container every client counts as one IP for rate limits until the proxy's forwarded headers are trusted (`FORWARDED_ALLOW_IPS`); the choice is put to Flemming.
+  - The api trusts `X-Forwarded-For` from the web proxy only (R-P2-010: Compose pins web's address, Helm takes `trustedProxies`, the kustomize base leaves it unset). A TLS proxy in front of web is still seen as the client, because web's nginx does not trust it in turn; behind one, every client shares the proxy's rate limit.
   - A folder move or recursive delete commits one revision per file with no rollback: a failure part-way leaves the files already moved where they are and returns the error.
   - An attachment edited outside OpenNote to exactly the same size, before the watcher sees it, is served with the new bytes (downloads compare size, not hash).
   - Upstream OIDC relies on state and nonce, not PKCE; the callback URL is built from the request's host and scheme, so a reverse proxy must pass the forwarded headers.
   - `POST /tokens` does not replay an `Idempotency-Key` (that would store the shown-once secret); a retry makes a second token.
   - Search snippets come from the raw Markdown; a nested tag `project/alpha` is one word for free-text search (`tag:` finds children).
   - The note list and folder list read whole vault listings per call; fine for small vaults, measured by P8-01.
+  - The vault watcher (`python -m app.vaults`, added after the merge when a registered folder's notes did not appear) starts watching a new vault within 5 s, and its first scan of a large vault holds up the vaults registered after it. It has no health check (no HTTP endpoint).
 - Phase 1's crash tests inject failures between the steps of a write and of a commit (`test_crash_at_each_point_leaves_old_or_new_bytes`, the four commit crash points); a real power loss, and `fsync` behaviour of a given filesystem, is not tested.
 - `renameat2(RENAME_EXCHANGE)` closes the check-to-rename window of the external-change guard; filesystems without it (NFS, some RWX volumes) fall back to check-then-rename and log a warning the first time ([deployment guide](deployment/kubernetes.md)).
 - Obsidian link resolution compares every link with every path (`app/notes/links.py`), which is fine for the corpus and small vaults and is measured by P8-01's 100k-note vault.

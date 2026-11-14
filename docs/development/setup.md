@@ -54,7 +54,7 @@ Requests under `/api/` are counted in Valkey in fixed one-minute windows, before
 - per credential (the `Authorization` header, `X-API-Key` or the session cookie; Valkey keys hold a SHA-256 digest of it, never the secret): `OPENNOTE_RATE_LIMIT_PER_PRINCIPAL` (default 600);
 - per client IP on `/api/v1/auth/login`, `/auth/token`, `/auth/authorize` and `/auth/oidc/*`, on top of the above: `OPENNOTE_RATE_LIMIT_AUTH_PER_IP` (default 10).
 
-API responses carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds) for the limit closest to running out; over a limit the answer is a `429` `rate-limited` problem with `Retry-After`. `/healthz` and `/readyz` are never limited. If Valkey is unreachable the limits are skipped (fail open), with a warning logged at most once a minute; `/readyz` reports Valkey down meanwhile. The client IP is the address uvicorn reports: the connection's, or the `X-Forwarded-For` client when the connection comes from an address in uvicorn's `--forwarded-allow-ips` (env `FORWARDED_ALLOW_IPS`, default `127.0.0.1`). Behind the web container or another proxy, set it to the proxy's address, or every client is counted as the proxy; the api image does not set it yet. The test fixtures turn the limits off; `tests/integration/api/test_ratelimit.py` turns them on.
+API responses carry `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` (seconds) for the limit closest to running out; over a limit the answer is a `429` `rate-limited` problem with `Retry-After`. `/healthz` and `/readyz` are never limited. If Valkey is unreachable the limits are skipped (fail open), with a warning logged at most once a minute; `/readyz` reports Valkey down meanwhile. The client IP is the address uvicorn reports: the connection's, or the `X-Forwarded-For` client when the connection comes from an address in uvicorn's `--forwarded-allow-ips` (env `FORWARDED_ALLOW_IPS`, default `127.0.0.1`). Behind the web container or another proxy, set it to the proxy's address, or every client is counted as the proxy. Flemming chose to trust the web proxy only (R-P2-010): `compose.yaml` gives web the fixed address `OPENNOTE_WEB_ADDRESS` (default `172.30.80.10`) in the subnet `OPENNOTE_NETWORK_SUBNET` (default `172.30.80.0/24`) and sets the api's `FORWARDED_ALLOW_IPS` to it, and the Helm chart sets it from `trustedProxies`. A TLS proxy in front of web appears to the api as the client unless web is taught to trust it as well; web does not do that yet. The test fixtures turn the limits off; `tests/integration/api/test_ratelimit.py` turns them on.
 
 ## 3. Start PostgreSQL and Valkey
 
@@ -88,7 +88,7 @@ Apple packages are tested with `swift test --package-path apple/Packages/<Packag
 
 The web app's Playwright tests (`npm run test:e2e` in `web/`, section 9) build the app and serve it on port 4173 with `--strictPort`, never reusing a server already there, so only one e2e run per host at a time. `OPENNOTE_PW_EXECUTABLE`, read by `web/playwright.config.ts`, points Playwright at a Chromium already installed instead of the build `npx playwright install chromium` downloads.
 
-## 5. Run the worker
+## 5. Run the worker and the vault watcher
 
 With the variables of section 2 set and Valkey running:
 
@@ -97,6 +97,14 @@ cd backend && ../.venv/bin/python -m app.workers
 ```
 
 It validates every `OPENNOTE_*` setting at start and, if any is missing or invalid, exits with one line naming the fields; it uses `OPENNOTE_VALKEY_URL` and `OPENNOTE_LOG_LEVEL`. One worker process with four threads takes jobs from Valkey and logs JSON lines on stdout. On SIGTERM or Ctrl-C it lets running jobs finish, waiting at most 50 s, then exits. Do not point it at the test Valkey database (section 3): the worker tests' jobs and key cleanup would collide with it.
+
+The vault watcher indexes the notes already in a registered folder and commits what changes in a vault outside OpenNote:
+
+```bash
+cd backend && ../.venv/bin/python -m app.vaults
+```
+
+It needs the database and the vault and history directories. Every 5 s it starts watching new vaults (the first full scan imports their notes) and stops watching deleted ones. Only one copy runs per database: a second waits on a PostgreSQL advisory lock until the first exits. SIGTERM or Ctrl-C stops it. Without it, notes saved through the API still work, but files added or edited directly in a vault folder are never indexed.
 
 ### Run the API without containers
 
