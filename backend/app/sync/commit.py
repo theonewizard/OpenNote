@@ -19,12 +19,13 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from sqlalchemy import delete, func, select, text, update
+from sqlalchemy import any_, delete, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.db import uuid_array
 from app.core.problems import PROBLEM_TYPE_BASE
-from app.notes.index import DERIVED, index_file, remove_file
+from app.notes.index import DERIVED, index_file, relink, remove_file
 from app.notes.models import File
 from app.sync.history import HistoryStore, RevisionLogEntry
 from app.sync.merge import conflict_copy_path, merge_note
@@ -625,13 +626,17 @@ class Committer:
             with self.session_factory.begin() as s:
                 for rev in revs:
                     if rev.deleted:
+                        relink(s, self.vault_id, rev.file_id, None)
                         remove_file(s, rev.file_id)
                     elif rev.kind == "note" and rev.content_hash and rev.size > MAX_NOTE_BYTES:
                         for model in DERIVED:  # grown opaque: not parsed
                             s.execute(delete(model).where(model.file_id == rev.file_id))
+                        relink(s, self.vault_id, rev.file_id, rev.path)
                     elif rev.kind == "note" and rev.content_hash:
                         data = self.history.get(rev.content_hash)
                         index_file(s, self.vault_id, rev.file_id, data, rev.path)
+                    else:  # an attachment: links naming it may resolve to it now
+                        relink(s, self.vault_id, rev.file_id, rev.path)
         except Exception:
             log.exception("indexing after a commit failed; a rebuild repairs it")
 
@@ -646,8 +651,8 @@ class Committer:
             revs = select(Revision).where(Revision.vault_id == self.vault_id)
             rows = select(File).where(File.vault_id == self.vault_id)
             if file_ids is not None:
-                revs = revs.where(Revision.file_id.in_(file_ids))
-                rows = rows.where(File.file_id.in_(file_ids))
+                revs = revs.where(Revision.file_id == any_(uuid_array(file_ids)))
+                rows = rows.where(File.file_id == any_(uuid_array(file_ids)))
             revisions = s.scalars(revs.order_by(Revision.seq)).all()
             files = s.scalars(rows).all()
             s.expunge_all()

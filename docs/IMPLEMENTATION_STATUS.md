@@ -93,11 +93,11 @@ These are repository settings only the owner can change ([workflow.md](developme
   - Upstream OIDC relies on state and nonce, not PKCE; the callback URL is built from the request's host and scheme, so a reverse proxy must pass the forwarded headers.
   - `POST /tokens` does not replay an `Idempotency-Key` (that would store the shown-once secret); a retry makes a second token.
   - Search snippets come from the raw Markdown; a nested tag `project/alpha` is one word for free-text search (`tag:` finds children).
-  - The note list and folder list read whole vault listings per call; fine for small vaults, measured by P8-01.
+  - The note list and folder list read whole vault listings per call; P8-01's 100k-note benchmark measures the note list of one folder ([benchmarks.md](development/benchmarks.md)).
   - The vault watcher (`python -m app.vaults`, added after the merge when a registered folder's notes did not appear) starts watching a new vault within 5 s, and its first scan of a large vault holds up the vaults registered after it. It has no health check (no HTTP endpoint).
 - Phase 1's crash tests inject failures between the steps of a write and of a commit (`test_crash_at_each_point_leaves_old_or_new_bytes`, the four commit crash points); a real power loss, and `fsync` behaviour of a given filesystem, is not tested.
 - `renameat2(RENAME_EXCHANGE)` closes the check-to-rename window of the external-change guard; filesystems without it (NFS, some RWX volumes) fall back to check-then-rename and log a warning the first time ([deployment guide](deployment/kubernetes.md)).
-- Obsidian link resolution compares every link with every path (`app/notes/links.py`), which is fine for the corpus and small vaults and is measured by P8-01's 100k-note vault.
+- A commit re-resolves only the links its file can change (P8-01, migration `0008`); links indexed before `0008` are re-resolved on every commit until the index is rebuilt (`rebuild_index`). Importing a vault costs about 25 ms per note on a 4-vCPU machine (a 100k-note vault: about 40 minutes), [benchmarks.md](development/benchmarks.md).
 - Each watcher pass rescans the whole vault with a stat cache (only changed files are hashed); per-path rescans are a Phase 2 option.
 - The worker has no health check (no HTTP endpoint). After a graceful stop, a SIGHUP restart of `python -m app.workers` fails; orchestrators send SIGTERM, which works.
 - `/readyz` checks the two data directories in a thread; a hung network mount can leave that thread blocked after the check has timed out.

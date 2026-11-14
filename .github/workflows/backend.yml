@@ -2,7 +2,8 @@
 # mypy, pytest with the integration tests) on Python 3.14 against PostgreSQL with
 # pgvector and Valkey service containers, and the OpenAPI drift check
 # (docs/development/setup.md, "Continuous integration"). The pytest run includes 500
-# seeds of the sync simulation; a nightly run adds 10,000 (sync protocol §13).
+# seeds of the sync simulation; a nightly run adds 10,000 (sync protocol §13) and runs
+# the 100k-note benchmarks (P8-01, docs/development/benchmarks.md).
 name: backend
 
 on:
@@ -136,6 +137,40 @@ jobs:
       - *create-venv
       - name: 10,000 simulation seeds
         run: make sync-sim SEEDS=10000 SEED_START=500
+
+  # P8-01: design §15.14 targets on a 100k-note vault, nightly or on a manual run. The
+  # results are in the job summary and the benchmark-results artifact.
+  benchmark-nightly:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    services: *services
+    env: *test-env
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements*.txt
+            backend/constraints.txt
+      - *create-venv
+      - name: 100k-note benchmarks
+        run: make benchmark OUT="$RUNNER_TEMP/benchmark.json"
+      - name: Results in the job summary
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/benchmark.json" ] || exit 0
+          { echo '```json'; cat "$RUNNER_TEMP/benchmark.json"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: benchmark-results
+          path: ${{ runner.temp }}/benchmark.json
+          if-no-files-found: ignore
 
   openapi-drift:
     name: openapi drift

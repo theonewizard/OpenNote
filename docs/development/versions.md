@@ -162,6 +162,7 @@ Every `uses:` in `.github/workflows/` names the full commit SHA of a release tag
 |---|---|---|---|---|
 | actions/checkout | v7.0.1 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | 2026-07-17 | 2026-10-18 |
 | actions/setup-python | v7.0.0 | `5fda3b95a4ea91299a34e894583c3862153e4b97` | 2026-07-19 | 2026-10-18 |
+| actions/upload-artifact | v7.0.2 | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` (the head of `main` on the day it was checked) | 2026-10-07 | 2026-11-14 |
 | actions/setup-node | v7.1.0 | `949feb2413d6458794dcd2491c4babbbce0c15c1` | 2026-10-07 | 2026-10-18 |
 | aquasecurity/setup-trivy | v0.3.1 | `81e514348e19b6112ce2a7e3ecbafe19c1e1f567` (lightweight tag; the action's own steps pin `actions/checkout` and `actions/cache` by SHA, and the Trivy install script to a commit of aquasecurity/trivy) | 2026-06-03 | 2026-10-18 |
 | azure/setup-helm | v5.0.1 | `9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310` (lightweight tag). Unlike the rows above, the commit is not on `main` but on the release branch `releases/v5.0.1`: a "build" commit of the action's release workflow that adds only the compiled `lib/index.js` on top of `main`'s `95ecf4967d92f8074e91c548e394f8ac547da403` ("Bump version to 5.0.1"). It downloads Helm from https://get.helm.sh without checking a checksum | 2026-06-23 | 2026-10-18 |

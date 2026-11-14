@@ -1,5 +1,5 @@
 """ORM models for the file identity registry and the derived note index (migrations 0003,
-0007).
+0007, 0008).
 
 `files` is identity and is never dropped by a rebuild; `notes`, `note_tags`,
 `note_links` and `search_documents` are derived from the vault and can be rebuilt at any
@@ -62,6 +62,8 @@ class NoteLink(Base):
     )
     ordinal: Mapped[int] = mapped_column(primary_key=True)
     target: Mapped[str]
+    # links.target_key(target); NULL on rows indexed before migration 0008.
+    target_key: Mapped[str | None]
     resolved_file_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("files.file_id", ondelete="SET NULL")
     )
