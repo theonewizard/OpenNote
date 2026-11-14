@@ -8,7 +8,7 @@
 # Runs as UID 1001 group 0 or any other UID in group 0, on a read-only root filesystem with
 # a writable /tmp and a volume at /var/lib/postgresql/data. First start: see entrypoint.sh.
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.9@sha256:baafce2d34783a28b4a472779f304e97e00f9d35c99553bc53b068b14344d9a9
 
 LABEL org.opencontainers.image.title="opennote-postgres" \
       org.opencontainers.image.description="PostgreSQL 18 with pgvector for OpenNote" \
