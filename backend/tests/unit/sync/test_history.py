@@ -113,3 +113,35 @@ def test_log_lines_are_json(store):
     store.append_log(entry(1))
     line = (store.root / "log" / "2026-11.jsonl").read_text().splitlines()[0]
     assert json.loads(line)["seq"] == 1
+
+
+def test_writer_streams_into_an_object_get_can_read(store):
+    data = bytes(range(256)) * 10_000
+    writer = store.writer()
+    for i in range(0, len(data), 65536):
+        writer.write(data[i : i + 65536])
+    digest = "sha256:" + hashlib.sha256(data).hexdigest()
+    assert writer.finish(digest) is True
+    assert store.has(digest)
+    assert store.get(digest) == data
+    assert b"".join(store.stream(digest, chunk_size=4096)) == data
+    assert not list((store.root / "objects").glob(".upload.*"))
+
+
+def test_writer_with_the_wrong_hash_stores_nothing(store):
+    writer = store.writer()
+    writer.write(b"abc")
+    assert writer.finish("sha256:" + "0" * 64) is False
+    assert not [p for p in (store.root / "objects").rglob("*") if p.is_file()]
+
+
+def test_writer_abort_removes_the_temporary_file(store):
+    writer = store.writer()
+    writer.write(b"abc")
+    writer.abort()
+    assert not [p for p in (store.root / "objects").rglob("*") if p.is_file()]
+
+
+def test_stream_of_a_missing_object_fails_at_once(store):
+    with pytest.raises(FileNotFoundError):
+        store.stream("sha256:" + "1" * 64)

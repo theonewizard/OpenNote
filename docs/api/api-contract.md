@@ -101,8 +101,9 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | PATCH | `/api/v1/notes/{id}` | Move/rename `{ path }`, or metadata edit `{ tags?, aliases?, opennote? }` applied with the round-trip YAML editor [2] |
 | DELETE | `/api/v1/notes/{id}` | Delete (tombstone + history) [2] |
 | GET | `/api/v1/notes/{id}/links` | Outgoing, incoming (backlinks), unresolved [2 basic, 6 full] |
-| GET | `/api/v1/notes/{id}/revisions`, `/revisions/{rev}`, `/revisions/{rev}/content` | History [5] |
-| POST | `/api/v1/notes/{id}/restore` | Restore `{ from_revision }` [5] |
+| GET | `/api/v1/notes/{id}/revisions`, `/revisions/{rev}`, `/revisions/{rev}/content` | History, newest first, tombstones included; content is 404 for a tombstone, 410 past retention [5] |
+| POST | `/api/v1/notes/{id}/restore` | Restore `{ from_revision }`; `If-Match` with the current (or tombstone) revision is required [5] |
+| GET | `/api/v1/vaults/{vault_id}/deleted-notes?cursor=&limit=` | Deleted notes, newest delete first, with `last_content_revision` for restore [5] |
 | GET | `/api/v1/folders?vault_id=` | Folder tree [2] |
 | POST / PATCH / DELETE | `/api/v1/folders` | Create, move/rename (batch of file moves), delete (only empty, or recursive with `?recursive=true` producing tombstones) [2] |
 | POST | `/api/v1/attachments` | Multipart upload `{ vault_id, path, file }` [2] |
@@ -111,13 +112,13 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/tags?vault_id=` | Tag list with counts [2] |
 | GET | `/api/v1/search?vault_id=&q=&cursor=&limit=` | Search, grammar in §5 [2] |
 | GET / POST / DELETE | `/api/v1/saved-searches` | [6] |
-| PUT / HEAD | `/api/v1/blobs/{sha256}` | Content-addressed upload / existence check for sync [5, prototype 1] |
+| PUT / HEAD / GET | `/api/v1/blobs/{sha256}?vault_id=` | Content-addressed upload (bytes must hash to `sha256`, else 422) / existence check / download, in the vault's store [5] |
 | GET | `/api/v1/sync/{vault_id}/changes?cursor=` | Pull [5] |
-| GET | `/api/v1/sync/{vault_id}/snapshot` | Full file list for reconcile [5] |
+| GET | `/api/v1/sync/{vault_id}/snapshot?page=&limit=` | Full file list for reconcile, paged by path, one `cursor` for all pages [5] |
 | POST | `/api/v1/sync/{vault_id}/push` | Push operations [5] |
 | GET / DELETE | `/api/v1/devices`, `/devices/{device_id}` | List and revoke devices; a device is created by its first token exchange (`device_name`, `device_platform` on `/auth/token`) [2] |
-| GET / PATCH | `/api/v1/conflicts?vault_id=`, `/conflicts/{id}` | List, mark resolved [5] |
-| WS | `/api/v1/events` | Change hints `{ vault_id, seq }` for subscribed vaults [5] |
+| GET / PATCH | `/api/v1/conflicts?vault_id=&status=`, `/conflicts/{id}` | List (open by default), read, mark resolved or open (`If-Match`) [5] |
+| GET | `/api/v1/events` | Change hints as Server-Sent Events: `ready`, then `change` `{ vault_id, seq }` for every vault the caller may read; ends after 15 minutes [5] |
 | GET / POST / DELETE | `/api/v1/tokens` | Personal access tokens [2] |
 | GET | `/api/v1/me` | Current user, roles [2] |
 | GET / POST | `/api/v1/users` | List users, create a local account (admin) [2] |

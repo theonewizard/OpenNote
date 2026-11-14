@@ -172,6 +172,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/blobs/{sha256}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Blob
+         * @description The blob's bytes, for a pulled change. Check them against the hash.
+         */
+        get: operations["get_blob"];
+        /**
+         * Put Blob
+         * @description Upload a blob before pushing the operation that names it. The bytes must hash to
+         *     `sha256` (else 422); uploading a blob the store already holds is a no-op.
+         */
+        put: operations["put_blob"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        /**
+         * Head Blob
+         * @description 200 when the vault's store holds the blob, else 404: upload only what is missing.
+         */
+        head: operations["head_blob"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conflicts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Conflicts
+         * @description The vault's conflicts, oldest first; open ones by default.
+         */
+        get: operations["list_conflicts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conflicts/{conflict_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Conflict */
+        get: operations["get_conflict"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Conflict
+         * @description Mark a conflict resolved (or open again). Resolving changes no file: the user
+         *     edits or deletes the copy; both versions stay in history.
+         */
+        patch: operations["update_conflict"];
+        trace?: never;
+    };
     "/api/v1/devices": {
         parameters: {
             query?: never;
@@ -208,6 +279,30 @@ export interface paths {
          *     15 minutes.
          */
         delete: operations["revoke_device"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Events
+         * @description Change hints as Server-Sent Events: `ready` with the subscribed vaults, then a
+         *     `change` `{vault_id, seq}` after each commit in one of them. Hints are advisory: pull
+         *     on `ready` and on every hint; correctness never depends on them. The stream ends
+         *     after 15 minutes (reconnect with a current token); vaults joined meanwhile are
+         *     included on reconnect.
+         */
+        get: operations["events"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -395,6 +490,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notes/{note_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Note
+         * @description Bring back the bytes of `from_revision` as a new revision; a deleted note comes
+         *     back at its last path. `If-Match` names the note's current revision (for a deleted
+         *     note, the tombstone's), so a restore never replaces an edit the caller has not seen.
+         */
+        post: operations["restore_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{note_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Note Revisions
+         * @description Every revision of the note, newest first, the note's tombstones included. A diff
+         *     between two revisions is computed by the client from their contents.
+         */
+        get: operations["list_note_revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{note_id}/revisions/{revision}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Note Revision */
+        get: operations["get_note_revision"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{note_id}/revisions/{revision}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Note Revision Content
+         * @description The note's exact bytes at `revision`. 404 for a tombstone; 410 once retention has
+         *     removed the revision's bytes.
+         */
+        get: operations["get_note_revision_content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -407,6 +583,72 @@ export interface paths {
          * @description Full-text search with filters, best match first.
          */
         get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/{vault_id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Changes
+         * @description Committed revisions after `cursor`, in commit order. A cursor older than the
+         *     tombstone retention window is a 410: run a full reconcile from the snapshot.
+         */
+        get: operations["get_changes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/{vault_id}/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Push
+         * @description Commit up to 100 operations in order, each on its own (sync protocol §5). Upload
+         *     each operation's blob first; a missing blob makes that operation `rejected`.
+         *     Retrying an operation with the same `client_op_id` returns its first result as
+         *     `duplicate`; the `Idempotency-Key` replays a whole batch.
+         */
+        post: operations["push"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sync/{vault_id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Snapshot
+         * @description Every live file at its current revision, for a full reconcile (sync protocol §4).
+         *     Read every page, then pull changes from `cursor`: a change committed while paging is
+         *     in that pull, so the client converges even though the pages are not one instant.
+         */
+        get: operations["get_snapshot"];
         put?: never;
         post?: never;
         delete?: never;
@@ -552,6 +794,27 @@ export interface paths {
          * @description Rename or change settings (owner).
          */
         patch: operations["update_vault"];
+        trace?: never;
+    };
+    "/api/v1/vaults/{vault_id}/deleted-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Deleted Notes
+         * @description Deleted notes, most recently deleted first, for recovery: restore one with
+         *     `POST /notes/{id}/restore` from its `last_content_revision`.
+         */
+        get: operations["list_deleted_notes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/vaults/{vault_id}/members": {
@@ -721,6 +984,116 @@ export interface components {
              * Format: uuid
              */
             vault_id: string;
+        };
+        /** Conflict */
+        Conflict: {
+            /**
+             * Base Revision
+             * @description The revision the other edit was based on; 0 for a create
+             */
+            base_revision: number;
+            /**
+             * Copy File Id
+             * Format: uuid
+             * @description The conflict copy holding the other edit
+             */
+            copy_file_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * File Id
+             * Format: uuid
+             * @description The file whose revision stayed current
+             */
+            file_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "resolved";
+            /**
+             * Their Revision
+             * @description The file's revision the edit collided with
+             */
+            their_revision: number;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** ConflictPage */
+        ConflictPage: {
+            /** Items */
+            items: components["schemas"]["Conflict"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /** ConflictPatch */
+        ConflictPatch: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "resolved";
+        };
+        /** DeletedNote */
+        DeletedNote: {
+            /**
+             * Deleted At
+             * Format: date-time
+             */
+            deleted_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Content Revision
+             * @description The newest revision with content
+             */
+            last_content_revision: number;
+            /**
+             * Path
+             * @description Where the note was when it was deleted
+             */
+            path: string;
+            /**
+             * Revision
+             * @description The tombstone's revision; send it as `If-Match` to restore
+             */
+            revision: number;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** DeletedNotePage */
+        DeletedNotePage: {
+            /** Items */
+            items: components["schemas"]["DeletedNote"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
         };
         /** Device */
         Device: {
@@ -983,6 +1356,60 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** NoteRestore */
+        NoteRestore: {
+            /**
+             * From Revision
+             * @description The revision whose bytes come back
+             */
+            from_revision: number;
+        };
+        /** NoteRevision */
+        NoteRevision: {
+            /**
+             * Committed At
+             * Format: date-time
+             */
+            committed_at: string;
+            /**
+             * Content Hash
+             * @description Null for a delete (tombstone)
+             */
+            content_hash: string | null;
+            /** Deleted */
+            deleted: boolean;
+            /**
+             * Device Id
+             * @description The device that made the change; `server-fs` for edits on the server's vault
+             */
+            device_id: string;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "create" | "update" | "move" | "delete" | "restore";
+            /** Path */
+            path: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Seq
+             * @description The vault's change sequence number of this revision
+             */
+            seq: number;
+            /** Size */
+            size: number;
+        };
+        /** NoteRevisionPage */
+        NoteRevisionPage: {
+            /** Items */
+            items: components["schemas"]["NoteRevision"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
         /** OutgoingLink */
         OutgoingLink: {
             /** Alias */
@@ -1082,6 +1509,157 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** PushCreate */
+        PushCreate: {
+            /**
+             * Client Op Id
+             * Format: uuid
+             * @description UUIDv7 made by the client; retries reuse it
+             */
+            client_op_id: string;
+            /**
+             * Content Hash
+             * @description `sha256:` and the lowercase hex digest
+             */
+            content_hash: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "note" | "attachment";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "create";
+            /** Path */
+            path: string;
+        };
+        /** PushDelete */
+        PushDelete: {
+            /** Base Revision */
+            base_revision: number;
+            /**
+             * Client Op Id
+             * Format: uuid
+             * @description UUIDv7 made by the client; retries reuse it
+             */
+            client_op_id: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "delete";
+        };
+        /** PushMove */
+        PushMove: {
+            /** Base Revision */
+            base_revision: number;
+            /**
+             * Client Op Id
+             * Format: uuid
+             * @description UUIDv7 made by the client; retries reuse it
+             */
+            client_op_id: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** New Path */
+            new_path: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "move";
+        };
+        /** PushRestore */
+        PushRestore: {
+            /**
+             * Client Op Id
+             * Format: uuid
+             * @description UUIDv7 made by the client; retries reuse it
+             */
+            client_op_id: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** From Revision */
+            from_revision: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "restore";
+        };
+        /**
+         * PushResult
+         * @description For `conflict`, the fields describe the conflict copy and `problem` names the
+         *     original file (`original_file_id`); for `rejected`, `problem` says why.
+         */
+        PushResult: {
+            /** Content Hash */
+            content_hash: string | null;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /** Path */
+            path: string | null;
+            /** Problem */
+            problem: {
+                [key: string]: unknown;
+            } | null;
+            /** Revision */
+            revision: number | null;
+            /** Seq */
+            seq: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "applied" | "merged" | "conflict" | "rejected" | "duplicate";
+        };
+        /** PushUpdate */
+        PushUpdate: {
+            /** Base Revision */
+            base_revision: number;
+            /**
+             * Client Op Id
+             * Format: uuid
+             * @description UUIDv7 made by the client; retries reuse it
+             */
+            client_op_id: string;
+            /**
+             * Content Hash
+             * @description `sha256:` and the lowercase hex digest
+             */
+            content_hash: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "update";
+        };
         /** SearchHit */
         SearchHit: {
             note: components["schemas"]["Note"];
@@ -1113,6 +1691,81 @@ export interface components {
             server_version: string;
             /** Sync Protocol Versions */
             sync_protocol_versions: number[];
+        };
+        /** SyncChanges */
+        SyncChanges: {
+            /** Entries */
+            entries: components["schemas"]["SyncEntry"][];
+            /** Has More */
+            has_more: boolean;
+            /**
+             * Next Cursor
+             * @description Store it and send it as `cursor` on the next pull
+             */
+            next_cursor: string;
+        };
+        /** SyncEntry */
+        SyncEntry: {
+            /**
+             * Content Hash
+             * @description Null for a tombstone
+             */
+            content_hash: string | null;
+            /** Deleted */
+            deleted: boolean;
+            /** Device Id */
+            device_id: string;
+            /**
+             * File Id
+             * Format: uuid
+             */
+            file_id: string;
+            /**
+             * Kind
+             * @description `note`, `attachment` or `config`
+             */
+            kind: string;
+            /** Op */
+            op: string;
+            /** Path */
+            path: string;
+            /** Revision */
+            revision: number;
+            /** Seq */
+            seq: number;
+            /** Size */
+            size: number;
+        };
+        /** SyncPush */
+        SyncPush: {
+            /** Operations */
+            operations: (components["schemas"]["PushCreate"] | components["schemas"]["PushUpdate"] | components["schemas"]["PushMove"] | components["schemas"]["PushDelete"] | components["schemas"]["PushRestore"])[];
+        };
+        /** SyncPushResult */
+        SyncPushResult: {
+            /**
+             * Results
+             * @description One per operation, in order
+             */
+            results: components["schemas"]["PushResult"][];
+        };
+        /** SyncSnapshot */
+        SyncSnapshot: {
+            /**
+             * Cursor
+             * @description Pull changes from this cursor once every page is read; the same on every page of one snapshot
+             */
+            cursor: string;
+            /**
+             * Entries
+             * @description Live files, ordered by path
+             */
+            entries: components["schemas"]["SyncEntry"][];
+            /**
+             * Next Page
+             * @description Pass as `page` for the next page; null on the last
+             */
+            next_page: string | null;
         };
         /** Tag */
         Tag: {
@@ -1676,6 +2329,221 @@ export interface operations {
             };
         };
     };
+    get_blob: {
+        parameters: {
+            query: {
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path: {
+                /** @description Lowercase hex SHA-256 of the bytes */
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    put_blob: {
+        parameters: {
+            query: {
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path: {
+                /** @description Lowercase hex SHA-256 of the bytes */
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    head_blob: {
+        parameters: {
+            query: {
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path: {
+                /** @description Lowercase hex SHA-256 of the bytes */
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_conflicts: {
+        parameters: {
+            query: {
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+                /** @description Only this status; open by default */
+                status?: ("open" | "resolved") | null;
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_conflict: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conflict_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conflict"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_conflict: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                conflict_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConflictPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conflict"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_devices: {
         parameters: {
             query?: {
@@ -1727,6 +2595,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": {
+                        data: string;
+                        /** @enum {string} */
+                        event: "ready" | "change";
+                    };
+                };
             };
             /** @description Problem details (RFC 9457) */
             default: {
@@ -2250,6 +3151,146 @@ export interface operations {
             };
         };
     };
+    restore_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteRestore"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_note_revisions: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRevisionPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_note_revision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteRevision"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_note_revision_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+                revision: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/markdown": string;
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query: {
@@ -2275,6 +3316,116 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_changes: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the last pull; omitted, from the start */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncChanges"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    push: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating a request with the same key within 24 h returns the first response */
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncPush"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncPushResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_snapshot: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description `next_page` of the previous page */
+                page?: string | null;
+            };
+            header?: never;
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncSnapshot"];
                 };
             };
             /** @description Problem details (RFC 9457) */
@@ -2651,6 +3802,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Vault"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_deleted_notes: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedNotePage"];
                 };
             };
             /** @description Problem details (RFC 9457) */

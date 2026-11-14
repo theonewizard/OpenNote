@@ -69,6 +69,28 @@ class HistoryStore:
         _fsync_dir(path.parent)
         return digest
 
+    def has(self, content_hash: str) -> bool:
+        return self._object(content_hash).exists()
+
+    def writer(self) -> ObjectWriter:
+        """A streaming `put`: bytes are hashed and compressed as they arrive."""
+        return ObjectWriter(self)
+
+    def stream(self, content_hash: str, chunk_size: int = 1 << 20) -> Iterator[bytes]:
+        """The bytes under `content_hash`, decompressed chunk by chunk. FileNotFoundError
+        at once when there is no such object. Unlike `get`, the bytes are not checked
+        against the hash before they are handed out; the reader checks the hash."""
+        fh = open(self._object(content_hash), "rb")  # noqa: SIM115 - closed by the generator
+
+        def chunks() -> Iterator[bytes]:
+            with fh:
+                decompressor = zstd.ZstdDecompressor()
+                while block := fh.read(chunk_size):
+                    if data := decompressor.decompress(block):
+                        yield data
+
+        return chunks()
+
     def get(self, content_hash: str) -> bytes:
         """The bytes stored under `content_hash`; HistoryCorrupt if they do not match it."""
         compressed = self._object(content_hash).read_bytes()
@@ -110,3 +132,44 @@ class HistoryStore:
                     yield RevisionLogEntry(**data)
                 except ValueError, KeyError, TypeError:
                     raise HistoryCorrupt(f"bad revision log line in {path.name}") from None
+
+
+class ObjectWriter:
+    """Receives a blob in chunks into a temporary file beside the objects, then `finish`
+    moves it into place under its hash. `abort` removes the temporary file."""
+
+    def __init__(self, store: HistoryStore) -> None:
+        self.store = store
+        objects = store.root / "objects"
+        objects.mkdir(parents=True, exist_ok=True)
+        self.tmp = objects / f".upload.{secrets.token_hex(8)}.tmp"
+        self._fh = open(self.tmp, "xb")  # noqa: SIM115 - closed by finish or abort
+        self._hash = hashlib.sha256()
+        self._compressor = zstd.ZstdCompressor()
+        self.size = 0
+
+    def write(self, chunk: bytes) -> None:
+        self._hash.update(chunk)
+        self.size += len(chunk)
+        self._fh.write(self._compressor.compress(chunk))
+
+    def finish(self, expected_hash: str) -> bool:
+        """Store the bytes under `expected_hash`; False (nothing stored) when they do not
+        match it."""
+        digest = "sha256:" + self._hash.hexdigest()
+        if digest != expected_hash:
+            self.abort()
+            return False
+        self._fh.write(self._compressor.flush())
+        self._fh.flush()
+        os.fsync(self._fh.fileno())
+        self._fh.close()
+        path = self.store._object(digest)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(self.tmp, path)
+        _fsync_dir(path.parent)
+        return True
+
+    def abort(self) -> None:
+        self._fh.close()
+        self.tmp.unlink(missing_ok=True)

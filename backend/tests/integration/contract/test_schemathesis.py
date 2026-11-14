@@ -86,7 +86,9 @@ def api_schema(served):
     return schemathesis.openapi.from_dict(served["app"].openapi())
 
 
-schema = schemathesis.pytest.from_fixture("api_schema")
+# The change-hint stream stays open for 15 minutes, longer than a case may take;
+# test_sync.py reads it over a real server instead.
+schema = schemathesis.pytest.from_fixture("api_schema").exclude(path="/api/v1/events")
 
 # Checks the API's rules make inapplicable, each with its reason:
 EXCLUDED_CHECKS = [

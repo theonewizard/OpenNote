@@ -88,15 +88,27 @@ def changes(
     return ChangesPage(page, encode_cursor(vault_id, next_seq), len(rows) > limit)
 
 
-def snapshot(session: Session, vault_id: uuid.UUID) -> list[ChangeEntry]:
-    """The current revision of every live file, for a full reconcile."""
-    rows = session.scalars(
+def snapshot(
+    session: Session, vault_id: uuid.UUID, after: str | None = None, limit: int | None = None
+) -> list[ChangeEntry]:
+    """The current revision of every live file, for a full reconcile, ordered by path
+    (bytewise): the page after path `after`, of at most `limit` files."""
+    path = Revision.path.collate("C")
+    query = (
         select(Revision)
         .join(File, (File.file_id == Revision.file_id) & (File.revision == Revision.revision))
         .where(Revision.vault_id == vault_id, ~File.deleted)
-        .order_by(Revision.path)
-    ).all()
-    return [_entry(r) for r in rows]
+        .order_by(path)
+        .limit(limit)
+    )
+    if after is not None:
+        query = query.where(path > after)
+    return [_entry(r) for r in session.scalars(query).all()]
+
+
+def last_seq(session: Session, vault_id: uuid.UUID) -> int:
+    seq = session.scalar(select(func.max(Revision.seq)).where(Revision.vault_id == vault_id))
+    return seq or 0
 
 
 def ingest_fs_changes(committer: Committer, fs_changes: list[FsChange]) -> list[OpResult]:

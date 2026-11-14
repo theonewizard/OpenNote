@@ -20,6 +20,7 @@ from app.core.db import make_sync_engine
 from app.core.problems import ProblemError
 from app.notes.models import File
 from app.sync.commit import Committer, Operation, OpResult
+from app.sync.events import Publisher
 from app.sync.history import HistoryStore
 from app.vaults.fsio import open_root
 from app.vaults.models import Vault, VaultMember
@@ -93,13 +94,20 @@ class Committers:
         self.factory: sessionmaker[Session] = sessionmaker(self.engine)
         self._by_vault: dict[uuid.UUID, Committer] = {}
         self._lock = threading.Lock()
+        self.publisher = Publisher(str(settings.valkey_url))
 
     def get(self, vault_id: uuid.UUID, root_path: str) -> Committer:
         with self._lock:
             committer = self._by_vault.get(vault_id)
             if committer is None:
                 history = HistoryStore(Path(self.settings.history_root), vault_id)
-                committer = Committer(self.factory, history, open_root(Path(root_path)), vault_id)
+                committer = Committer(
+                    self.factory,
+                    history,
+                    open_root(Path(root_path)),
+                    vault_id,
+                    on_commit=lambda seq: self.publisher.publish(vault_id, seq),
+                )
                 committer.recover()  # finish whatever a crash left before serving writes
                 self._by_vault[vault_id] = committer
             return committer
@@ -108,6 +116,7 @@ class Committers:
         for committer in self._by_vault.values():
             os.close(committer.root_fd)
         self._by_vault.clear()
+        self.publisher.close()
         self.engine.dispose()
 
 
