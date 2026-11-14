@@ -7,7 +7,7 @@ from dataclasses import astuple
 import pytest
 from sqlalchemy import delete, select
 
-from app.notes.models import File
+from app.notes.models import File, NoteLink
 from app.sync.commit import Create, Delete, Move, Restore, Update
 from app.sync.history import RevisionLogEntry
 from app.sync.models import Revision
@@ -315,3 +315,37 @@ def test_offline_revert_after_a_completed_write_is_kept(world):
     make().recover()
     assert (root / "n.md").read_bytes() == BASE
     assert_consistent(root, factory, history, vault_id)
+
+
+def _resolved(world_factory, file_id) -> list[str | None]:
+    with world_factory() as s:
+        rows = s.execute(
+            select(File.path)
+            .select_from(NoteLink)
+            .outerjoin(File, File.file_id == NoteLink.resolved_file_id)
+            .where(NoteLink.file_id == file_id)
+            .order_by(NoteLink.ordinal)
+        )
+        return [path for (path,) in rows]
+
+
+def test_commits_re_resolve_the_links_naming_the_file(world):
+    """Each commit re-resolves only the links its file can change (P8-01, migration
+    0008), and gets the same answers as resolving everything again would."""
+    _root, factory, _history, _vault_id, make = world
+    c = make()
+    a, data = create("A.md", b"[[Plan]] ![[pic.png]] [[#Top]]\n")
+    c.commit(a, "dev", data)
+    assert _resolved(factory, a.file_id) == [None, None, "A.md"]
+    pic = b"\x89PNG\r\n"
+    c.commit(Create(uuid.uuid7(), uuid.uuid7(), "img/pic.png", "attachment", sha(pic)), "dev", pic)
+    deep, data = create("x/Plan.md", b"deep\n")
+    c.commit(deep, "dev", data)
+    assert _resolved(factory, a.file_id) == ["x/Plan.md", "img/pic.png", "A.md"]
+    top, data = create("Plan.md", b"top\n")
+    c.commit(top, "dev", data)  # a better match: the linking note's own folder
+    assert _resolved(factory, a.file_id)[0] == "Plan.md"
+    c.commit(Delete(uuid.uuid7(), top.file_id, 1), "dev", None)
+    assert _resolved(factory, a.file_id)[0] == "x/Plan.md"
+    c.commit(Move(uuid.uuid7(), deep.file_id, 1, "x/Other.md"), "dev", None)
+    assert _resolved(factory, a.file_id)[0] is None

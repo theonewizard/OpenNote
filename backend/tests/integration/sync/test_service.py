@@ -6,9 +6,10 @@ import uuid
 
 import pytest
 
-from app.notes.identity import diff_scan
+from app.notes.identity import FsChange, diff_scan
 from app.notes.models import File
 from app.sync import commit as commit_module
+from app.sync import service as service_module
 from app.sync.commit import SERVER_FS, Create, Delete, Move, Update
 from app.sync.cursor import RETENTION_SEQ_WINDOW, CursorExpired, decode_cursor, encode_cursor
 from app.sync.service import changes, ingest_fs_changes, push, snapshot
@@ -362,3 +363,14 @@ def test_a_write_another_process_has_not_finished_is_not_reverted(server, monkey
     assert (root / "n.md").read_bytes() == ours
     with factory() as s:
         assert s.get(File, op.file_id).revision == 2
+
+
+def test_ingest_and_recover_take_more_ids_than_postgresql_parameters(server, monkeypatch):
+    """A first scan of a 100k-note vault hands over 100k ids at once (P8-01); an IN list
+    of them is one parameter each and PostgreSQL stops at 65,535. The per-change commits
+    are skipped: only the queries over all ids are under test."""
+    _root, _factory, _vault_id, committer = server
+    monkeypatch.setattr(service_module, "_ops_for", lambda committer, change: [])
+    gone = [FsChange("delete", uuid.uuid4(), f"n{i}.md", None, None) for i in range(70_000)]
+    assert ingest_fs_changes(committer, gone) == []
+    committer.recover({c.file_id for c in gone})

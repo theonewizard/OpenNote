@@ -7,15 +7,16 @@ Only `notes`, `note_tags`, `note_links` and `search_documents` are written here;
 import os
 import posixpath
 import uuid
+from collections import defaultdict
 from pathlib import Path
 
-from sqlalchemy import ColumnElement, delete, func, or_, select, update
+from sqlalchemy import ARRAY, ColumnElement, Text, any_, delete, func, literal, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.notes.document import parse_note
 from app.notes.extract import Link, extract
 from app.notes.frontmatter import read_properties
-from app.notes.links import resolve
+from app.notes.links import name_keys, resolve, target_key
 from app.notes.models import File, Note, NoteLink, NoteTag, SearchDocument
 from app.vaults.fsio import open_root, read_file
 from app.vaults.paths import casefold_key
@@ -30,23 +31,22 @@ MAX_SEARCH_CHARS = 200_000
 def index_file(
     session: Session, vault_id: uuid.UUID, file_id: uuid.UUID, raw: bytes, path: str
 ) -> None:
-    """Replace the derived rows of one note, then re-resolve the links this note could
-    now satisfy (unresolved ones, and ones resolved to a file with the same name)."""
+    """Replace the derived rows of one note, resolve its links, then re-resolve the links
+    of other notes this file can change (`relink`)."""
     _write_rows(session, vault_id, file_id, raw, path)
     session.flush()
-    leaf = casefold_key(posixpath.basename(path))
-    same_name = select(File.file_id).where(
-        File.vault_id == vault_id, func.regexp_replace(File.path_key, "^.*/", "") == leaf
-    )
-    _resolve_links(
-        session,
-        vault_id,
-        or_(
-            NoteLink.file_id == file_id,
-            NoteLink.resolved_file_id.is_(None),
-            NoteLink.resolved_file_id.in_(same_name),
-        ),
-    )
+    _resolve_links(session, vault_id, NoteLink.file_id == file_id)
+    relink(session, vault_id, file_id, path)
+
+
+def relink(session: Session, vault_id: uuid.UUID, file_id: uuid.UUID, path: str | None) -> None:
+    """Re-resolve the links a commit of `file_id` can change: those that point at it now
+    (it moved or, with `path` None, was deleted) and those naming its file name at
+    `path` (it may now be their best match). No other link's answer depends on it."""
+    which = NoteLink.resolved_file_id == file_id
+    if path is not None:
+        which = or_(which, NoteLink.target_key.in_(name_keys(path)), NoteLink.target_key.is_(None))
+    _resolve_links(session, vault_id, which)
 
 
 def rebuild_index(session: Session, vault_id: uuid.UUID, root: Path) -> None:
@@ -114,6 +114,7 @@ def _write_rows(
                 file_id=file_id,
                 ordinal=ordinal,
                 target=link.target,
+                target_key=target_key(link.target),
                 embed=link.embed,
                 heading=link.heading,
                 block=link.block,
@@ -128,25 +129,42 @@ def _searchable(text: str) -> str:
 
 
 def _resolve_links(session: Session, vault_id: uuid.UUID, which: ColumnElement[bool]) -> None:
-    live = dict(
-        session.execute(
-            select(File.path, File.file_id).where(File.vault_id == vault_id, ~File.deleted)
-        ).all()
-    )
-    paths = list(live)
+    """Resolve the vault's links matching `which` against the live files with a matching
+    file name, writing only the answers that changed."""
     rows = session.execute(
-        select(NoteLink.file_id, NoteLink.ordinal, NoteLink.target, File.path)
+        select(
+            NoteLink.file_id,
+            NoteLink.ordinal,
+            NoteLink.target,
+            NoteLink.resolved_file_id,
+            File.path,
+        )
         .join(File, File.file_id == NoteLink.file_id)
         .where(File.vault_id == vault_id, which)
     ).all()
-    for file_id, ordinal, target, from_path in rows:
-        link = Link(target, None, None, None, embed=False, markdown=False)
-        hit = resolve(link, from_path, paths)
-        session.execute(
-            update(NoteLink)
-            .where(NoteLink.file_id == file_id, NoteLink.ordinal == ordinal)
-            .values(resolved_file_id=live.get(hit) if hit else None)
+    keys = {target_key(r.target) for r in rows}
+    leaf = func.regexp_replace(File.path_key, "^.*/", "")  # the files_leaf index
+    live = session.execute(
+        select(File.path, File.file_id).where(
+            File.vault_id == vault_id,
+            ~File.deleted,
+            leaf == any_(literal(sorted(keys | {k + ".md" for k in keys}), ARRAY(Text))),
         )
+    ).all()
+    by_leaf: dict[str, list[str]] = defaultdict(list)
+    for path, _ in live:
+        by_leaf[casefold_key(posixpath.basename(path))].append(path)
+    ids = dict(live)
+    changed = []
+    for file_id, ordinal, target, resolved, from_path in rows:
+        key = target_key(target)
+        link = Link(target, None, None, None, embed=False, markdown=False)
+        hit = resolve(link, from_path, by_leaf[key] + by_leaf[key + ".md"])
+        found = file_id if not target else ids.get(hit) if hit else None  # "" is the note itself
+        if found != resolved:
+            changed.append({"file_id": file_id, "ordinal": ordinal, "resolved_file_id": found})
+    if changed:  # one executemany: an UPDATE by primary key per dict
+        session.execute(update(NoteLink), changed)
 
 
 def remove_file(session: Session, file_id: uuid.UUID) -> None:
