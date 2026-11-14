@@ -233,6 +233,24 @@ class NoteCreate(_Body):
         default=None,
         description="The note's Markdown; omitted, the note starts with an `id` frontmatter only",
     )
+    template_id: uuid.UUID | None = Field(
+        default=None,
+        description="A note in the same vault to start from instead of `content`: its "
+        "`{{title}}`, `{{date}}`, `{{time}}`, `{{date:FORMAT}}` and `{{time:FORMAT}}` are "
+        "filled in (Obsidian Templates syntax) and its `id` is replaced by the new note's",
+    )
+    local_time: dt.datetime | None = Field(
+        default=None,
+        description="The creator's local time with its UTC offset, for the template's dates; "
+        "omitted, the server's time in UTC",
+    )
+
+    @field_validator("local_time")
+    @classmethod
+    def _aware(cls, value: dt.datetime | None) -> dt.datetime | None:
+        if value is not None and value.utcoffset() is None:
+            raise ValueError("must carry a UTC offset")
+        return value
 
 
 class NotePatch(_Body):
@@ -339,3 +357,56 @@ class SearchHit(BaseModel):
 
 class SearchPage(_Page):
     items: list[SearchHit]
+
+
+# Tasks and the link graph -----------------------------------------------------------------
+
+TaskStatusFilter = Literal["open", "done", "any"]
+
+
+class Task(BaseModel):
+    note: NoteRef
+    ordinal: int = Field(description="The task's position among the note's tasks, from 0")
+    revision: int = Field(description="The note's revision; send it as `If-Match` to toggle")
+    line: int = Field(description="0-based line in the note, frontmatter included")
+    status: str = Field(description="The character between the brackets")
+    done: bool = Field(description="Any status but a space")
+    text: str = Field(description="The task's first line after `[c] `, as written")
+    parent: int | None = Field(description="`ordinal` of the enclosing task, for subtasks")
+    due: dt.date | None = Field(description="Tasks plugin 📅")
+    scheduled: dt.date | None = Field(description="Tasks plugin ⏳")
+    start: dt.date | None = Field(description="Tasks plugin 🛫")
+    done_on: dt.date | None = Field(description="Tasks plugin ✅")
+    priority: Literal["highest", "high", "medium", "low", "lowest"] | None
+    recurrence: str | None = Field(description="Tasks plugin 🔁 rule as written")
+
+
+class TaskPage(_Page):
+    items: list[Task]
+
+
+class TaskPatch(_Body):
+    done: StrictBool
+    today: dt.date | None = Field(
+        default=None,
+        description="The caller's local date, for the `✅` date and the next occurrence of a "
+        "recurring task; omitted, the server's date in UTC",
+    )
+
+
+class GraphNode(BaseModel):
+    id: str = Field(description="The note or attachment id, or `unresolved:` + the target")
+    kind: Literal["note", "attachment", "unresolved"]
+    label: str
+    path: str | None
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    count: int = Field(description="Links and embeds from source to target")
+
+
+class Graph(BaseModel):
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]

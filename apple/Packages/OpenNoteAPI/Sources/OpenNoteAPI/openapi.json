@@ -427,6 +427,95 @@
         "title": "FolderMoveResult",
         "type": "object"
       },
+      "Graph": {
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges"
+        ],
+        "title": "Graph",
+        "type": "object"
+      },
+      "GraphEdge": {
+        "properties": {
+          "count": {
+            "description": "Links and embeds from source to target",
+            "title": "Count",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "count"
+        ],
+        "title": "GraphEdge",
+        "type": "object"
+      },
+      "GraphNode": {
+        "properties": {
+          "id": {
+            "description": "The note or attachment id, or `unresolved:` + the target",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "note",
+              "attachment",
+              "unresolved"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "path"
+        ],
+        "title": "GraphNode",
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -630,12 +719,38 @@
             "description": "The note's Markdown; omitted, the note starts with an `id` frontmatter only",
             "title": "Content"
           },
+          "local_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The creator's local time with its UTC offset, for the template's dates; omitted, the server's time in UTC",
+            "title": "Local Time"
+          },
           "path": {
             "description": "Vault-relative, ends in `.md`",
             "maxLength": 1024,
             "minLength": 1,
             "title": "Path",
             "type": "string"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A note in the same vault to start from instead of `content`: its `{{title}}`, `{{date}}`, `{{time}}`, `{{date:FORMAT}}` and `{{time:FORMAT}}` are filled in (Obsidian Templates syntax) and its `id` is replaced by the new note's",
+            "title": "Template Id"
           },
           "vault_id": {
             "format": "uuid",
@@ -1217,6 +1332,211 @@
           "items"
         ],
         "title": "TagPage",
+        "type": "object"
+      },
+      "Task": {
+        "properties": {
+          "done": {
+            "description": "Any status but a space",
+            "title": "Done",
+            "type": "boolean"
+          },
+          "done_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tasks plugin \u2705",
+            "title": "Done On"
+          },
+          "due": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tasks plugin \ud83d\udcc5",
+            "title": "Due"
+          },
+          "line": {
+            "description": "0-based line in the note, frontmatter included",
+            "title": "Line",
+            "type": "integer"
+          },
+          "note": {
+            "$ref": "#/components/schemas/NoteRef"
+          },
+          "ordinal": {
+            "description": "The task's position among the note's tasks, from 0",
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`ordinal` of the enclosing task, for subtasks",
+            "title": "Parent"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "enum": [
+                  "highest",
+                  "high",
+                  "medium",
+                  "low",
+                  "lowest"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "recurrence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tasks plugin \ud83d\udd01 rule as written",
+            "title": "Recurrence"
+          },
+          "revision": {
+            "description": "The note's revision; send it as `If-Match` to toggle",
+            "title": "Revision",
+            "type": "integer"
+          },
+          "scheduled": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tasks plugin \u23f3",
+            "title": "Scheduled"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Tasks plugin \ud83d\udeeb",
+            "title": "Start"
+          },
+          "status": {
+            "description": "The character between the brackets",
+            "title": "Status",
+            "type": "string"
+          },
+          "text": {
+            "description": "The task's first line after `[c] `, as written",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "note",
+          "ordinal",
+          "revision",
+          "line",
+          "status",
+          "done",
+          "text",
+          "parent",
+          "due",
+          "scheduled",
+          "start",
+          "done_on",
+          "priority",
+          "recurrence"
+        ],
+        "title": "Task",
+        "type": "object"
+      },
+      "TaskPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Task"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass as `cursor` for the next page; null on the last page",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "next_cursor",
+          "items"
+        ],
+        "title": "TaskPage",
+        "type": "object"
+      },
+      "TaskPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "today": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The caller's local date, for the `\u2705` date and the next occurrence of a recurring task; omitted, the server's date in UTC",
+            "title": "Today"
+          }
+        },
+        "required": [
+          "done"
+        ],
+        "title": "TaskPatch",
         "type": "object"
       },
       "TokenResponse": {
@@ -2706,6 +3026,121 @@
         ]
       }
     },
+    "/api/v1/graph": {
+      "get": {
+        "description": "The vault's link graph, as Obsidian's graph view draws it: every note (orphans\ntoo), edges counted per linking note and target, links to itself left out.",
+        "operationId": "get_graph",
+        "parameters": [
+          {
+            "description": "The vault to list",
+            "in": "query",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "description": "The vault to list",
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include linked attachments",
+            "in": "query",
+            "name": "attachments",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Include linked attachments",
+              "title": "Attachments",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Include unresolved link targets",
+            "in": "query",
+            "name": "unresolved",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Include unresolved link targets",
+              "title": "Unresolved",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Local graph around this note instead",
+            "in": "query",
+            "name": "center",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Local graph around this note instead",
+              "title": "Center"
+            }
+          },
+          {
+            "description": "Links from `center`",
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Links from `center`",
+              "maximum": 5,
+              "minimum": 1,
+              "title": "Depth",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Graph"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Graph",
+        "tags": [
+          "tasks",
+          "notes"
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "description": "The signed-in user.",
@@ -2952,7 +3387,7 @@
         ]
       },
       "post": {
-        "description": "Create a note. A note OpenNote creates gets an `id` in its frontmatter.",
+        "description": "Create a note, empty, from `content`, or from a template note. A note OpenNote\ncreates gets an `id` in its frontmatter.",
         "operationId": "create_note",
         "parameters": [
           {
@@ -3454,6 +3889,108 @@
         ]
       }
     },
+    "/api/v1/notes/{note_id}/tasks/{ordinal}": {
+      "patch": {
+        "description": "Check or uncheck a task, based on the note revision in `If-Match`. One character\nchanges; completing a recurring task also stamps it `\u2705` and adds the next occurrence\nabove it, as the Tasks plugin does. Returns the note after the change.",
+        "operationId": "update_task",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ordinal",
+            "required": true,
+            "schema": {
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Ordinal",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Note"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "The note's revision, `\"<revision>\"`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Update Task",
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
     "/api/v1/search": {
       "get": {
         "description": "Full-text search with filters, best match first.",
@@ -3648,6 +4185,148 @@
         "summary": "List Tags",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "description": "Tasks by due date (undated last), then note path and position in the note.",
+        "operationId": "list_tasks",
+        "parameters": [
+          {
+            "description": "The vault to list",
+            "in": "query",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "description": "The vault to list",
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "enum": [
+                "open",
+                "done",
+                "any"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this note's tasks",
+            "in": "query",
+            "name": "note_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this note's tasks",
+              "title": "Note Id"
+            }
+          },
+          {
+            "description": "Only tasks due on or before this date",
+            "in": "query",
+            "name": "due_before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only tasks due on or before this date",
+              "title": "Due Before"
+            }
+          },
+          {
+            "description": "`next_cursor` of the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` of the previous page",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "description": "Page size",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Tasks",
+        "tags": [
+          "tasks"
         ]
       }
     },
