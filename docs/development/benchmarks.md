@@ -37,6 +37,6 @@ Neither the container nor the GitHub runner is the reference VM, so these number
 ## Findings fixed on the way
 
 - Importing a vault of more than 65,535 notes failed: the import filtered by an `IN` list of every changed id, one PostgreSQL parameter each (R-P8-101).
-- Importing even 2,000 notes did not finish in 10 minutes: each commit re-resolved every unresolved link of the vault against every path. Migration `0008` and a targeted re-resolution fixed it (R-P8-102).
+- Importing even 2,000 notes did not finish in 10 minutes: each commit re-resolved every unresolved link of the vault against every path. Migration `0009` (numbered `0008` until the AI migration took that number) and a targeted re-resolution fixed it (R-P8-102).
 
 Rulings: [.conversations/2026-11-14-performance-validation.md](../../.conversations/2026-11-14-performance-validation.md).

@@ -331,7 +331,7 @@ def _resolved(world_factory, file_id) -> list[str | None]:
 
 def test_commits_re_resolve_the_links_naming_the_file(world):
     """Each commit re-resolves only the links its file can change (P8-01, migration
-    0008), and gets the same answers as resolving everything again would."""
+    0009), and gets the same answers as resolving everything again would."""
     _root, factory, _history, _vault_id, make = world
     c = make()
     a, data = create("A.md", b"[[Plan]] ![[pic.png]] [[#Top]]\n")
