@@ -32,6 +32,11 @@ class AISettings(BaseSettings):
     chat_model: str | None = Field(default=None, min_length=1, max_length=200)
     api_key: SecretStr | None = Field(default=None, repr=False)
     timeout_seconds: float = Field(default=60.0, gt=0, le=600)
+    # Claude (Anthropic API): an external provider for the vault assistant, never for
+    # embeddings (Anthropic has no embeddings API). On when the key is set.
+    claude_api_key: SecretStr | None = Field(default=None, repr=False)
+    claude_model: str = Field(default="claude-opus-5-5", min_length=1, max_length=200)
+    claude_effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
 
     @model_validator(mode="after")
     def _provider_needs_url(self) -> AISettings:
@@ -60,9 +65,10 @@ def is_local_host(host: str) -> bool:
 
 def load_ai_settings() -> AISettings:
     """Build the AI settings, uncached; raise SettingsError naming fields, never values."""
-    secret = _secrets_from_files(["ai_api_key"]).get("ai_api_key")
+    files = _secrets_from_files(["ai_api_key", "ai_claude_api_key"])
+    secrets = {k.removeprefix("ai_"): v for k, v in files.items() if v}
     try:
-        return AISettings(**({"api_key": secret} if secret else {}))
+        return AISettings(**secrets)
     except ValidationError as exc:
         # The model-level check has no location; it is about base_url.
         fields = sorted(

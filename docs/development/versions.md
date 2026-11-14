@@ -33,6 +33,7 @@ How to read the rows:
 
 | Package | Version | Released | Source | Checked |
 |---|---|---|---|---|
+| anthropic | 2.8.0 | 2026-11-10 | https://pypi.org/pypi/anthropic/json. Official Anthropic SDK (Apache-2.0) for the optional Claude assistant (`app.ai.agent`); 2.x sends API version `2026-10-21`. Brings `httpx2` (runtime now, not only tests), `jiter`, `docstring_parser`, `sniffio`, `opentelemetry-api` | 2026-11-14 |
 | fastapi | 0.162.0 | 2026-10-23 | https://pypi.org/pypi/fastapi/json | 2026-11-02 |
 | uvicorn | 0.54.0 | 2026-09-25 | https://pypi.org/pypi/uvicorn/json. Pinned as `uvicorn[standard]==0.54.0`: the extra installs httptools, python-dotenv, PyYAML, uvloop, watchfiles and websockets | 2026-10-17 |
 | pydantic | 2.14.2 | 2026-10-29 | https://pypi.org/pypi/pydantic/json | 2026-11-02 |

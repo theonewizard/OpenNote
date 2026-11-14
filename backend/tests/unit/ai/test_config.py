@@ -77,3 +77,15 @@ def test_external_follows_the_base_url():
     assert isinstance(provider_from_settings(local), OllamaProvider)
     assert not local.external
     assert remote.external
+
+
+def test_the_claude_key_comes_from_its_file_and_stays_out_of_repr(monkeypatch, tmp_path):
+    key_file = tmp_path / "claude"
+    key_file.write_text("sk-ant-marker\n")
+    monkeypatch.setenv("OPENNOTE_AI_CLAUDE_API_KEY_FILE", str(key_file))
+    settings = load_ai_settings()
+    assert settings.claude_api_key is not None
+    assert settings.claude_api_key.get_secret_value() == "sk-ant-marker"
+    assert "sk-ant-marker" not in repr(settings) + str(settings)
+    assert (settings.claude_model, settings.claude_effort) == ("claude-opus-5-5", "medium")
+    assert settings.provider == "none"  # Claude never becomes the embedding provider
