@@ -12,7 +12,7 @@ files the log says are live. Unmatched vaults, and vaults already in the databas
 reported and skipped. Each matched vault gets, in one transaction: its `vaults` row
 (name from the config, else the folder name), every revision, the per-vault sequence,
 the `files` registry at each file's last revision, and the derived index built from the
-history bytes of those revisions. `--owner` makes an existing user the owner of every
+history bytes of those revisions. A logged revision whose object retention removed (P5-07) is left out. `--owner` makes an existing user the owner of every
 rebuilt vault; without it only administrators see them until members are added.
 
 What the log does not hold is not rebuilt: users, devices, tokens and sessions,
@@ -170,11 +170,19 @@ def rebuild_vault(
     sizes: dict[str, int] = {}
     size_of: dict[uuid.UUID, int] = {}  # a tombstone keeps the file's last size
     content: dict[uuid.UUID, str] = {}  # and its last content hash
+    last = last_states(entries)
     rows = []
     for e in entries:
         if e.content_hash is not None:
             if e.content_hash not in sizes:
-                sizes[e.content_hash] = len(history.get(e.content_hash))
+                try:
+                    sizes[e.content_hash] = len(history.get(e.content_hash))
+                except FileNotFoundError:
+                    if last[e.file_id] is e:
+                        raise HistoryCorrupt(
+                            f"the current revision of {e.path} has no history object"
+                        ) from None
+                    continue  # pruned by retention (P5-07), which removed its object too
             size_of[e.file_id] = sizes[e.content_hash]
             content[e.file_id] = e.content_hash
         rows.append(
@@ -198,7 +206,6 @@ def rebuild_vault(
     session.add(VaultSeq(vault_id=vault_id, last_seq=entries[-1].seq if entries else 0))
     # Tombstones first: a live file may sit at a path a deleted one had (one unique index
     # over live paths).
-    last = last_states(entries)
     for e in sorted(last.values(), key=lambda e: not e.deleted):
         session.add(
             File(

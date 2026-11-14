@@ -48,6 +48,8 @@ Run each step where the backend runs (the api image, or a working copy with `.ve
 
 `python -m app.sync.rebuild` refuses a log with a repeated sequence number and checks every history object against its hash while it reads sizes; a `failed` line names the vault and the error.
 
+Retention prunes old revisions and removes their history objects but leaves the log as it is. The rebuild leaves out a logged revision whose object is gone, so it restores the revisions retention kept. A file's current revision is never pruned, and if its object is missing the vault fails instead of being rebuilt without that file.
+
 To compare with a known state, the backup drill helper (`scripts/backup_drill.py fingerprint` and `verify`, P8-04) prints every vault's revisions, revision log and live files, and checks that the log, the history objects and the vault agree with the database.
 
 ## Verified

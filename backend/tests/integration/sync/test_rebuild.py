@@ -160,6 +160,30 @@ def test_a_repeated_sequence_number_is_refused(world):
         rebuild.rebuild_vault(s, history, vault_id, root, "vault")
 
 
+def test_revisions_whose_objects_retention_removed_are_left_out(world):
+    """Retention (P5-07) prunes old revisions and their objects but not the log."""
+    root, factory, history, vault_id, make = world
+    _seed(make())
+    _lose_database(factory, vault_id)
+    history._object(sha(b"first\n")).unlink()  # B.md revision 1
+    with factory.begin() as s:
+        rebuild.rebuild_vault(s, history, vault_id, root, "vault")
+    with factory() as s:
+        b = s.scalar(select(File).where(File.path == "sub/B.md"))
+        assert b.revision == 3
+        revisions = s.scalars(select(Revision.revision).where(Revision.file_id == b.file_id))
+        assert sorted(revisions) == [2, 3]
+
+
+def test_a_missing_current_object_is_refused(world):
+    root, factory, history, vault_id, make = world
+    _seed(make())
+    _lose_database(factory, vault_id)
+    history._object(sha(b"back\n")).unlink()  # Gone.md, recreated: its current revision
+    with pytest.raises(HistoryCorrupt), factory.begin() as s:
+        rebuild.rebuild_vault(s, history, vault_id, root, "vault")
+
+
 def test_cli_rebuilds_with_an_owner(world, tmp_path, monkeypatch, make_settings, capsys):
     root, factory, _history, vault_id, make = world
     _seed(make())
