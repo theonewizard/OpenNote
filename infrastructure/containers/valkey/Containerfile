@@ -1,5 +1,5 @@
-# opennote-valkey: Valkey 9.1.2 built from the upstream source release on UBI 9 minimal
-# (the UBI 9 repositories carry no Valkey 9).
+# opennote-valkey: Valkey 9.1.2 built from the upstream source release on UBI 10 minimal
+# (the UBI 10 repositories carry no Valkey 9).
 #
 # Build from the repository root:
 #   docker build -f infrastructure/containers/valkey/Containerfile -t opennote-valkey:dev .
@@ -7,11 +7,11 @@
 # Runs as UID 1001 group 0 or any other UID, on a read-only root filesystem: it keeps no
 # data on disk (see CMD).
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.9@sha256:baafce2d34783a28b4a472779f304e97e00f9d35c99553bc53b068b14344d9a9 AS builder
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741 AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Build tools from the UBI 9 repositories, not version-pinned (builder stage only).
+# Build tools from the UBI 10 repositories, not version-pinned (builder stage only).
 # hadolint ignore=DL3041
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
         gcc make openssl-devel tar gzip findutils \
@@ -29,19 +29,12 @@ RUN curl --fail --silent --show-error --location --connect-timeout 20 --max-time
     && make -C /src -j"$(nproc)" BUILD_TLS=yes USE_SYSTEMD=no \
     && make -C /src install PREFIX=/opt/valkey
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.9@sha256:baafce2d34783a28b4a472779f304e97e00f9d35c99553bc53b068b14344d9a9
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741
 
 LABEL org.opencontainers.image.title="opennote-valkey" \
       org.opencontainers.image.description="Valkey 9.1.2 for OpenNote background jobs" \
       org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
       org.opencontainers.image.licenses="BSD-3-Clause"
-
-# krb5-libs is upgraded explicitly: the 9.9 base image (2026-11-12) still carries
-# 1.21.1-10.el9_8.1, which has HIGH CVE-2026-107364, fixed in 1.21.1-10.el9_9.2. Drop the
-# upgrade once a base image build ships the fixed package.
-# hadolint ignore=DL3041
-RUN microdnf upgrade -y --nodocs krb5-libs \
-    && microdnf clean all
 
 COPY --from=builder /opt/valkey/bin/valkey-server /opt/valkey/bin/valkey-cli /usr/local/bin/
 
