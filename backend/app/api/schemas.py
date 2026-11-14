@@ -7,7 +7,7 @@ the `ETag` header repeats as `"<revision>"`.
 
 import datetime as dt
 import uuid
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 
@@ -339,3 +339,161 @@ class SearchHit(BaseModel):
 
 class SearchPage(_Page):
     items: list[SearchHit]
+
+
+# History (P5-06) --------------------------------------------------------------------------
+
+
+class NoteRevision(BaseModel):
+    revision: int
+    seq: int = Field(description="The vault's change sequence number of this revision")
+    path: str
+    content_hash: str | None = Field(description="Null for a delete (tombstone)")
+    size: int
+    deleted: bool
+    op: Literal["create", "update", "move", "delete", "restore"]
+    device_id: str = Field(
+        description="The device that made the change; `server-fs` for edits on the server's vault"
+    )
+    committed_at: dt.datetime
+
+
+class NoteRevisionPage(_Page):
+    items: list[NoteRevision]
+
+
+class NoteRestore(_Body):
+    from_revision: int = Field(ge=1, description="The revision whose bytes come back")
+
+
+class DeletedNote(BaseModel):
+    id: uuid.UUID
+    vault_id: uuid.UUID
+    path: str = Field(description="Where the note was when it was deleted")
+    revision: int = Field(description="The tombstone's revision; send it as `If-Match` to restore")
+    last_content_revision: int = Field(description="The newest revision with content")
+    deleted_at: dt.datetime
+
+
+class DeletedNotePage(_Page):
+    items: list[DeletedNote]
+
+
+# Sync (P5-01, docs/architecture/sync-protocol.md) -------------------------------------------
+
+ContentHash = Annotated[
+    str,
+    Field(pattern=r"^sha256:[0-9a-f]{64}$", description="`sha256:` and the lowercase hex digest"),
+]
+FileKindLiteral = Literal["note", "attachment"]
+
+
+class SyncEntry(BaseModel):
+    seq: int
+    file_id: uuid.UUID
+    revision: int
+    path: str
+    kind: str = Field(description="`note`, `attachment` or `config`")
+    content_hash: str | None = Field(description="Null for a tombstone")
+    size: int
+    deleted: bool
+    device_id: str
+    op: str
+
+
+class SyncChanges(BaseModel):
+    entries: list[SyncEntry]
+    next_cursor: str = Field(description="Store it and send it as `cursor` on the next pull")
+    has_more: bool
+
+
+class SyncSnapshot(BaseModel):
+    entries: list[SyncEntry] = Field(description="Live files, ordered by path")
+    cursor: str = Field(
+        description="Pull changes from this cursor once every page is read; the same on every "
+        "page of one snapshot"
+    )
+    next_page: str | None = Field(description="Pass as `page` for the next page; null on the last")
+
+
+class _PushOp(_Body):
+    client_op_id: uuid.UUID = Field(description="UUIDv7 made by the client; retries reuse it")
+    file_id: uuid.UUID
+
+
+class PushCreate(_PushOp):
+    op: Literal["create"]
+    path: str = Field(min_length=1, max_length=1024)
+    kind: FileKindLiteral
+    content_hash: ContentHash
+
+
+class PushUpdate(_PushOp):
+    op: Literal["update"]
+    base_revision: int = Field(ge=1)
+    content_hash: ContentHash
+
+
+class PushMove(_PushOp):
+    op: Literal["move"]
+    base_revision: int = Field(ge=1)
+    new_path: str = Field(min_length=1, max_length=1024)
+
+
+class PushDelete(_PushOp):
+    op: Literal["delete"]
+    base_revision: int = Field(ge=1)
+
+
+class PushRestore(_PushOp):
+    op: Literal["restore"]
+    from_revision: int = Field(ge=1)
+
+
+PushOperation = Annotated[
+    PushCreate | PushUpdate | PushMove | PushDelete | PushRestore, Field(discriminator="op")
+]
+
+
+class SyncPush(_Body):
+    operations: list[PushOperation] = Field(min_length=1, max_length=100)
+
+
+class PushResult(BaseModel):
+    """For `conflict`, the fields describe the conflict copy and `problem` names the
+    original file (`original_file_id`); for `rejected`, `problem` says why."""
+
+    status: Literal["applied", "merged", "conflict", "rejected", "duplicate"]
+    file_id: uuid.UUID
+    revision: int | None
+    seq: int | None
+    content_hash: str | None
+    path: str | None
+    problem: dict[str, Any] | None
+
+
+class SyncPushResult(BaseModel):
+    results: list[PushResult] = Field(description="One per operation, in order")
+
+
+class Conflict(BaseModel):
+    id: uuid.UUID
+    vault_id: uuid.UUID
+    file_id: uuid.UUID = Field(description="The file whose revision stayed current")
+    copy_file_id: uuid.UUID = Field(description="The conflict copy holding the other edit")
+    base_revision: int = Field(
+        description="The revision the other edit was based on; 0 for a create"
+    )
+    their_revision: int = Field(description="The file's revision the edit collided with")
+    status: Literal["open", "resolved"]
+    revision: int
+    created_at: dt.datetime
+    resolved_at: dt.datetime | None
+
+
+class ConflictPage(_Page):
+    items: list[Conflict]
+
+
+class ConflictPatch(_Body):
+    status: Literal["open", "resolved"]

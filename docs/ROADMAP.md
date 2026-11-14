@@ -94,12 +94,12 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P5-01 | Production sync endpoints (changes, snapshot, push, blobs, events) from the P1-12 prototype | P1-12, P2-04 | P0 | Simulation + contract tests | NOT_STARTED |
-| P5-02 | Resumable chunked blob upload | P5-01 | P0 | Interrupted 500 MB upload resumes | NOT_STARTED |
+| P5-01 | Production sync endpoints (changes, snapshot, push, blobs, events) from the P1-12 prototype | P1-12, P2-04 | P0 | Simulation + contract tests | TESTING: endpoints on branch `feature/sync-server` with API tests and the Schemathesis contract run; client engines not yet built |
+| P5-02 | Resumable chunked blob upload | P5-01 | P0 | Interrupted 500 MB upload resumes | IN_PROGRESS: streaming upload into the history store on `feature/sync-server`; resumable chunks next |
 | P5-03 | Swift sync engine (outbox, loop, watcher integration) | P5-01, P4-02 | P0 | Cross-client e2e | NOT_STARTED |
 | P5-04 | Web sync engine | P5-01, P3-08 | P0 | Cross-client e2e | NOT_STARTED |
 | P5-05 | Conflict list and resolution UI (all clients) | P5-03, P5-04 | P0 | Conflicts visible and resolvable | NOT_STARTED |
-| P5-06 | Version history browse, diff, restore, deleted-note recovery | P1-13, P5-01 | P0 | Restore any revision | NOT_STARTED |
+| P5-06 | Version history browse, diff, restore, deleted-note recovery | P1-13, P5-01 | P0 | Restore any revision | IN_PROGRESS: server side (revisions, content, restore, deleted-note list) on `feature/sync-server`; browse/diff UI comes with the clients |
 | P5-07 | Tombstone retention and history GC per D6 | P5-01 | P0 | GC never removes newest or conflict-referenced revisions | NOT_STARTED |
 | P5-08 | Detection of competing sync tools (iCloud/Dropbox/Obsidian Sync) | P5-03 | P1 | Warning shown | NOT_STARTED |
 | P5-09 | Cross-client end-to-end sync suite | P5-03, P5-04 | P0 | Nightly green | NOT_STARTED |

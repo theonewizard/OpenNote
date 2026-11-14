@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last updated: 2026-11-07
+Last updated: 2026-11-14
 
 ## Current phase
 
@@ -26,6 +26,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 | P1-12 sync prototype | COMPLETED | 10,000 seeds (500 to 10,499) zero violations in CI on `main`'s code 88c08c7 ([sync-sim-nightly run](https://github.com/theonewizard/OpenNote/actions/runs/41581414871), manual dispatch, 224 tests passed, 46 min). The pull request's CI was green on every workflow (backend [run](https://github.com/theonewizard/OpenNote/actions/runs/41373931617), 500 seeds included). Locally: backend suite 505 passed, 3 skipped; 10,000 seeds zero violations over seeds 0 to 9,999 on `4673673` |
 | P0-09 CI | TESTING | All five workflows are green on the branch's pushes; the Phase 0 pull request's own runs are not observed yet |
 | P3-02, P3-04, P3-10 web shell, editor, PWA | TESTING | CI green on pull request #36. Tested with mocks of the v1 contract (MSW in the unit tests, `page.route` in Playwright) and once by hand against the real Phase 2 API on this machine (`npm run dev` proxied to uvicorn on Python 3.14 with PostgreSQL and Valkey): all 31 UTF-8 corpus notes, created with `POST /notes`, opened in the UI, a character typed and saved, and read back with exactly that character appended; a save after another client's save showed the conflict and left the other edit on the server. Locally: lint, typecheck, 44 unit tests, build, 7 Playwright tests in Chromium. Markup stays visible (styled source); no login screen yet (P3-01) ([record](../.conversations/2026-11-07-web-shell-editor.md)) |
+| P5-01, P5-06 sync server and history | TESTING | Branch `feature/sync-server` ([plan](superpowers/plans/2026-11-14-phase-5-sync-server-plan.md), [record](../.conversations/2026-11-14-phase-5-sync-server.md)): blobs, pull, paged snapshot, push, conflicts, change hints as Server-Sent Events, note revisions, restore and the deleted-note list on the existing commit path; migration `0008`. Locally: API tests for every route and the Schemathesis contract run (the event stream excluded there, read over a real uvicorn server in its own test). No client uses them yet (P5-03, P5-04). Still open: resumable chunks and streaming commits for large attachments (P5-02), retention in days and history GC (P5-07) |
 | P6-01 tasks (parse part) | IN_PROGRESS | `app/tasks/parse.py` finds tasks (any status character, nesting, quotes and callouts; not in code or comments) and computes the one-character toggle; nothing stores tasks or writes the toggle until P2-04 ([record](../.conversations/2026-11-07-links-tasks-templates.md)) |
 | P6-05 templates (parse part) | IN_PROGRESS | `app/notes/templates.py` renders `{{title}}`, `{{date}}`, `{{time}}` and `{{date:FORMAT}}` with Moment.js tokens; creating a note from a template waits for P2-04 |
 | P6-08 backlinks and graph | IN_PROGRESS | `app/notes/graph.py` queries backlinks, the vault graph and the local graph from `note_links`; the `/notes/{id}/links` route and client panels follow the Phase 2 API |

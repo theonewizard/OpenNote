@@ -1,10 +1,10 @@
-"""ORM models for sync state (migration 0004, sync protocol §2.1)."""
+"""ORM models for sync state (migrations 0004 and 0008, sync protocol §2.1)."""
 
 import datetime as dt
 import uuid
 from typing import Any
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import BigInteger, DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -53,6 +53,9 @@ class ClientOp(Base):
     client_op_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     result: Mapped[dict[str, Any]] = mapped_column(JSONB)
     seq: Mapped[int | None] = mapped_column(BigInteger)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class Conflict(Base):
@@ -65,3 +68,8 @@ class Conflict(Base):
     base_revision: Mapped[int]
     their_revision: Mapped[int]
     status: Mapped[str] = mapped_column(default="open")
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    resolved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    revision: Mapped[int] = mapped_column(default=1)

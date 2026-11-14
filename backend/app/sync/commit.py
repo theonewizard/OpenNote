@@ -186,12 +186,15 @@ class Committer:
         *,
         crash: Callable[[str], None] | None = None,
         clock: Callable[[], dt.datetime] | None = None,
+        on_commit: Callable[[int], None] | None = None,
     ) -> None:
         self.session_factory, self.history = session_factory, history
         self.root_fd, self.vault_id = vault_root_fd, vault_id
         self.crash = crash or (lambda step: None)
         # Informational only (I6): committed_at and the day in conflict-copy names.
         self.clock = clock or (lambda: dt.datetime.now(dt.UTC))
+        # Told the vault's newest seq after each commit, to publish a change hint (§4).
+        self.on_commit = on_commit or (lambda seq: None)
         self.recovery_dir = history.root / "recovery"  # outside the vault
         self.recovery_dir.mkdir(parents=True, exist_ok=True)
         # Files whose step 4 failed after the commit; recover() retries them before the
@@ -227,11 +230,16 @@ class Committer:
 
     # The five steps --------------------------------------------------------------------
 
-    def commit(self, op: Operation, device_id: str, blob: bytes | None) -> OpResult:
+    def commit(
+        self, op: Operation, device_id: str, blob: bytes | None, device_name: str | None = None
+    ) -> OpResult:
+        """`device_name` names conflict copies; the device id is used when it is None."""
         with self._vault_lock():
-            return self._commit(op, device_id, blob)
+            return self._commit(op, device_id, blob, device_name or device_id)
 
-    def _commit(self, op: Operation, device_id: str, blob: bytes | None) -> OpResult:
+    def _commit(
+        self, op: Operation, device_id: str, blob: bytes | None, device_name: str
+    ) -> OpResult:
         with self.session_factory() as session:
             if prior := session.get(ClientOp, (self.vault_id, op.client_op_id)):
                 return dataclasses.replace(OpResult.from_json(prior.result), status="duplicate")
@@ -241,7 +249,7 @@ class Committer:
                 return OpResult("rejected", op.file_id, None, None, None, None, problem)
             self.history.put(blob)  # step 1
         self.crash("history")
-        result, revs = self._commit_db(op, device_id, blob)  # step 2
+        result, revs = self._commit_db(op, device_id, blob, device_name)  # step 2
         if not revs:
             return result
         self.crash("db")
@@ -253,7 +261,8 @@ class Committer:
         self.crash("vault")
         if result.status == "conflict" and device_id == SERVER_FS:
             self._restore_after_fs_conflict(op, result)
-        self._index(revs)  # step 5 (the caller responds and publishes)
+        self._index(revs)  # step 5: index and publish; the caller responds
+        self.on_commit(revs[-1].seq)
         return result
 
     def _restore_after_fs_conflict(self, op: Operation, result: OpResult) -> None:
@@ -274,7 +283,7 @@ class Committer:
         self._apply(file_id, revision, on_disk, State(path, current, False))
 
     def _commit_db(
-        self, op: Operation, device_id: str, blob: bytes | None
+        self, op: Operation, device_id: str, blob: bytes | None, device_name: str
     ) -> tuple[OpResult, list[_Rev]]:
         with self.session_factory.begin() as s:
             s.execute(
@@ -289,7 +298,8 @@ class Committer:
                 return dataclasses.replace(OpResult.from_json(prior.result), status="duplicate"), []
             now = self.clock()
             try:
-                result, revs = self._plan(s, op, device_id, blob, now.date().isoformat())
+                day = now.date().isoformat()
+                result, revs = self._plan(s, op, device_id, device_name, blob, day)
             except _Rejected as rejected:
                 result = OpResult("rejected", op.file_id, None, None, None, None, rejected.problem)
                 revs = []
@@ -369,14 +379,20 @@ class Committer:
         ).first()
 
     def _plan(
-        self, s: Session, op: Operation, device_id: str, blob: bytes | None, day: str
+        self,
+        s: Session,
+        op: Operation,
+        device_id: str,
+        device_name: str,
+        blob: bytes | None,
+        day: str,
     ) -> tuple[OpResult, list[_Rev]]:
         server_fs = device_id == SERVER_FS
         match op:
             case Create():
-                return self._plan_create(s, op, blob or b"", device_id, day, server_fs)
+                return self._plan_create(s, op, blob or b"", device_name, day, server_fs)
             case Update():
-                return self._plan_update(s, op, blob or b"", device_id, day, server_fs)
+                return self._plan_update(s, op, blob or b"", device_name, day, server_fs)
             case Move():
                 row = self._file(s, op.file_id)
                 self._check_base(row, op.base_revision)
@@ -427,7 +443,7 @@ class Committer:
         raise _Rejected(422, "unknown-operation", "Unknown operation")
 
     def _plan_create(
-        self, s: Session, op: Create, blob: bytes, device_id: str, day: str, server_fs: bool
+        self, s: Session, op: Create, blob: bytes, device_name: str, day: str, server_fs: bool
     ) -> tuple[OpResult, list[_Rev]]:
         self._check_path(op.path, op.kind)
         if s.get(File, op.file_id) is not None:
@@ -435,7 +451,9 @@ class Committer:
         path, problem = op.path, None
         status: Status = "applied"
         if taken := self._live_at(s, op.path):  # create vs create: the second is a copy
-            path = conflict_copy_path(op.path, device_id, day, lambda p: bool(self._live_at(s, p)))
+            path = conflict_copy_path(
+                op.path, device_name, day, lambda p: bool(self._live_at(s, p))
+            )
             status = "conflict"
             problem = self._conflict(s, taken, op.file_id, 0)
         before = State(path, op.content_hash, False) if server_fs and path == op.path else None
@@ -445,14 +463,14 @@ class Committer:
         return self._result(status, rev, problem), [rev]
 
     def _plan_update(
-        self, s: Session, op: Update, blob: bytes, device_id: str, day: str, server_fs: bool
+        self, s: Session, op: Update, blob: bytes, device_name: str, day: str, server_fs: bool
     ) -> tuple[OpResult, list[_Rev]]:
         row = self._file(s, op.file_id)
         self._check_base(row, op.base_revision)
         on_disk = State(row.path, op.content_hash, False) if server_fs else None
         if row.deleted:  # update vs delete: edit wins, the file comes back
             if self._live_at(s, row.path):
-                return self._conflict_copy(s, row, op, blob, device_id, day)
+                return self._conflict_copy(s, row, op, blob, device_name, day)
             before = on_disk or State(row.path, row.content_hash, True)
             rev = self._next(
                 row, "update", content_hash=op.content_hash, size=len(blob), before=before
@@ -466,11 +484,11 @@ class Committer:
             opaque = max(len(blob), len(theirs)) > MAX_NOTE_BYTES
             if row.kind != "note" or opaque or base is None or base.content_hash is None:
                 if blob != theirs:
-                    return self._conflict_copy(s, row, op, blob, device_id, day)
+                    return self._conflict_copy(s, row, op, blob, device_name, day)
             else:
                 merged = merge_note(self.history.get(base.content_hash), theirs, blob)
                 if not merged.clean or merged.data is None:
-                    return self._conflict_copy(s, row, op, blob, device_id, day)
+                    return self._conflict_copy(s, row, op, blob, device_name, day)
                 data = merged.data
                 if data != blob:
                     self.history.put(data)  # step 1 for the merged bytes, before the commit
@@ -482,9 +500,9 @@ class Committer:
         return self._result(status, rev), [rev]
 
     def _conflict_copy(
-        self, s: Session, row: File, op: Update, blob: bytes, device_id: str, day: str
+        self, s: Session, row: File, op: Update, blob: bytes, device_name: str, day: str
     ) -> tuple[OpResult, list[_Rev]]:
-        path = conflict_copy_path(row.path, device_id, day, lambda p: bool(self._live_at(s, p)))
+        path = conflict_copy_path(row.path, device_name, day, lambda p: bool(self._live_at(s, p)))
         copy_id = uuid.uuid7()
         problem = self._conflict(s, row, copy_id, op.base_revision)
         rev = _Rev(copy_id, 1, path, row.kind, op.content_hash, False, "create", len(blob), None)

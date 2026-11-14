@@ -1,0 +1,24 @@
+# Phase 5 sync server plan (P5-01, P5-02, P5-06, P5-07)
+
+Date: 2026-11-14. Requested by Flemming ("Start the development phase 5,6 8 using ubi 10"; Phases 6 and 8 run in other threads). Protocol: [sync-protocol.md](../../architecture/sync-protocol.md). Prompts and rulings: [.conversations/2026-11-14-phase-5-sync-server.md](../../../.conversations/2026-11-14-phase-5-sync-server.md).
+
+The server comes first; the Swift and web sync engines (P5-03, P5-04) and everything after them build on these endpoints. No container image changes are needed for the server work; where image work comes up it targets UBI 10 (the deployment thread's PR #51).
+
+## Pull requests
+
+| PR | Branch | Roadmap | Content |
+|---|---|---|---|
+| A | `feature/sync-server` | P5-01, P5-06 | Migration 0008; blobs (`PUT`/`HEAD`/`GET /api/v1/blobs/{sha256}?vault_id=`); `GET /sync/{vault_id}/changes`, `/snapshot`; `POST /sync/{vault_id}/push`; conflicts (list, read, resolve with `If-Match`); change hints (`GET /api/v1/events`, Server-Sent Events over Valkey pub/sub); note history (`/notes/{id}/revisions[/{rev}[/content]]`, `POST /notes/{id}/restore`, `GET /vaults/{vault_id}/deleted-notes`) |
+| B | `feature/resumable-blobs` | P5-02 | Chunked, resumable blob upload (`Content-Range`, 8 MiB chunks); the commit path streams attachments from the history store into the vault instead of holding whole blobs in memory |
+| C | `feature/sync-retention` | P5-07 | Retention in days (D6, default 90-day tombstone and operation-result window): cursor expiry by time, `client_ops` expiry, history GC that never removes a file's newest revision or a revision a conflict references; orphan uploads swept after a grace period |
+
+## Rulings (no owner decision needed)
+
+- **R-P5-001** Blobs are vault-scoped: `vault_id` is a query parameter and the blob lands in that vault's content-addressed history store, the same store step 1 of the commit procedure writes. A push then finds its blob there; nothing is copied. A blob uploaded and never pushed is an orphan object that PR C's GC removes after a grace period.
+- **R-P5-002** Clients also need to download blobs (pulled entries carry only a hash, and a merged result's bytes are new to the client), so `GET /api/v1/blobs/{sha256}` is added beside `PUT`/`HEAD`. It streams; the client checks the hash.
+- **R-P5-003** The snapshot is paged by path (bytewise order). Every page carries the same `cursor`, the vault's seq read before the first page; after the last page the client pulls changes from it. A commit made while paging is then pulled even if no page showed it, so the client converges without one huge response.
+- **R-P5-004** Change hints are Server-Sent Events at `GET /api/v1/events`, not a WebSocket. Hints flow one way, SSE is an ordinary authenticated GET (the route guard, all three credentials and the CSRF rules apply unchanged; a cross-site page cannot read it without CORS), and native clients read it with a plain URL session. The stream subscribes to every vault the caller may read, heartbeats every 25 s (below nginx's 60 s idle timeout, `X-Accel-Buffering: no`), and ends after 15 minutes, an access token's lifetime, so a revoked device or a lost membership stops receiving hints within that time. Commits publish `seq` on Valkey channel `opennote:changes:<vault_id>` from every process that commits (API and watcher), through the `Committers` registry.
+- **R-P5-005** Conflict copies are named after the device's name (`Note (conflict MacBook 2026-11-14).md`), as the protocol says; web sessions are `web` and personal access tokens `api`. The device id is still what revisions record.
+- **R-P5-006** Conflicts gain `revision`, `created_at` and `resolved_at` (migration 0008), so resolving one follows the API's `If-Match` rule like every other mutable resource. `client_ops` gains `created_at` for PR C's expiry.
+- **R-P5-007** Version-history diffs are computed by the clients from two revisions' contents; the server adds no diff endpoint. `POST /notes/{id}/restore` requires `If-Match` with the note's current revision (a POST, but a restore must never replace an edit the caller has not seen).
+- **R-P5-008** Deleted notes are listed at `GET /api/v1/vaults/{vault_id}/deleted-notes` rather than `/notes/deleted`: a fixed segment under `/notes/{note_id}` answers other methods with 422 instead of 405 (the contract test caught it).

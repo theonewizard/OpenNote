@@ -212,6 +212,205 @@
         "title": "Body_upload_attachment",
         "type": "object"
       },
+      "Conflict": {
+        "properties": {
+          "base_revision": {
+            "description": "The revision the other edit was based on; 0 for a create",
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "copy_file_id": {
+            "description": "The conflict copy holding the other edit",
+            "format": "uuid",
+            "title": "Copy File Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "file_id": {
+            "description": "The file whose revision stayed current",
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "resolved"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "their_revision": {
+            "description": "The file's revision the edit collided with",
+            "title": "Their Revision",
+            "type": "integer"
+          },
+          "vault_id": {
+            "format": "uuid",
+            "title": "Vault Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vault_id",
+          "file_id",
+          "copy_file_id",
+          "base_revision",
+          "their_revision",
+          "status",
+          "revision",
+          "created_at",
+          "resolved_at"
+        ],
+        "title": "Conflict",
+        "type": "object"
+      },
+      "ConflictPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Conflict"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass as `cursor` for the next page; null on the last page",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "next_cursor",
+          "items"
+        ],
+        "title": "ConflictPage",
+        "type": "object"
+      },
+      "ConflictPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "enum": [
+              "open",
+              "resolved"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ConflictPatch",
+        "type": "object"
+      },
+      "DeletedNote": {
+        "properties": {
+          "deleted_at": {
+            "format": "date-time",
+            "title": "Deleted At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_content_revision": {
+            "description": "The newest revision with content",
+            "title": "Last Content Revision",
+            "type": "integer"
+          },
+          "path": {
+            "description": "Where the note was when it was deleted",
+            "title": "Path",
+            "type": "string"
+          },
+          "revision": {
+            "description": "The tombstone's revision; send it as `If-Match` to restore",
+            "title": "Revision",
+            "type": "integer"
+          },
+          "vault_id": {
+            "format": "uuid",
+            "title": "Vault Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vault_id",
+          "path",
+          "revision",
+          "last_content_revision",
+          "deleted_at"
+        ],
+        "title": "DeletedNote",
+        "type": "object"
+      },
+      "DeletedNotePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DeletedNote"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass as `cursor` for the next page; null on the last page",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "next_cursor",
+          "items"
+        ],
+        "title": "DeletedNotePage",
+        "type": "object"
+      },
       "Device": {
         "properties": {
           "created_at": {
@@ -799,6 +998,122 @@
         "title": "NoteRef",
         "type": "object"
       },
+      "NoteRestore": {
+        "additionalProperties": false,
+        "properties": {
+          "from_revision": {
+            "description": "The revision whose bytes come back",
+            "minimum": 1.0,
+            "title": "From Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from_revision"
+        ],
+        "title": "NoteRestore",
+        "type": "object"
+      },
+      "NoteRevision": {
+        "properties": {
+          "committed_at": {
+            "format": "date-time",
+            "title": "Committed At",
+            "type": "string"
+          },
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null for a delete (tombstone)",
+            "title": "Content Hash"
+          },
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "device_id": {
+            "description": "The device that made the change; `server-fs` for edits on the server's vault",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "create",
+              "update",
+              "move",
+              "delete",
+              "restore"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "seq": {
+            "description": "The vault's change sequence number of this revision",
+            "title": "Seq",
+            "type": "integer"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "revision",
+          "seq",
+          "path",
+          "content_hash",
+          "size",
+          "deleted",
+          "op",
+          "device_id",
+          "committed_at"
+        ],
+        "title": "NoteRevision",
+        "type": "object"
+      },
+      "NoteRevisionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NoteRevision"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass as `cursor` for the next page; null on the last page",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "next_cursor",
+          "items"
+        ],
+        "title": "NoteRevisionPage",
+        "type": "object"
+      },
       "OutgoingLink": {
         "properties": {
           "alias": {
@@ -1074,6 +1389,295 @@
         "title": "ProblemDetails",
         "type": "object"
       },
+      "PushCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "client_op_id": {
+            "description": "UUIDv7 made by the client; retries reuse it",
+            "format": "uuid",
+            "title": "Client Op Id",
+            "type": "string"
+          },
+          "content_hash": {
+            "description": "`sha256:` and the lowercase hex digest",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "note",
+              "attachment"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "op": {
+            "const": "create",
+            "title": "Op",
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_op_id",
+          "file_id",
+          "op",
+          "path",
+          "kind",
+          "content_hash"
+        ],
+        "title": "PushCreate",
+        "type": "object"
+      },
+      "PushDelete": {
+        "additionalProperties": false,
+        "properties": {
+          "base_revision": {
+            "minimum": 1.0,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "client_op_id": {
+            "description": "UUIDv7 made by the client; retries reuse it",
+            "format": "uuid",
+            "title": "Client Op Id",
+            "type": "string"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "delete",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_op_id",
+          "file_id",
+          "op",
+          "base_revision"
+        ],
+        "title": "PushDelete",
+        "type": "object"
+      },
+      "PushMove": {
+        "additionalProperties": false,
+        "properties": {
+          "base_revision": {
+            "minimum": 1.0,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "client_op_id": {
+            "description": "UUIDv7 made by the client; retries reuse it",
+            "format": "uuid",
+            "title": "Client Op Id",
+            "type": "string"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "new_path": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "New Path",
+            "type": "string"
+          },
+          "op": {
+            "const": "move",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_op_id",
+          "file_id",
+          "op",
+          "base_revision",
+          "new_path"
+        ],
+        "title": "PushMove",
+        "type": "object"
+      },
+      "PushRestore": {
+        "additionalProperties": false,
+        "properties": {
+          "client_op_id": {
+            "description": "UUIDv7 made by the client; retries reuse it",
+            "format": "uuid",
+            "title": "Client Op Id",
+            "type": "string"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "from_revision": {
+            "minimum": 1.0,
+            "title": "From Revision",
+            "type": "integer"
+          },
+          "op": {
+            "const": "restore",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_op_id",
+          "file_id",
+          "op",
+          "from_revision"
+        ],
+        "title": "PushRestore",
+        "type": "object"
+      },
+      "PushResult": {
+        "description": "For `conflict`, the fields describe the conflict copy and `problem` names the\noriginal file (`original_file_id`); for `rejected`, `problem` says why.",
+        "properties": {
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Hash"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "seq": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seq"
+          },
+          "status": {
+            "enum": [
+              "applied",
+              "merged",
+              "conflict",
+              "rejected",
+              "duplicate"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "file_id",
+          "revision",
+          "seq",
+          "content_hash",
+          "path",
+          "problem"
+        ],
+        "title": "PushResult",
+        "type": "object"
+      },
+      "PushUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "base_revision": {
+            "minimum": 1.0,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "client_op_id": {
+            "description": "UUIDv7 made by the client; retries reuse it",
+            "format": "uuid",
+            "title": "Client Op Id",
+            "type": "string"
+          },
+          "content_hash": {
+            "description": "`sha256:` and the lowercase hex digest",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "update",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_op_id",
+          "file_id",
+          "op",
+          "base_revision",
+          "content_hash"
+        ],
+        "title": "PushUpdate",
+        "type": "object"
+      },
       "SearchHit": {
         "properties": {
           "note": {
@@ -1168,6 +1772,199 @@
           "login_methods"
         ],
         "title": "ServerMeta",
+        "type": "object"
+      },
+      "SyncChanges": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/SyncEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "description": "Store it and send it as `cursor` on the next pull",
+            "title": "Next Cursor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entries",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "SyncChanges",
+        "type": "object"
+      },
+      "SyncEntry": {
+        "properties": {
+          "content_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null for a tombstone",
+            "title": "Content Hash"
+          },
+          "deleted": {
+            "title": "Deleted",
+            "type": "boolean"
+          },
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "file_id": {
+            "format": "uuid",
+            "title": "File Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`note`, `attachment` or `config`",
+            "title": "Kind",
+            "type": "string"
+          },
+          "op": {
+            "title": "Op",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "size": {
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "file_id",
+          "revision",
+          "path",
+          "kind",
+          "content_hash",
+          "size",
+          "deleted",
+          "device_id",
+          "op"
+        ],
+        "title": "SyncEntry",
+        "type": "object"
+      },
+      "SyncPush": {
+        "additionalProperties": false,
+        "properties": {
+          "operations": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "create": "#/components/schemas/PushCreate",
+                  "delete": "#/components/schemas/PushDelete",
+                  "move": "#/components/schemas/PushMove",
+                  "restore": "#/components/schemas/PushRestore",
+                  "update": "#/components/schemas/PushUpdate"
+                },
+                "propertyName": "op"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/PushCreate"
+                },
+                {
+                  "$ref": "#/components/schemas/PushUpdate"
+                },
+                {
+                  "$ref": "#/components/schemas/PushMove"
+                },
+                {
+                  "$ref": "#/components/schemas/PushDelete"
+                },
+                {
+                  "$ref": "#/components/schemas/PushRestore"
+                }
+              ]
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Operations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "operations"
+        ],
+        "title": "SyncPush",
+        "type": "object"
+      },
+      "SyncPushResult": {
+        "properties": {
+          "results": {
+            "description": "One per operation, in order",
+            "items": {
+              "$ref": "#/components/schemas/PushResult"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "title": "SyncPushResult",
+        "type": "object"
+      },
+      "SyncSnapshot": {
+        "properties": {
+          "cursor": {
+            "description": "Pull changes from this cursor once every page is read; the same on every page of one snapshot",
+            "title": "Cursor",
+            "type": "string"
+          },
+          "entries": {
+            "description": "Live files, ordered by path",
+            "items": {
+              "$ref": "#/components/schemas/SyncEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "next_page": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass as `page` for the next page; null on the last",
+            "title": "Next Page"
+          }
+        },
+        "required": [
+          "entries",
+          "cursor",
+          "next_page"
+        ],
+        "title": "SyncSnapshot",
         "type": "object"
       },
       "Tag": {
@@ -2337,6 +3134,469 @@
         ]
       }
     },
+    "/api/v1/blobs/{sha256}": {
+      "get": {
+        "description": "The blob's bytes, for a pulled change. Check them against the hash.",
+        "operationId": "get_blob",
+        "parameters": [
+          {
+            "description": "Lowercase hex SHA-256 of the bytes",
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "description": "Lowercase hex SHA-256 of the bytes",
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The vault to list",
+            "in": "query",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "description": "The vault to list",
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Blob",
+        "tags": [
+          "sync"
+        ]
+      },
+      "head": {
+        "description": "200 when the vault's store holds the blob, else 404: upload only what is missing.",
+        "operationId": "head_blob",
+        "parameters": [
+          {
+            "description": "Lowercase hex SHA-256 of the bytes",
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "description": "Lowercase hex SHA-256 of the bytes",
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The vault to list",
+            "in": "query",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "description": "The vault to list",
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Head Blob",
+        "tags": [
+          "sync"
+        ]
+      },
+      "put": {
+        "description": "Upload a blob before pushing the operation that names it. The bytes must hash to\n`sha256` (else 422); uploading a blob the store already holds is a no-op.",
+        "operationId": "put_blob",
+        "parameters": [
+          {
+            "description": "Lowercase hex SHA-256 of the bytes",
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "description": "Lowercase hex SHA-256 of the bytes",
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The vault to list",
+            "in": "query",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "description": "The vault to list",
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Put Blob",
+        "tags": [
+          "sync"
+        ]
+      }
+    },
+    "/api/v1/conflicts": {
+      "get": {
+        "description": "The vault's conflicts, oldest first; open ones by default.",
+        "operationId": "list_conflicts",
+        "parameters": [
+          {
+            "description": "The vault to list",
+            "in": "query",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "description": "The vault to list",
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this status; open by default",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "resolved"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "open",
+              "description": "Only this status; open by default",
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Conflicts",
+        "tags": [
+          "sync"
+        ]
+      }
+    },
+    "/api/v1/conflicts/{conflict_id}": {
+      "get": {
+        "operationId": "get_conflict",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conflict_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conflict Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conflict"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "The revision, `\"<revision>\"`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Conflict",
+        "tags": [
+          "sync"
+        ]
+      },
+      "patch": {
+        "description": "Mark a conflict resolved (or open again). Resolving changes no file: the user\nedits or deletes the copy; both versions stay in history.",
+        "operationId": "update_conflict",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conflict_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conflict Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConflictPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conflict"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "The revision, `\"<revision>\"`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Update Conflict",
+        "tags": [
+          "sync"
+        ]
+      }
+    },
     "/api/v1/devices": {
       "get": {
         "description": "The caller's devices; a device is created by its first token exchange.",
@@ -2453,6 +3713,67 @@
         "summary": "Revoke Device",
         "tags": [
           "users"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "description": "Change hints as Server-Sent Events: `ready` with the subscribed vaults, then a\n`change` `{vault_id, seq}` after each commit in one of them. Hints are advisory: pull\non `ready` and on every hint; correctness never depends on them. The stream ends\nafter 15 minutes (reconnect with a current token); vaults joined meanwhile are\nincluded on reconnect.",
+        "operationId": "events",
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "description": "One event: `ready` `{vaults: [uuid]}` once, then `change` `{vault_id, seq}`; `data` is JSON",
+                  "properties": {
+                    "data": {
+                      "contentMediaType": "application/json",
+                      "type": "string"
+                    },
+                    "event": {
+                      "enum": [
+                        "ready",
+                        "change"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "event",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Events",
+        "tags": [
+          "sync"
         ]
       }
     },
@@ -3454,6 +4775,311 @@
         ]
       }
     },
+    "/api/v1/notes/{note_id}/restore": {
+      "post": {
+        "description": "Bring back the bytes of `from_revision` as a new revision; a deleted note comes\nback at its last path. `If-Match` names the note's current revision (for a deleted\nnote, the tombstone's), so a restore never replaces an edit the caller has not seen.",
+        "operationId": "restore_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteRestore"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Note"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "The revision, `\"<revision>\"`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Restore Note",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/api/v1/notes/{note_id}/revisions": {
+      "get": {
+        "description": "Every revision of the note, newest first, the note's tombstones included. A diff\nbetween two revisions is computed by the client from their contents.",
+        "operationId": "list_note_revisions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`next_cursor` of the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` of the previous page",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRevisionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Note Revisions",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/api/v1/notes/{note_id}/revisions/{revision}": {
+      "get": {
+        "operationId": "get_note_revision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteRevision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Note Revision",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/api/v1/notes/{note_id}/revisions/{revision}/content": {
+      "get": {
+        "description": "The note's exact bytes at `revision`. 404 for a tombstone; 410 once retention has\nremoved the revision's bytes.",
+        "operationId": "get_note_revision_content",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision",
+            "required": true,
+            "schema": {
+              "title": "Revision",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Note Revision Content",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
     "/api/v1/search": {
       "get": {
         "description": "Full-text search with filters, best match first.",
@@ -3559,6 +5185,266 @@
         "summary": "Search",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/api/v1/sync/{vault_id}/changes": {
+      "get": {
+        "description": "Committed revisions after `cursor`, in commit order. A cursor older than the\ntombstone retention window is a 410: run a full reconcile from the snapshot.",
+        "operationId": "get_changes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`next_cursor` of the last pull; omitted, from the start",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` of the last pull; omitted, from the start",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "description": "Page size",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncChanges"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Changes",
+        "tags": [
+          "sync"
+        ]
+      }
+    },
+    "/api/v1/sync/{vault_id}/push": {
+      "post": {
+        "description": "Commit up to 100 operations in order, each on its own (sync protocol \u00a75). Upload\neach operation's blob first; a missing blob makes that operation `rejected`.\nRetrying an operation with the same `client_op_id` returns its first result as\n`duplicate`; the `Idempotency-Key` replays a whole batch.",
+        "operationId": "push",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Repeating a request with the same key within 24 h returns the first response",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Repeating a request with the same key within 24 h returns the first response",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncPush"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncPushResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Push",
+        "tags": [
+          "sync"
+        ]
+      }
+    },
+    "/api/v1/sync/{vault_id}/snapshot": {
+      "get": {
+        "description": "Every live file at its current revision, for a full reconcile (sync protocol \u00a74).\nRead every page, then pull changes from `cursor`: a change committed while paging is\nin that pull, so the client converges even though the pages are not one instant.",
+        "operationId": "get_snapshot",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`next_page` of the previous page",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4096,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_page` of the previous page",
+              "title": "Page"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 1000,
+              "description": "Page size",
+              "maximum": 5000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncSnapshot"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Snapshot",
+        "tags": [
+          "sync"
         ]
       }
     },
@@ -4318,6 +6204,93 @@
         "summary": "Update Vault",
         "tags": [
           "vaults"
+        ]
+      }
+    },
+    "/api/v1/vaults/{vault_id}/deleted-notes": {
+      "get": {
+        "description": "Deleted notes, most recently deleted first, for recovery: restore one with\n`POST /notes/{id}/restore` from its `last_content_revision`.",
+        "operationId": "list_deleted_notes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vault_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`next_cursor` of the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`next_cursor` of the previous page",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedNotePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Deleted Notes",
+        "tags": [
+          "notes"
         ]
       }
     },

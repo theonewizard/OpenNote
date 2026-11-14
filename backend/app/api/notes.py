@@ -27,12 +27,17 @@ from app.api.conventions import (
 from app.api.deps import DB, StaleRevision, commit, not_found, require_vault
 from app.api.http import Cursor, IdempotencyKey, IfMatch, Limit, VaultIdQuery
 from app.api.schemas import (
+    DeletedNote,
+    DeletedNotePage,
     Note,
     NoteCreate,
     NoteLinks,
     NotePage,
     NotePatch,
     NoteRef,
+    NoteRestore,
+    NoteRevision,
+    NoteRevisionPage,
     NoteSort,
     OutgoingLink,
     Role,
@@ -50,7 +55,7 @@ from app.notes.frontmatter import (
 )
 from app.notes.models import File, NoteLink, NoteTag
 from app.notes.models import Note as NoteRow
-from app.sync.commit import Create, Delete, Move, Operation, OpResult, Update
+from app.sync.commit import Create, Delete, Move, Operation, OpResult, Restore, Update
 from app.sync.history import HistoryStore
 from app.sync.models import ClientOp, Revision
 from app.vaults.models import Vault
@@ -58,6 +63,8 @@ from app.vaults.paths import casefold_key, classify, normalize, validate
 from app.vaults.scan import MAX_NOTE_BYTES
 
 router = APIRouter(prefix="/api/v1/notes", tags=["notes"])
+# Outside /notes/{note_id}, where a fixed segment would shadow other methods of that path.
+vault_router = APIRouter(prefix="/api/v1/vaults")
 Caller = Annotated[Principal, Depends(get_caller)]
 
 _ETAG = {"ETag": {"description": 'The revision, `"<revision>"`', "schema": {"type": "string"}}}
@@ -563,3 +570,195 @@ async def get_note_links(note_id: uuid.UUID, caller: Caller, db: DB) -> NoteLink
         incoming=[NoteRef(id=i, path=p, title=t or _stem(p)) for i, p, t in backlinks],
         unresolved=list(dict.fromkeys(o.target for o in outgoing if o.resolved is None)),
     )
+
+
+# History (P5-06) --------------------------------------------------------------------------
+
+
+async def _load_any(
+    db: DB, principal: Principal, note_id: uuid.UUID, min_role: Role
+) -> tuple[File, Vault]:
+    """The note, deleted or not, and its vault; 404 for a note the caller cannot see."""
+    file = await db.get(File, note_id, populate_existing=True)
+    if file is None or file.kind != "note":
+        raise not_found("Note")
+    try:
+        vault, _ = await require_vault(db, principal, file.vault_id, min_role)
+    except ProblemError as err:
+        if err.status_code == 404:
+            raise not_found("Note") from None
+        raise
+    return file, vault
+
+
+def _revision_not_found() -> ProblemError:
+    return ProblemError(404, "Revision not found", "revision-not-found", "No such revision.")
+
+
+async def _revision(db: DB, file_id: uuid.UUID, revision: int) -> Revision:
+    row = await db.scalar(
+        select(Revision).where(Revision.file_id == file_id, Revision.revision == revision)
+    )
+    if row is None:
+        raise _revision_not_found()
+    return row
+
+
+@router.get("/{note_id}/revisions")
+async def list_note_revisions(
+    note_id: uuid.UUID, caller: Caller, db: DB, cursor: Cursor = None, limit: Limit = 50
+) -> NoteRevisionPage:
+    """Every revision of the note, newest first, the note's tombstones included. A diff
+    between two revisions is computed by the client from their contents."""
+    file, _ = await _load_any(db, caller, note_id, "viewer")
+    query = select(Revision).where(Revision.file_id == file.file_id)
+    if (after := decode_cursor(cursor, 1)) is not None:
+        if not isinstance(after[0], int):
+            raise ProblemError(400, "Invalid cursor", "invalid-cursor", "The cursor is not valid.")
+        query = query.where(Revision.revision < after[0])
+    rows = (await db.scalars(query.order_by(Revision.revision.desc()).limit(limit + 1))).all()
+    next_cursor = encode_cursor([rows[limit - 1].revision]) if len(rows) > limit else None
+    return NoteRevisionPage(
+        items=[NoteRevision.model_validate(r, from_attributes=True) for r in rows[:limit]],
+        next_cursor=next_cursor,
+    )
+
+
+@router.get("/{note_id}/revisions/{revision}")
+async def get_note_revision(
+    note_id: uuid.UUID, revision: int, caller: Caller, db: DB
+) -> NoteRevision:
+    file, _ = await _load_any(db, caller, note_id, "viewer")
+    return NoteRevision.model_validate(
+        await _revision(db, file.file_id, revision), from_attributes=True
+    )
+
+
+@router.get(
+    "/{note_id}/revisions/{revision}/content",
+    response_class=Response,
+    responses={200: {"content": _MARKDOWN}},
+)
+async def get_note_revision_content(
+    note_id: uuid.UUID, revision: int, request: Request, caller: Caller, db: DB
+) -> Response:
+    """The note's exact bytes at `revision`. 404 for a tombstone; 410 once retention has
+    removed the revision's bytes."""
+    file, vault = await _load_any(db, caller, note_id, "viewer")
+    row = await _revision(db, file.file_id, revision)
+    if row.content_hash is None:
+        raise _revision_not_found()
+    try:
+        data = await _bytes(request, vault, row.content_hash)
+    except FileNotFoundError:
+        raise ProblemError(
+            410, "Revision expired", "revision-expired", "This revision is past retention."
+        ) from None
+    return Response(data, media_type="text/markdown; charset=utf-8")
+
+
+@router.post("/{note_id}/restore", responses={200: {"headers": _ETAG}})
+async def restore_note(
+    note_id: uuid.UUID,
+    body: NoteRestore,
+    request: Request,
+    caller: Caller,
+    db: DB,
+    response: Response,
+    if_match: IfMatch = None,
+) -> Note:
+    """Bring back the bytes of `from_revision` as a new revision; a deleted note comes
+    back at its last path. `If-Match` names the note's current revision (for a deleted
+    note, the tombstone's), so a restore never replaces an edit the caller has not seen."""
+    file, vault = await _load_any(db, caller, note_id, "editor")
+    check_if_match(if_match, file.revision, {"id": str(file.file_id), "revision": file.revision})
+    old = await _revision(db, file.file_id, body.from_revision)
+    if old.content_hash is None:
+        raise ProblemError(
+            422, "Nothing to restore", "revision-is-tombstone", "That revision is a delete."
+        )
+    if not await anyio.to_thread.run_sync(
+        HistoryStore(Path(request.app.state.settings.history_root), vault.id).has,
+        old.content_hash,
+    ):
+        raise ProblemError(
+            410, "Revision expired", "revision-expired", "This revision is past retention."
+        )
+    op = Restore(uuid.uuid7(), file.file_id, body.from_revision)
+    try:
+        result = await commit(
+            request, vault, op, caller.device_id, None, expected_revision=file.revision
+        )
+    except StaleRevision:
+        raise ProblemError(
+            412,
+            "Precondition failed",
+            "precondition-failed",
+            "The note has changed; read it again.",
+        ) from None
+    if result.status == "rejected":
+        raise refused(result)
+    _, _, note = await _load(db, caller, file.file_id, "viewer")
+    audit(
+        db,
+        request,
+        "note.restore",
+        caller,
+        vault_id=vault.id,
+        target=str(file.file_id),
+        details={"from_revision": body.from_revision},
+    )
+    await db.commit()
+    response.headers["ETag"] = etag(note.revision)
+    return note
+
+
+@vault_router.get("/{vault_id}/deleted-notes", tags=["notes"])
+async def list_deleted_notes(
+    vault_id: uuid.UUID, caller: Caller, db: DB, cursor: Cursor = None, limit: Limit = 50
+) -> DeletedNotePage:
+    """Deleted notes, most recently deleted first, for recovery: restore one with
+    `POST /notes/{id}/restore` from its `last_content_revision`."""
+    await require_vault(db, caller, vault_id, "viewer")
+    last_content = (
+        select(func.max(Revision.revision))
+        .where(Revision.file_id == File.file_id, Revision.content_hash.is_not(None))
+        .scalar_subquery()
+    )
+    query = (
+        select(File, _current.committed_at, last_content)
+        .join(_current, (_current.file_id == File.file_id) & (_current.revision == File.revision))
+        .where(File.vault_id == vault_id, File.kind == "note", File.deleted)
+    )
+    if (after := decode_cursor(cursor, 2)) is not None:
+        try:
+            position = tuple_(
+                literal(dt.datetime.fromisoformat(str(after[0])), _current.committed_at.type),
+                literal(uuid.UUID(str(after[1]))),
+            )
+        except ValueError:
+            raise ProblemError(
+                400, "Invalid cursor", "invalid-cursor", "The cursor is not valid."
+            ) from None
+        query = query.where(tuple_(_current.committed_at, File.file_id) < position)
+    rows = (
+        await db.execute(
+            query.order_by(_current.committed_at.desc(), File.file_id.desc()).limit(limit + 1)
+        )
+    ).all()
+    items = [
+        DeletedNote(
+            id=file.file_id,
+            vault_id=file.vault_id,
+            path=file.path,
+            revision=file.revision,
+            last_content_revision=content_revision or 0,
+            deleted_at=deleted_at,
+        )
+        for file, deleted_at, content_revision in rows[:limit]
+    ]
+    next_cursor = None
+    if len(rows) > limit:
+        file, deleted_at, _ = rows[limit - 1]
+        next_cursor = encode_cursor([deleted_at.isoformat(), str(file.file_id)])
+    return DeletedNotePage(items=items, next_cursor=next_cursor)
