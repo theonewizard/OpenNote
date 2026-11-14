@@ -29,6 +29,11 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 | P6-01 tasks (parse part) | IN_PROGRESS | `app/tasks/parse.py` finds tasks (any status character, nesting, quotes and callouts; not in code or comments) and computes the one-character toggle; nothing stores tasks or writes the toggle until P2-04 ([record](../.conversations/2026-11-07-links-tasks-templates.md)) |
 | P6-05 templates (parse part) | IN_PROGRESS | `app/notes/templates.py` renders `{{title}}`, `{{date}}`, `{{time}}` and `{{date:FORMAT}}` with Moment.js tokens; creating a note from a template waits for P2-04 |
 | P6-08 backlinks and graph | IN_PROGRESS | `app/notes/graph.py` queries backlinks, the vault graph and the local graph from `note_links`; the `/notes/{id}/links` route and client panels follow the Phase 2 API |
+| P8-01 performance validation | IN_PROGRESS | PR #56: 100k-note vault benchmark (`make benchmark`, nightly `benchmark-nightly` job); fixed import beyond 65,535 notes and the per-commit link re-resolution (migration `0008`). Container runs at 2k and 10k notes meet the open and search targets ([benchmarks.md](development/benchmarks.md)); the 100k CI numbers are pending |
+| P8-02 security testing | IN_PROGRESS | PR #64: signed-in OWASP ZAP API scan of the Compose stack in the containers workflow, no High or Medium alerts on the first run. The external review is not arranged |
+| P8-03 accessibility | IN_PROGRESS | PR #57: axe WCAG 2.2 AA checks (light, dark, 375 px, empty vault) and a keyboard-only test of the web app; fixed one contrast failure. VoiceOver on the Apple apps waits for those apps |
+| P8-05 disaster recovery | TESTING | PR #59: `python -m app.sync.rebuild` rebuilds the database from the vault and history store; integration tests and a manual drill. The Compose drill in CI follows P8-04 (PR #40) |
+| P8-07 documentation | TESTING | PR #60: user guide, operator guide and API how-to |
 
 ## Verified where
 
