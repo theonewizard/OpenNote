@@ -7,6 +7,7 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 | Time (UTC) | From | Prompt |
 |---|---|---|
 | 2026-11-07 15:01 | Flemming (project chat) | "Run most of the phases in parallel so it is developed quickly." |
+| 2026-11-14 00:02 | Phase 2 thread | Phase 2 is on `main` (d429cf7); Python now answers impossible dates, tagged scalars and non-finite floats; add those inputs to the parity fixture inside #41 |
 | 2026-11-07 15:03 | Coordinator (thread "Build Apple core packages") | Workstream 1 of the parallel plan: P4-01 parser parity, P4-02 Storage, P4-04 TextKit editor in `apple/Packages`; depends only on Phase 1; Core and Storage build on Linux, the editor needs the macOS runners |
 
 ## Rulings
@@ -17,6 +18,7 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 - W1-4: `renameat2`, `renamex_np` and `F_FULLFSYNC` are reached through a small C target (`CFileSwap`) because Swift's Glibc overlay does not declare `renameat2`; the system SQLite through a `systemLibrary` target (`libsqlite3-dev` installed in the Linux CI job). Cost if wrong: two tiny targets.
 - W1-5: Swift metadata editing (the YAML splice) and the sync state (bases, outbox, cursor) are left out: the first is not in P4-01's acceptance and no UI calls it yet, the second belongs to P5-03. Cost if wrong: they are added when first needed.
 - W1-6: where Python raises instead of answering (impossible dates, explicit YAML tags), Swift answers safely (`frontmatter_error`, the scalar's text) and the parity fixture leaves those inputs out; the Python behaviour is reported to the Phase 2 thread rather than changed here, to keep this workstream out of `backend/app`.
+- W1-7 (2026-11-14): with the Phase 2 Python on `main`, the W1-6 inputs join the fixture. Python constructs core-tagged scalars (`!!int 7` is 7, `!!float 5` is 5.0, `!!int x` is invalid), so Swift follows it instead of keeping the text; `!!str` and custom tags keep the text in both. ruamel's `!!bool` and `!!binary` quirks stay out of the fixture. Cost if wrong: one function.
 
 ## Output
 

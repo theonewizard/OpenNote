@@ -738,6 +738,165 @@
   "frontmatter_error": false
  },
  {
+  "yaml": "a: !!str 5",
+  "frontmatter": {
+   "a": "5"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !foo bar",
+  "frontmatter": {
+   "a": "bar"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!int 7",
+  "frontmatter": {
+   "a": 7
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!int 0o17",
+  "frontmatter": {
+   "a": 15
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!int '7'",
+  "frontmatter": {
+   "a": 7
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!int x",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: !!int 7.5",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: !!float 5",
+  "frontmatter": {
+   "a": 5.0
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!float .inf",
+  "frontmatter": {
+   "a": ".inf"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!float x",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: !!bool true",
+  "frontmatter": {
+   "a": true
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!null x",
+  "frontmatter": {
+   "a": null
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!str true",
+  "frontmatter": {
+   "a": "true"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!timestamp 2024-01-02",
+  "frontmatter": {
+   "a": "2024-01-02"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !!timestamp x",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: ! 5",
+  "frontmatter": {
+   "a": 5
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: !<tag:yaml.org,2002:int> 8",
+  "frontmatter": {
+   "a": 8
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: .inf",
+  "frontmatter": {
+   "a": ".inf"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: -.inf",
+  "frontmatter": {
+   "a": "-.inf"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: .NaN",
+  "frontmatter": {
+   "a": ".NaN"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 1e400",
+  "frontmatter": {
+   "a": "1e400"
+  },
+  "frontmatter_error": false
+ },
+ {
+  "yaml": "a: 2024-02-30",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: 2023-02-29",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: 2024-03-04T25:00:00",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
+  "yaml": "a: 2024-03-04T05:06:07+25",
+  "frontmatter": null,
+  "frontmatter_error": true
+ },
+ {
   "yaml": "ключ: значение",
   "frontmatter": {
    "ключ": "значение"

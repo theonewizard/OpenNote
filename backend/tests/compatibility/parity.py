@@ -23,9 +23,9 @@ from app.vaults.paths import casefold_key, classify, normalize, validate
 
 PARITY = Path(__file__).resolve().parents[3] / "tests" / "compatibility" / "parity"
 
-# Frontmatter YAML, one block each. Left out on purpose, because Python has no JSON answer:
-# explicit tags (`!!str 5` gives a TaggedScalar), impossible dates and times (ValueError
-# escapes read_properties), non-scalar keys, .inf/.nan (not JSON).
+# Frontmatter YAML, one block each. Left out on purpose: non-scalar keys (Python stringifies
+# the tuple, Swift reports invalid frontmatter) and ruamel's quirks under explicit tags
+# (`!!bool yes` is True, `!!bool x` raises, `!!binary` gives bytes' repr).
 FRONTMATTER = [
     "a: 1",
     "a: -0",
@@ -128,6 +128,31 @@ FRONTMATTER = [
     "a: x\n  b: y",
     "naïve: café",
     "emoji: 😀",
+    "a: !!str 5",
+    "a: !foo bar",
+    "a: !!int 7",
+    "a: !!int 0o17",
+    "a: !!int '7'",
+    "a: !!int x",
+    "a: !!int 7.5",
+    "a: !!float 5",
+    "a: !!float .inf",
+    "a: !!float x",
+    "a: !!bool true",
+    "a: !!null x",
+    "a: !!str true",
+    "a: !!timestamp 2024-01-02",
+    "a: !!timestamp x",
+    "a: ! 5",
+    "a: !<tag:yaml.org,2002:int> 8",
+    "a: .inf",
+    "a: -.inf",
+    "a: .NaN",
+    "a: 1e400",
+    "a: 2024-02-30",
+    "a: 2023-02-29",
+    "a: 2024-03-04T25:00:00",
+    "a: 2024-03-04T05:06:07+25",
     "ключ: значение",
 ]
 

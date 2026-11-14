@@ -172,18 +172,36 @@ public enum Frontmatter {
         }
     }
 
+    private static let coreTag = "tag:yaml.org,2002:"
+
     private static func scalar(_ s: Node.Scalar) throws -> PropertyValue {
-        guard s.style == .plain else { return .string(s.string) }
-        // An explicit tag (`!!str 5`, `!custom x`) keeps the text. ruamel hands back a
-        // TaggedScalar there, which the backend cannot serialize; text is the useful reading.
-        // Untagged scalars have the empty (implicit) tag name.
-        if !s.tag.rawValue.isEmpty { return .string(s.string) }
-        switch try resolvePlain(s.string) {
+        let tag = s.tag.rawValue
+        // Untagged scalars have the empty (implicit) tag name; `!` asks for the same reading.
+        if tag.isEmpty || tag == "!" {
+            guard s.style == .plain else { return .string(s.string) }
+            return value(try resolvePlain(s.string), s.string)
+        }
+        // A core tag (`!!int 7`) constructs that type, as ruamel does, and a value that is not
+        // of the type is invalid frontmatter. `!!str` and custom tags (`!foo 5`) keep the text.
+        let kind = tag.hasPrefix(coreTag) ? String(tag.dropFirst(coreTag.count)) : ""
+        guard ["int", "float", "bool", "null", "timestamp"].contains(kind) else { return .string(s.string) }
+        let resolved = try resolvePlain(s.string)
+        switch (kind, resolved) {
+        case ("null", _): return .null
+        case ("int", .int), ("float", .double), ("bool", .bool), ("timestamp", .timestamp):
+            return value(resolved, s.string)
+        case let ("float", .int(i)): return .double(Double(i))
+        default: throw FrontmatterInvalid(reason: "value does not match its !!\(kind) tag")
+        }
+    }
+
+    private static func value(_ resolved: Resolved, _ text: String) -> PropertyValue {
+        switch resolved {
         case .null: return .null
         case let .bool(b): return .bool(b)
         case let .int(i): return .int(i)
         // JSON has no infinity or NaN; the backend reports such a value as its text too.
-        case let .double(d): return d.isFinite ? .double(d) : .string(s.string)
+        case let .double(d): return d.isFinite ? .double(d) : .string(text)
         case let .string(str): return .string(str)
         case let .timestamp(iso, _): return .string(iso)
         }
