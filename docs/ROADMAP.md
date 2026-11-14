@@ -139,7 +139,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 |---|---|---|---|---|---|
 | P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | NOT_STARTED |
 | P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | NOT_STARTED |
-| P8-03 | Accessibility review (VoiceOver, keyboard, WCAG 2.2 AA web) | M5 | P0 | — | NOT_STARTED |
+| P8-03 | Accessibility review (VoiceOver, keyboard, WCAG 2.2 AA web) | M5 | P0 | — | IN_PROGRESS (web: axe WCAG 2.2 AA and keyboard-only Playwright checks on every push, `web/tests/e2e/accessibility.spec.ts`; VoiceOver on the Apple apps and a manual web review still open) |
 | P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | NOT_STARTED |
 | P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | NOT_STARTED |
 | P8-06 | OpenShift production deployment (Helm, Routes, restricted SCC) | P0-11 | P0 | Deploys on OpenShift 4.16+ | NOT_STARTED |
