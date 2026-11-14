@@ -212,6 +212,106 @@
         "title": "Body_upload_attachment",
         "type": "object"
       },
+      "CalendarFeed": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "vault_id": {
+            "format": "uuid",
+            "title": "Vault Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "vault_id",
+          "name",
+          "created_at",
+          "last_used_at"
+        ],
+        "title": "CalendarFeed",
+        "type": "object"
+      },
+      "CalendarFeedCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "default": "Tasks",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "vault_id": {
+            "format": "uuid",
+            "title": "Vault Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id"
+        ],
+        "title": "CalendarFeedCreate",
+        "type": "object"
+      },
+      "CalendarFeedCreated": {
+        "properties": {
+          "feed": {
+            "$ref": "#/components/schemas/CalendarFeed"
+          },
+          "url": {
+            "description": "The feed's path with its token, relative to the server; shown only once",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feed",
+          "url"
+        ],
+        "title": "CalendarFeedCreated",
+        "type": "object"
+      },
+      "CalendarFeedList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarFeed"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "CalendarFeedList",
+        "type": "object"
+      },
       "Device": {
         "properties": {
           "created_at": {
@@ -2668,6 +2768,214 @@
         "summary": "Token",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/calendar-feeds": {
+      "get": {
+        "description": "The caller's feeds, newest first.",
+        "operationId": "list_calendar_feeds",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "vault_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vault Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarFeedList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Calendar Feeds",
+        "tags": [
+          "calendar"
+        ]
+      },
+      "post": {
+        "description": "Create a feed; the URL with its token is shown once. A personal access token cannot\ncreate one (it would outlive the token's own limits).",
+        "operationId": "create_calendar_feed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarFeedCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarFeedCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Create Calendar Feed",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar-feeds/{feed_id}": {
+      "delete": {
+        "description": "Revoke a feed: its URL stops working at once.",
+        "operationId": "delete_calendar_feed",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feed_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Feed Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Delete Calendar Feed",
+        "tags": [
+          "calendar"
+        ]
+      }
+    },
+    "/api/v1/calendar/tasks.ics": {
+      "get": {
+        "description": "The feed: open tasks with a due date or a reminder, as iCalendar (keyless: the\ntoken is the credential).",
+        "operationId": "get_calendar_feed",
+        "parameters": [
+          {
+            "description": "The feed's token",
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "description": "The feed's token",
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/calendar": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "summary": "Get Calendar Feed",
+        "tags": [
+          "calendar"
         ]
       }
     },

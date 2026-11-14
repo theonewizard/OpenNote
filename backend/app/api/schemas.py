@@ -413,3 +413,30 @@ class GraphEdge(BaseModel):
 class Graph(BaseModel):
     nodes: list[GraphNode]
     edges: list[GraphEdge]
+
+
+# Calendar feeds ---------------------------------------------------------------------------
+
+
+class CalendarFeed(BaseModel):
+    id: uuid.UUID
+    vault_id: uuid.UUID
+    name: str
+    created_at: dt.datetime
+    last_used_at: dt.datetime | None
+
+
+class CalendarFeedCreate(_Body):
+    vault_id: uuid.UUID
+    name: str = Field(default="Tasks", min_length=1, max_length=255)
+
+
+class CalendarFeedCreated(BaseModel):
+    feed: CalendarFeed
+    url: str = Field(
+        description="The feed's path with its token, relative to the server; shown only once"
+    )
+
+
+class CalendarFeedList(BaseModel):
+    items: list[CalendarFeed]

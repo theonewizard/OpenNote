@@ -32,6 +32,7 @@ The complete initial `KEYLESS_ROUTES` list. Adding to it needs review.
 | `GET /api/v1/meta` | Server version, API and sync protocol versions, enabled login methods |
 | `GET /api/v1/meta/path-rules` | Shared filename rules for clients |
 | `GET /api/v1/auth/authorize`, `POST /api/v1/auth/token`, `GET /api/v1/auth/oidc/{provider}/callback`, `POST /api/v1/auth/login` | Login and token exchange (protected by PKCE, CSRF state and rate limits). `authorize?provider=<name>` starts an upstream OIDC login, so no separate start route is needed |
+| `GET /api/v1/calendar/tasks.ics?token=` | Calendar feed (P6-03): calendar apps cannot send a bearer token, so the feed's own 256-bit token is the credential. Only its SHA-256 is stored, it sits in the query string (which neither the web proxy nor the API logs), each fetch rechecks that the feed's owner can still read the vault, and deleting the feed revokes it at once |
 
 ## 3. Resources
 
@@ -114,6 +115,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/tags?vault_id=` | Tag list with counts [2] |
 | GET | `/api/v1/search?vault_id=&q=&cursor=&limit=` | Search, grammar in §5 [2] |
 | GET / POST / DELETE | `/api/v1/saved-searches` | [6] |
+| GET / POST / DELETE | `/api/v1/calendar-feeds`, `/calendar-feeds/{id}` | Read-only iCalendar feeds of a vault's open tasks with a due date or reminder; `POST { vault_id, name }` returns the feed URL with its token once (not for personal access tokens) [6] |
 | PUT / HEAD | `/api/v1/blobs/{sha256}` | Content-addressed upload / existence check for sync [5, prototype 1] |
 | GET | `/api/v1/sync/{vault_id}/changes?cursor=` | Pull [5] |
 | GET | `/api/v1/sync/{vault_id}/snapshot` | Full file list for reconcile [5] |
