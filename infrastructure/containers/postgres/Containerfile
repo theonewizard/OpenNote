@@ -8,7 +8,7 @@
 # Runs as UID 1001 group 0 or any other UID in group 0, on a read-only root filesystem with
 # a writable /tmp and a volume at /var/lib/postgresql/data. First start: see entrypoint.sh.
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.9@sha256:baafce2d34783a28b4a472779f304e97e00f9d35c99553bc53b068b14344d9a9
 
 LABEL org.opencontainers.image.title="opennote-postgres" \
       org.opencontainers.image.description="PostgreSQL 18 with pgvector for OpenNote" \
@@ -25,6 +25,9 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # OpenPGP v4 fingerprint is the SHA-1 of the key's public-key packet, which for this key is
 # the first 400 decoded bytes (header 0x99, length 397), so no gpg is needed.
 # $basearch is expanded by microdnf, not the shell.
+# krb5-libs is upgraded explicitly: the 9.9 base image (2026-11-12) still carries
+# 1.21.1-10.el9_8.1, which has HIGH CVE-2026-107364, fixed in 1.21.1-10.el9_9.2. Drop the
+# upgrade once a base image build ships the fixed package.
 # hadolint ignore=SC2016
 RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
     && curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
@@ -45,8 +48,9 @@ RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
         'gpgcheck=1' \
         'gpgkey=file:///etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL' \
         > /etc/yum.repos.d/pgdg18.repo \
+    && microdnf upgrade -y --nodocs krb5-libs \
     && microdnf install -y --nodocs --setopt=install_weak_deps=0 \
-        postgresql18-server-18.6 postgresql18-contrib-18.6 pgvector_18-0.8.7 \
+        postgresql18-server-18.7 postgresql18-contrib-18.7 pgvector_18-0.8.7 \
     && microdnf clean all
 
 COPY infrastructure/containers/postgres/entrypoint.sh /usr/local/bin/entrypoint.sh

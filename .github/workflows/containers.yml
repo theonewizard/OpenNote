@@ -263,12 +263,12 @@ jobs:
           all=(helm-defaults.yaml helm-ingress.yaml helm-openshift.yaml kustomize-base.yaml kustomize-openshift.yaml)
           want 0 '^kind: Secret$' "${all[@]}"
           want 0 'secretKeyRef|secretRef' "${all[@]}"
-          want 4 '^ *fsGroup: 1001$' helm-defaults.yaml helm-ingress.yaml kustomize-base.yaml
+          want 5 '^ *fsGroup: 1001$' helm-defaults.yaml helm-ingress.yaml kustomize-base.yaml
           want 0 'fsGroup:' helm-openshift.yaml kustomize-openshift.yaml
-          want 4 '^ *fsGroupChangePolicy: OnRootMismatch$' "${all[@]}"
-          want 4 '^ *readOnlyRootFilesystem: true$' "${all[@]}"
+          want 5 '^ *fsGroupChangePolicy: OnRootMismatch$' "${all[@]}"
+          want 5 '^ *readOnlyRootFilesystem: true$' "${all[@]}"
           want 2 '^ *automountServiceAccountToken: false$' helm-defaults.yaml helm-ingress.yaml helm-openshift.yaml
-          want 4 '^ *automountServiceAccountToken: false$' kustomize-base.yaml kustomize-openshift.yaml
+          want 5 '^ *automountServiceAccountToken: false$' kustomize-base.yaml kustomize-openshift.yaml
           want 1 '^ *OPENNOTE_API_UPSTREAM: "?([a-z0-9-]+-)?api\.[a-z0-9-]+\.svc\.cluster\.local:80"?$' "${all[@]}"
           exit "$status"
 

@@ -73,7 +73,7 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 | P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | TESTING |
 | P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | NOT_STARTED |
 | P3-09 | Settings, vault management | P2-03 | P0 | — | TESTING |
-| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | NOT_STARTED |
+| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | TESTING |
 
 ## Phase 4 — Apple applications (M4)
 
@@ -109,14 +109,14 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | NOT_STARTED |
+| P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | IN_PROGRESS (parser and one-character toggle in `app/tasks/parse.py`; task index, view and the write wait for P2-04) |
 | P6-02 | Recurring tasks and reminders | P6-01 | P1 | — | NOT_STARTED |
 | P6-03 | Calendar integration (CalDAV server-side, EventKit on Apple) | P6-01 | P1 | — | NOT_STARTED |
 | P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | NOT_STARTED |
-| P6-05 | Templates | M5 | P1 | — | NOT_STARTED |
+| P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (Obsidian-compatible rendering in `app/notes/templates.py`; creating a note from a template waits for P2-04) |
 | P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | NOT_STARTED |
 | P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
-| P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | NOT_STARTED |
+| P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (backlink and graph queries in `app/notes/graph.py`; the HTTP route and the client panels follow the Phase 2 API) |
 | P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | NOT_STARTED |
 | P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | NOT_STARTED |
 

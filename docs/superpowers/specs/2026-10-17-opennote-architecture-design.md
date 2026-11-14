@@ -196,7 +196,7 @@ Details: [sync protocol](../../architecture/sync-protocol.md).
 
 ## 6. Repository structure
 
-After Phase 0 every entry below exists except these, which are planned: the root `tests/`, `web/src/features/`, `web/public/`, `apple/Tests/`, the telemetry module in `backend/app/core/` and the SCC notes in `infrastructure/openshift/` (the SCC is described in `docs/deployment/kubernetes.md` for now).
+After Phase 0 every entry below exists except these, which are planned: the root `tests/`, `apple/Tests/`, the telemetry module in `backend/app/core/` and the SCC notes in `infrastructure/openshift/` (the SCC is described in `docs/deployment/kubernetes.md` for now).
 
 Monorepo as in §15.4, with these concrete additions:
 

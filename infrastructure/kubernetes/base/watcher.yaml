@@ -1,0 +1,84 @@
+# The vault watcher: the api image with `python -m app.vaults`. It watches every vault and
+# commits what changes on disk outside OpenNote, including the notes already in a folder
+# when it is registered. One replica: a second waits on a database lock. No probes (no
+# HTTP endpoint). On an RWX volume without inotify events (NFS) the periodic rescan, every
+# 15 minutes, still finds external edits.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: watcher
+  labels:
+    app.kubernetes.io/name: opennote
+    app.kubernetes.io/component: watcher
+spec:
+  replicas: 1  # one instance; a second waits on a database lock
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opennote
+      app.kubernetes.io/component: watcher
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opennote
+        app.kubernetes.io/component: watcher
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        # As in api.yaml.
+        fsGroup: 1001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: watcher
+          image: ghcr.io/theonewizard/opennote-api:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.vaults"]
+          envFrom:
+            - configMapRef:
+                name: opennote
+          # As in api.yaml.
+          env:
+            - name: OPENNOTE_DATABASE_URL_FILE
+              value: /run/secrets/opennote/OPENNOTE_DATABASE_URL
+            - name: OPENNOTE_VALKEY_URL_FILE
+              value: /run/secrets/opennote/OPENNOTE_VALKEY_URL
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: vaults
+              mountPath: /var/lib/opennote/vaults
+            - name: history
+              mountPath: /var/lib/opennote/history
+            - name: secrets
+              mountPath: /run/secrets/opennote
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: vaults
+          persistentVolumeClaim:
+            claimName: vaults
+        - name: history
+          persistentVolumeClaim:
+            claimName: history
+        - name: secrets
+          secret:
+            secretName: opennote
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
