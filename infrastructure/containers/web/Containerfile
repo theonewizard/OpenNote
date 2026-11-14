@@ -19,8 +19,9 @@ RUN npm ci --no-audit --no-fund
 # Only the build inputs, so a host's node_modules or dist never enters the image. The build
 # type-checks src; the tests and their Playwright configuration are checked by CI's web job.
 COPY web/index.html web/vite.config.ts \
-     web/tsconfig.json web/tsconfig.app.json web/tsconfig.node.json ./
+     web/tsconfig.json web/tsconfig.app.json web/tsconfig.node.json web/tsconfig.test.json ./
 COPY web/src ./src
+COPY web/public ./public
 RUN npm run build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c

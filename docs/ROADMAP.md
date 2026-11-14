@@ -73,7 +73,7 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 | P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | TESTING |
 | P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | NOT_STARTED |
 | P3-09 | Settings, vault management | P2-03 | P0 | — | TESTING |
-| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | NOT_STARTED |
+| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | TESTING |
 
 ## Phase 4 — Apple applications (M4)
 
