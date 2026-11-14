@@ -115,7 +115,6 @@ async def _time(
 async def test_vault_targets_on_100k_notes(api):
     alice = api.user("alice")
     vault_id = api.vault(alice, "Big")
-    headers = await api.bearer(alice)
     with Session(api.engine) as s:
         root = Path(s.get(Vault, vault_id).root_path)
     results: dict[str, object] = {
@@ -163,6 +162,8 @@ async def test_vault_targets_on_100k_notes(api):
     def notes(suffix: str = "") -> Callable[[int], str]:
         return lambda i: f"/api/v1/notes/{ids[i % len(ids)]}{suffix}"
 
+    # Issued now: an access token from before the import (40 minutes at 100k notes) expires.
+    headers = await api.bearer(alice)
     content = notes("/content")
     results["open"] = await _time(lambda i: api.client.get(content(i), headers=headers), SAMPLES)
 
