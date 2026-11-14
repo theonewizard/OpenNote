@@ -80,9 +80,10 @@ _SIGN_DATE = {name: sign for sign, name in DATE_SIGNS.items()}
 def complete(doc: NoteDocument, task: Task, today: dt.date) -> bytes:
     """The note's bytes with `task` toggled. An open recurring task with a supported rule
     is checked and gets `✅ today` (replacing an old one, before a trailing `^block-id`);
-    a copy with the next dates, an open status, and no done date or block id goes on the
-    line above it."""
-    following = None if task.done else next_dates(metadata(task.text), today)
+    a copy with the next dates (its reminder moved by the same step), an open status, and
+    no done date or block id goes on the line above it."""
+    meta = metadata(task.text)
+    following = None if task.done else next_dates(meta, today)
     if following is None:
         return toggle(doc, task)
     text = doc.text
@@ -102,4 +103,9 @@ def complete(doc: NoteDocument, task: Task, today: dt.date) -> bytes:
         copy = re.sub(
             f"({sign}\ufe0f?[ \t]*)\\d{{4}}-\\d{{2}}-\\d{{2}}", rf"\g<1>{value}", copy, count=1
         )
+    if meta.reminder is not None and following:  # the reminder moves with the dates
+        moved = next(k for k in ("due", "scheduled", "start") if k in following)
+        moved_day = (meta.reminder + (following[moved] - meta.dates[moved])).date().isoformat()
+        reminder = r"(\(@|⏰\ufe0f?[ \t]*)\d{4}-\d{2}-\d{2}"
+        copy = re.sub(reminder, rf"\g<1>{moved_day}", copy, count=1)
     return replace_span(doc, slice(start, end), copy + doc.newline + done)

@@ -133,3 +133,30 @@ def test_complete_refuses_a_stale_task():
     other = parse_note("- [x] a 🔁 every day 📅 2026-11-12\n".encode())
     with pytest.raises(StaleTask):
         complete(other, task, D(2026, 11, 14))
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("call (@2026-11-20 09:30)", dt.datetime(2026, 11, 20, 9, 30)),
+        ("call (@2026-11-20)", dt.datetime(2026, 11, 20, 9, 0)),  # the plugin's default time
+        ("call ⏰ 2026-11-20 7:05", dt.datetime(2026, 11, 20, 7, 5)),
+        ("call (@2026-02-30)", None),
+        ("call (@2026-11-20 25:00)", None),
+        ("mail me @2026-11-20", None),
+    ],
+)
+def test_reminders(text, expected):
+    assert metadata(text).reminder == expected
+
+
+def test_a_reminder_ends_the_rule_and_moves_with_the_dates():
+    note = "- [ ] call 🔁 every week (@2026-11-12 10:00) 📅 2026-11-13\n"
+    assert metadata(note).recurrence.text == "every week"
+    assert (
+        _complete(note)
+        == (
+            "- [ ] call 🔁 every week (@2026-11-19 10:00) 📅 2026-11-20\n"
+            "- [x] call 🔁 every week (@2026-11-12 10:00) 📅 2026-11-13 ✅ 2026-11-14\n"
+        ).encode()
+    )

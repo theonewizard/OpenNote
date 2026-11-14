@@ -1288,6 +1288,11 @@ export interface components {
              */
             recurrence: string | null;
             /**
+             * Remind At
+             * @description Reminder plugin `(@date time)`: local wall-clock time, no UTC offset
+             */
+            remind_at: string | null;
+            /**
              * Revision
              * @description The note's revision; send it as `If-Match` to toggle
              */
@@ -2612,6 +2617,8 @@ export interface operations {
                 limit?: number;
                 /** @description Only this note's tasks */
                 note_id?: string | null;
+                /** @description Only tasks with a reminder at or before this local time */
+                remind_before?: string | null;
                 status?: "open" | "done" | "any";
                 /** @description The vault to list */
                 vault_id: string;

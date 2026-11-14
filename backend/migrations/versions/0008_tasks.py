@@ -1,7 +1,8 @@
 """The derived task index (P6-01, P6-02).
 
 One row per task (`- [ ]` list item) in a live note, with the Tasks plugin's dates,
-priority and recurrence rule. Derived like `notes`: `index_file` writes the rows, so tasks
+priority and recurrence rule, and the Reminder plugin's reminder (local wall-clock time).
+Derived like `notes`: `index_file` writes the rows, so tasks
 in notes indexed before this migration appear once the index is rebuilt
 (`app.notes.index.rebuild_index`).
 
@@ -40,9 +41,16 @@ def upgrade() -> None:
         sa.Column("done_on", sa.Date(), nullable=True),
         sa.Column("priority", sa.Text(), nullable=True),
         sa.Column("recurrence", sa.Text(), nullable=True),
+        sa.Column("remind_at", sa.DateTime(timezone=False), nullable=True),
         sa.PrimaryKeyConstraint("file_id", "ordinal"),
     )
     op.create_index("tasks_vault_done_due", "tasks", ["vault_id", "done", "due"])
+    op.create_index(
+        "tasks_vault_remind_at",
+        "tasks",
+        ["vault_id", "remind_at"],
+        postgresql_where=sa.text("remind_at IS NOT NULL AND NOT done"),
+    )
 
 
 def downgrade() -> None:

@@ -6,6 +6,8 @@ and a recurrence rule (🔁 every week). `next_dates` gives the next instance of
 recurring task as the Tasks plugin does: every date moves by the same step, measured from
 the due date (else scheduled, else start), or from the completion day for `when done`.
 Rules outside the supported subset (`supported` False) are kept and never acted on.
+A reminder is the Obsidian Reminder plugin's `(@2026-11-20 09:00)` or `⏰ 2026-11-20 09:00`,
+a local wall-clock time; without a time it is 09:00, the plugin's default.
 """
 
 import calendar
@@ -23,10 +25,12 @@ DATE_SIGNS = {
 }
 PRIORITIES = {"🔺": "highest", "⏫": "high", "🔼": "medium", "🔽": "low", "⏬": "lowest"}
 RECUR_SIGN = "🔁"
-_SIGNS = "".join([*DATE_SIGNS, *PRIORITIES, RECUR_SIGN])
+_SIGNS = "".join([*DATE_SIGNS, *PRIORITIES, RECUR_SIGN, "⏰"])
 _DATE = re.compile(f"([{''.join(DATE_SIGNS)}])️?[ \t]*(\\d{{4}}-\\d{{2}}-\\d{{2}})")
 _PRIORITY = re.compile(f"[{''.join(PRIORITIES)}]")
-_RECUR = re.compile(f"{RECUR_SIGN}️?[ \t]*([^{_SIGNS}]*)")
+_RECUR = re.compile(f"{RECUR_SIGN}\ufe0f?[ \t]*([^{_SIGNS}]*?)(?=\\(@|[{_SIGNS}]|$)")
+_REMINDER = re.compile(r"(?:\(@|⏰\ufe0f?[ \t]*)(\d{4}-\d{2}-\d{2})(?:[ \t]+(\d{1,2}):(\d{2}))?")
+REMINDER_TIME = dt.time(9, 0)
 _WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 _RULE = re.compile(
     r"every(?:\s+(?P<n>\d{1,4}))?\s+(?P<unit>day|week|month|year)s?"
@@ -50,6 +54,7 @@ class TaskMeta:
     dates: dict[str, dt.date] = field(default_factory=dict)  # DATE_SIGNS values -> date
     priority: str | None = None
     recurrence: Rule | None = None
+    reminder: dt.datetime | None = None  # naive: the note's owner's local time
 
 
 def _weekdays(words: str) -> tuple[int, ...] | None:
@@ -88,7 +93,18 @@ def metadata(text: str) -> TaskMeta:
             continue
     priority = PRIORITIES[m[0]] if (m := _PRIORITY.search(text)) else None
     recurrence = parse_rule(m[1]) if (m := _RECUR.search(text)) else None
-    return TaskMeta(dates, priority, recurrence)
+    return TaskMeta(dates, priority, recurrence, _reminder(text))
+
+
+def _reminder(text: str) -> dt.datetime | None:
+    for m in _REMINDER.finditer(text):
+        try:
+            day = dt.date.fromisoformat(m[1])
+            at = dt.time(int(m[2]), int(m[3])) if m[2] else REMINDER_TIME
+        except ValueError:
+            continue
+        return dt.datetime.combine(day, at)
+    return None
 
 
 def _add_months(day: dt.date, months: int) -> dt.date:

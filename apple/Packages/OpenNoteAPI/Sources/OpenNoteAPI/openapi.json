@@ -1422,6 +1422,19 @@
             "description": "Recurrence rule as written (Tasks plugin)",
             "title": "Recurrence"
           },
+          "remind_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reminder plugin `(@date time)`: local wall-clock time, no UTC offset",
+            "title": "Remind At"
+          },
           "revision": {
             "description": "The note's revision; send it as `If-Match` to toggle",
             "title": "Revision",
@@ -1478,7 +1491,8 @@
           "start",
           "done_on",
           "priority",
-          "recurrence"
+          "recurrence",
+          "remind_at"
         ],
         "title": "Task",
         "type": "object"
@@ -4256,6 +4270,25 @@
               ],
               "description": "Only tasks due on or before this date",
               "title": "Due Before"
+            }
+          },
+          {
+            "description": "Only tasks with a reminder at or before this local time",
+            "in": "query",
+            "name": "remind_before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only tasks with a reminder at or before this local time",
+              "title": "Remind Before"
             }
           },
           {

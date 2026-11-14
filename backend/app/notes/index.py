@@ -141,6 +141,7 @@ def _write_rows(
                 done_on=meta.dates.get("done"),
                 priority=meta.priority,
                 recurrence=meta.recurrence.text if meta.recurrence else None,
+                remind_at=meta.reminder,
             )
         )
 

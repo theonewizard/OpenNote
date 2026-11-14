@@ -4,7 +4,7 @@ the other derived rows by `app.notes.index` and rebuildable from the vault."""
 import datetime as dt
 import uuid
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -29,3 +29,5 @@ class TaskRow(Base):
     done_on: Mapped[dt.date | None]
     priority: Mapped[str | None]
     recurrence: Mapped[str | None]
+    # The Reminder plugin's time, as written: local to the note's owner, no time zone.
+    remind_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=False))

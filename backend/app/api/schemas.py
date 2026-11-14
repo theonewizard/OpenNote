@@ -379,6 +379,9 @@ class Task(BaseModel):
     done_on: dt.date | None = Field(description="Done date (Tasks plugin)")
     priority: Literal["highest", "high", "medium", "low", "lowest"] | None
     recurrence: str | None = Field(description="Recurrence rule as written (Tasks plugin)")
+    remind_at: dt.datetime | None = Field(
+        description="Reminder plugin `(@date time)`: local wall-clock time, no UTC offset"
+    )
 
 
 class TaskPage(_Page):

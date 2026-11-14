@@ -54,6 +54,10 @@ async def list_tasks(
     due_before: Annotated[
         dt.date | None, Query(description="Only tasks due on or before this date")
     ] = None,
+    remind_before: Annotated[
+        dt.datetime | None,
+        Query(description="Only tasks with a reminder at or before this local time"),
+    ] = None,
     cursor: Cursor = None,
     limit: Limit = 100,
 ) -> TaskPage:
@@ -72,6 +76,8 @@ async def list_tasks(
         query = query.where(TaskRow.file_id == note_id)
     if due_before is not None:
         query = query.where(TaskRow.due <= due_before)
+    if remind_before is not None:
+        query = query.where(TaskRow.remind_at <= remind_before.replace(tzinfo=None))
     if (after := decode_cursor(cursor, 4)) is not None:
         try:
             position = tuple_(
@@ -113,6 +119,7 @@ def _task(row: TaskRow, path: str, revision: int, title: str | None) -> Task:
         done_on=row.done_on,
         priority=row.priority,
         recurrence=row.recurrence,
+        remind_at=row.remind_at,
     )
 
 

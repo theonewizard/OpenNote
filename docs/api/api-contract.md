@@ -102,7 +102,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | DELETE | `/api/v1/notes/{id}` | Delete (tombstone + history) [2] |
 | GET | `/api/v1/notes/{id}/links` | Outgoing, incoming (backlinks), unresolved [2 basic, 6 full] |
 | GET | `/api/v1/graph?vault_id=&attachments=&unresolved=&center=&depth=` | Link graph: every note plus counted edges, optional attachments and unresolved targets, or the local graph around `center` [6] |
-| GET | `/api/v1/tasks?vault_id=&status=open\|done\|any&note_id=&due_before=&cursor=&limit=` | Tasks from the derived index, with the Tasks plugin's dates, priority and recurrence, sorted by due date (undated last), path, position [6] |
+| GET | `/api/v1/tasks?vault_id=&status=open\|done\|any&note_id=&due_before=&remind_before=&cursor=&limit=` | Tasks from the derived index, with the Tasks plugin's dates, priority and recurrence and the Reminder plugin's reminder, sorted by due date (undated last), path, position [6] |
 | PATCH | `/api/v1/notes/{id}/tasks/{ordinal}` | Check or uncheck a task `{ done, today? }` (`If-Match` on the note): one character changes; completing a recurring task adds `✅ today` and the next occurrence above it [6] |
 | GET | `/api/v1/notes/{id}/revisions`, `/revisions/{rev}`, `/revisions/{rev}/content` | History [5] |
 | POST | `/api/v1/notes/{id}/restore` | Restore `{ from_revision }` [5] |

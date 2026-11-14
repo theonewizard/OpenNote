@@ -110,7 +110,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
 | P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | IN_PROGRESS (task index, `GET /api/v1/tasks` and the toggle route on the commit path; the client task views remain) |
-| P6-02 | Recurring tasks and reminders | P6-01 | P1 | — | IN_PROGRESS (Tasks plugin dates, priority and `🔁` recurrence indexed; completing a recurring task adds the next occurrence; reminders remain) |
+| P6-02 | Recurring tasks and reminders | P6-01 | P1 | — | IN_PROGRESS (Tasks plugin dates, priority and `🔁` recurrence indexed; completing a recurring task adds the next occurrence; Reminder plugin reminders indexed and listed with `remind_before`; device notifications and the calendar feed remain) |
 | P6-03 | Calendar integration (CalDAV server-side, EventKit on Apple) | P6-01 | P1 | — | NOT_STARTED |
 | P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | NOT_STARTED |
 | P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (`POST /api/v1/notes` with `template_id`; the client template pickers remain) |

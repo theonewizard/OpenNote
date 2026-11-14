@@ -52,6 +52,17 @@ async def test_tasks_are_indexed_and_listed_by_due_date(api, owner):
     assert [t["text"] for t in due["items"]] == ["soon 📅 2026-11-20"]
 
 
+async def test_reminders_are_indexed_and_filtered(api, owner):
+    vault, headers = owner
+    await _create(
+        api, headers, vault, "A.md", "- [ ] call (@2026-11-20 10:00)\n- [ ] later (@2026-12-01)\n"
+    )
+    page = await _tasks(api, headers, vault, remind_before="2026-11-20T10:00:00")
+    assert [(t["text"], t["remind_at"]) for t in page["items"]] == [
+        ("call (@2026-11-20 10:00)", "2026-11-20T10:00:00")
+    ]
+
+
 async def test_task_pages(api, owner):
     vault, headers = owner
     await _create(api, headers, vault, "A.md", "".join(f"- [ ] t{i}\n" for i in range(5)))
