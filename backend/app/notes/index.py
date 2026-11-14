@@ -1,7 +1,7 @@
 """The derived note index: titles, properties, tags and links, rebuildable from the vault.
 
-Only `notes`, `note_tags`, `note_links` and `search_documents` are written here; `files`
-(identity) is read.
+Only `notes`, `note_tags`, `note_links`, `search_documents` and `tasks` are written here;
+`files` (identity) is read.
 """
 
 import os
@@ -17,12 +17,15 @@ from app.notes.extract import Link, extract
 from app.notes.frontmatter import read_properties
 from app.notes.links import resolve
 from app.notes.models import File, Note, NoteLink, NoteTag, SearchDocument
+from app.tasks.models import TaskRow
+from app.tasks.parse import extract_tasks
+from app.tasks.recurrence import metadata
 from app.vaults.fsio import open_root, read_file
 from app.vaults.paths import casefold_key
 
 BATCH = 500
 # The derived rows of one file, dropped and rewritten together.
-DERIVED = (NoteLink, NoteTag, SearchDocument, Note)
+DERIVED = (NoteLink, NoteTag, SearchDocument, TaskRow, Note)
 # A tsvector holds at most 1 MiB of lexemes; text past this is not searchable.
 MAX_SEARCH_CHARS = 200_000
 
@@ -118,6 +121,27 @@ def _write_rows(
                 heading=link.heading,
                 block=link.block,
                 alias=link.alias,
+            )
+        )
+    for ordinal, task in enumerate(extract_tasks(doc)):
+        meta = metadata(task.text)
+        session.add(
+            TaskRow(
+                file_id=file_id,
+                ordinal=ordinal,
+                vault_id=vault_id,
+                line=task.line,
+                status=task.status,
+                done=task.done,
+                text=_searchable(task.text),
+                parent=task.parent,
+                due=meta.dates.get("due"),
+                scheduled=meta.dates.get("scheduled"),
+                start=meta.dates.get("start"),
+                done_on=meta.dates.get("done"),
+                priority=meta.priority,
+                recurrence=meta.recurrence.text if meta.recurrence else None,
+                remind_at=meta.reminder,
             )
         )
 

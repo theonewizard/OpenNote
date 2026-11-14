@@ -6,6 +6,7 @@ first, as for links. `toggle` computes the bytes of a one-character status chang
 writes them to the vault until the Phase 2 note write path (P2-04) exists.
 """
 
+import datetime as dt
 import re
 from dataclasses import dataclass
 
@@ -13,6 +14,7 @@ from markdown_it import MarkdownIt
 
 from app.notes.document import NoteDocument, replace_span
 from app.notes.extract import mask
+from app.tasks.recurrence import DATE_SIGNS, metadata, next_dates
 
 _MD = MarkdownIt("commonmark")
 _TASK = re.compile(r"[ \t>]*(?:[-*+]|\d{1,9}[.)])[ \t]+\[([^\]\r\n])\](?:[ \t]+|\r?$)")
@@ -68,3 +70,42 @@ def toggle(doc: NoteDocument, task: Task) -> bytes:
     if doc.text is None or doc.text[task.offset : task.offset + 1] != task.status:
         raise StaleTask(f"no task status {task.status!r} at offset {task.offset}")
     return replace_span(doc, slice(task.offset, task.offset + 1), " " if task.done else "x")
+
+
+_BLOCK_ID = re.compile(r"[ \t]+\^[A-Za-z0-9-]+[ \t]*$")
+_DONE_DATE = re.compile(r"[ \t]*✅\ufe0f?[ \t]*\d{4}-\d{2}-\d{2}")
+_SIGN_DATE = {name: sign for sign, name in DATE_SIGNS.items()}
+
+
+def complete(doc: NoteDocument, task: Task, today: dt.date) -> bytes:
+    """The note's bytes with `task` toggled. An open recurring task with a supported rule
+    is checked and gets `✅ today` (replacing an old one, before a trailing `^block-id`);
+    a copy with the next dates (its reminder moved by the same step), an open status, and
+    no done date or block id goes on the line above it."""
+    meta = metadata(task.text)
+    following = None if task.done else next_dates(meta, today)
+    if following is None:
+        return toggle(doc, task)
+    text = doc.text
+    if text is None or text[task.offset : task.offset + 1] != task.status:
+        raise StaleTask(f"no task status {task.status!r} at offset {task.offset}")
+    start = text.rfind("\n", 0, task.offset) + 1
+    end = text.find("\n", task.offset)
+    end = len(text) if end == -1 else end - (text[end - 1] == "\r")
+    line, at = text[start:end], task.offset - start
+    block = _BLOCK_ID.search(line)
+    cut = block.start() if block else len(line)
+    item = _DONE_DATE.sub("", line[at + 1 : cut]).rstrip()
+    done = f"{line[:at]}x{item} ✅ {today.isoformat()}{line[cut:]}"
+    copy = f"{line[:at]} {item}"
+    for name, day in following.items():
+        sign, value = _SIGN_DATE[name], day.isoformat()
+        copy = re.sub(
+            f"({sign}\ufe0f?[ \t]*)\\d{{4}}-\\d{{2}}-\\d{{2}}", rf"\g<1>{value}", copy, count=1
+        )
+    if meta.reminder is not None and following:  # the reminder moves with the dates
+        moved = next(k for k in ("due", "scheduled", "start") if k in following)
+        moved_day = (meta.reminder + (following[moved] - meta.dates[moved])).date().isoformat()
+        reminder = r"(\(@|⏰\ufe0f?[ \t]*)\d{4}-\d{2}-\d{2}"
+        copy = re.sub(reminder, rf"\g<1>{moved_day}", copy, count=1)
+    return replace_span(doc, slice(start, end), copy + doc.newline + done)

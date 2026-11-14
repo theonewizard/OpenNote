@@ -243,6 +243,27 @@ export interface paths {
         patch: operations["move_folder"];
         trace?: never;
     };
+    "/api/v1/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Graph
+         * @description The vault's link graph, as Obsidian's graph view draws it: every note (orphans
+         *     too), edges counted per linking note and target, links to itself left out.
+         */
+        get: operations["get_graph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -315,7 +336,8 @@ export interface paths {
         put?: never;
         /**
          * Create Note
-         * @description Create a note. A note OpenNote creates gets an `id` in its frontmatter.
+         * @description Create a note, empty, from `content`, or from a template note. A note OpenNote
+         *     creates gets an `id` in its frontmatter.
          */
         post: operations["create_note"];
         delete?: never;
@@ -395,6 +417,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notes/{note_id}/tasks/{ordinal}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Task
+         * @description Check or uncheck a task, based on the note revision in `If-Match`. One character
+         *     changes; completing a recurring task also stamps its done date and adds the next occurrence
+         *     above it, as the Tasks plugin does. Returns the note after the change.
+         */
+        patch: operations["update_task"];
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -427,6 +471,26 @@ export interface paths {
          * @description Tags with their note counts, sorted by name.
          */
         get: operations["list_tags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tasks
+         * @description Tasks by due date (undated last), then note path and position in the note.
+         */
+        get: operations["list_tasks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -820,6 +884,42 @@ export interface components {
              */
             moved_files: number;
         };
+        /** Graph */
+        Graph: {
+            /** Edges */
+            edges: components["schemas"]["GraphEdge"][];
+            /** Nodes */
+            nodes: components["schemas"]["GraphNode"][];
+        };
+        /** GraphEdge */
+        GraphEdge: {
+            /**
+             * Count
+             * @description Links and embeds from source to target
+             */
+            count: number;
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+        };
+        /** GraphNode */
+        GraphNode: {
+            /**
+             * Id
+             * @description The note or attachment id, or `unresolved:` + the target
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "note" | "attachment" | "unresolved";
+            /** Label */
+            label: string;
+            /** Path */
+            path: string | null;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -917,10 +1017,20 @@ export interface components {
              */
             content?: string | null;
             /**
+             * Local Time
+             * @description The creator's local time with its UTC offset, for the template's dates; omitted, the server's time in UTC
+             */
+            local_time?: string | null;
+            /**
              * Path
              * @description Vault-relative, ends in `.md`
              */
             path: string;
+            /**
+             * Template Id
+             * @description A note in the same vault to start from instead of `content`: its `{{title}}`, `{{date}}`, `{{time}}`, `{{date:FORMAT}}` and `{{time:FORMAT}}` are filled in (Obsidian Templates syntax) and its `id` is replaced by the new note's
+             */
+            template_id?: string | null;
             /**
              * Vault Id
              * Format: uuid
@@ -1136,6 +1246,97 @@ export interface components {
              * @description Pass as `cursor` for the next page; null on the last page
              */
             next_cursor: string | null;
+        };
+        /** Task */
+        Task: {
+            /**
+             * Done
+             * @description Any status but a space
+             */
+            done: boolean;
+            /**
+             * Done On
+             * @description Done date (Tasks plugin)
+             */
+            done_on: string | null;
+            /**
+             * Due
+             * @description Due date (Tasks plugin)
+             */
+            due: string | null;
+            /**
+             * Line
+             * @description 0-based line in the note, frontmatter included
+             */
+            line: number;
+            note: components["schemas"]["NoteRef"];
+            /**
+             * Ordinal
+             * @description The task's position among the note's tasks, from 0
+             */
+            ordinal: number;
+            /**
+             * Parent
+             * @description `ordinal` of the enclosing task, for subtasks
+             */
+            parent: number | null;
+            /** Priority */
+            priority: ("highest" | "high" | "medium" | "low" | "lowest") | null;
+            /**
+             * Recurrence
+             * @description Recurrence rule as written (Tasks plugin)
+             */
+            recurrence: string | null;
+            /**
+             * Remind At
+             * @description Reminder plugin `(@date time)`: local wall-clock time, no UTC offset
+             */
+            remind_at: string | null;
+            /**
+             * Revision
+             * @description The note's revision; send it as `If-Match` to toggle
+             */
+            revision: number;
+            /**
+             * Scheduled
+             * @description Scheduled date (Tasks plugin)
+             */
+            scheduled: string | null;
+            /**
+             * Start
+             * @description Start date (Tasks plugin)
+             */
+            start: string | null;
+            /**
+             * Status
+             * @description The character between the brackets
+             */
+            status: string;
+            /**
+             * Text
+             * @description The task's first line after `[c] `, as written
+             */
+            text: string;
+        };
+        /** TaskPage */
+        TaskPage: {
+            /** Items */
+            items: components["schemas"]["Task"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /** TaskPatch */
+        TaskPatch: {
+            /** Done */
+            done: boolean;
+            /**
+             * Today
+             * @description The caller's local date, for the done date and the next occurrence of a recurring task; omitted, the server's date in UTC
+             */
+            today?: string | null;
         };
         /**
          * TokenResponse
@@ -1873,6 +2074,46 @@ export interface operations {
             };
         };
     };
+    get_graph: {
+        parameters: {
+            query: {
+                /** @description Include linked attachments */
+                attachments?: boolean;
+                /** @description Local graph around this note instead */
+                center?: string | null;
+                /** @description Links from `center` */
+                depth?: number;
+                /** @description Include unresolved link targets */
+                unresolved?: boolean;
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Graph"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     get_me: {
         parameters: {
             query?: never;
@@ -2250,6 +2491,47 @@ export interface operations {
             };
         };
     };
+    update_task: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                note_id: string;
+                ordinal: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The note's revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query: {
@@ -2311,6 +2593,49 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_tasks: {
+        parameters: {
+            query: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Only tasks due on or before this date */
+                due_before?: string | null;
+                /** @description Page size */
+                limit?: number;
+                /** @description Only this note's tasks */
+                note_id?: string | null;
+                /** @description Only tasks with a reminder at or before this local time */
+                remind_before?: string | null;
+                status?: "open" | "done" | "any";
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPage"];
                 };
             };
             /** @description Problem details (RFC 9457) */
