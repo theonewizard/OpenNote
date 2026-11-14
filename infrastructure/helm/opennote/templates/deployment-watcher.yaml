@@ -1,0 +1,52 @@
+# The api image with `python -m app.vaults`: watches every vault and commits what changes on
+# disk outside OpenNote, including the notes already in a registered folder. Always one
+# replica (a second would wait on a database lock). No probes: no HTTP endpoint.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opennote.fullname" . }}-watcher
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: watcher
+spec:
+  replicas: 1  # one instance; a second waits on a database lock
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "opennote.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: watcher
+  template:
+    metadata:
+      labels:
+        {{- include "opennote.labels" . | nindent 8 }}
+        app.kubernetes.io/component: watcher
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "opennote.fullname" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        {{- include "opennote.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: watcher
+          image: "{{ .Values.image.apiRepository }}:{{ include "opennote.tag" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "app.vaults"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "opennote.fullname" . }}
+          env:
+            {{- include "opennote.secretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.watcher.resources | nindent 12 }}
+          securityContext:
+            {{- include "opennote.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            {{- include "opennote.backendVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "opennote.backendVolumes" . | nindent 8 }}

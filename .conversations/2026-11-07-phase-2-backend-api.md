@@ -12,6 +12,8 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 | 2026-11-07 15:23 | Coordinator, AI thread | PR #37 also adds Alembic migration 0006; whichever merges second renumbers. The AI thread asked for `embed_vault_job.send(vault_id)` after successful commits once its PR is on `main`. |
 | 2026-11-07 15:32 | Apple core thread | `read_properties` raised on an impossible date and returned non-JSON tagged scalars; asked that non-finite floats keep their source text. Fixed (0c8d579, 3fad031). |
 | 2026-11-07 15:04 | Web shell/editor thread | Builds against API contract §3 shapes (vault, note, content as `text/markdown` with `ETag`/`If-Match`, `{items, next_cursor}`, `GET /folders?vault_id=`) and asked for the contract pull request number. |
+| 2026-11-07 20:57 | Web shell/editor thread | After the merge (main 56ed844): registering an existing folder as a vault lists its folders but no notes; nothing calls the indexer. Cause: no process runs the vault watcher. Branch `fix/vault-watcher` adds `python -m app.vaults` (one instance per database, advisory lock), deploys it in Compose, Helm and Kustomize, and makes `ingest_fs_changes` read disk and registry under the vault lock so a write another process has not finished is not reverted. Where it runs was put to Flemming on a card (recommended: its own process). |
+| 2026-11-09 15:36 | Flemming (decision card) | Chose "Trust the web proxy only" for the client IP behind the web proxy (R-P2-010). Branch `fix/forwarded-allow-ips`: Compose pins web to `OPENNOTE_WEB_ADDRESS` in `OPENNOTE_NETWORK_SUBNET` and sets the api's `FORWARDED_ALLOW_IPS` to it; Helm value `trustedProxies` (schema refuses `*`). |
 
 ## Rulings
 
