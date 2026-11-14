@@ -10,17 +10,21 @@
 # as UID 1001 group 0 or any other UID in group 0, on a read-only root filesystem with a
 # writable /tmp.
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.9@sha256:baafce2d34783a28b4a472779f304e97e00f9d35c99553bc53b068b14344d9a9
 
 LABEL org.opencontainers.image.title="opennote-api" \
       org.opencontainers.image.description="OpenNote API server and background worker" \
       org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
       org.opencontainers.image.licenses="AGPL-3.0-only"
 
-# Packages from the UBI 9 repositories are not version-pinned: they take the 9.8 stream's
+# Packages from the UBI 9 repositories are not version-pinned: they take the 9.9 stream's
 # security updates on top of the base image, which is pinned by digest.
 # hadolint ignore=DL3041
-RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
+# krb5-libs is upgraded explicitly: the 9.9 base image (2026-11-12) still carries
+# 1.21.1-10.el9_8.1, which has HIGH CVE-2026-107364, fixed in 1.21.1-10.el9_9.2. Drop the
+# upgrade once a base image build ships the fixed package.
+RUN microdnf upgrade -y --nodocs krb5-libs \
+    && microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
     && microdnf clean all
 
 COPY backend/requirements.txt backend/constraints.txt /tmp/
