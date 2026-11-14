@@ -19,6 +19,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import IO
+from urllib.parse import urljoin
 from xml.etree.ElementTree import Element, ParseError, iterparse  # see docstring
 
 from app.vaults.paths import FORBIDDEN_CHARS, LINK_CHARS, RESERVED_NAMES, truncate_utf8
@@ -115,14 +116,19 @@ def safe_name(name: str, fallback: str, max_bytes: int = 200) -> str:
 
 _BLOCKS = {"p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "li", "tr"}
 _FENCE = "```"
-_SKIP = {"head", "style", "script", "title"}
+_SKIP = {
+    "head", "style", "script", "title", "noscript", "template", "svg", "canvas", "iframe",
+    "object", "form", "button", "select", "textarea", "video", "audio",
+}  # fmt: skip
+_LINK_SCHEMES = ("http://", "https://", "mailto:")
 _EMPHASIS = {"b": "**", "strong": "**", "i": "*", "em": "*", "s": "~~", "strike": "~~", "del": "~~"}
 
 
 class _Converter(HTMLParser):
-    def __init__(self, media: dict[str, str]) -> None:
+    def __init__(self, media: dict[str, str], base_url: str | None) -> None:
         super().__init__(convert_charrefs=True)
         self.media = media
+        self.base_url = base_url
         self.out: list[str] = []  # finished blocks
         self.line: list[str] = []  # the block being built
         self.prefix = ""  # list marker, heading hashes or quote marks for the current block
@@ -198,7 +204,7 @@ class _Converter(HTMLParser):
         elif tag == "code":
             self._write("`")
         elif tag == "a":
-            self.links.append(a.get("href") or "")
+            self.links.append(self._url(a.get("href")))
             self._write("[")
         elif tag == "en-todo":
             box = "- [x] " if (a.get("checked") or "").lower() == "true" else "- [ ] "
@@ -214,8 +220,14 @@ class _Converter(HTMLParser):
         elif tag == "en-crypt":
             self.skip += 1
             self._write("`[encrypted]`")
-        elif tag == "img" and (a.get("src") or "").startswith(("http://", "https://")):
-            self._write(f"![{a.get('alt') or ''}]({a['src']})")
+        elif tag == "img" and (src := self._url(a.get("src"))).startswith(("http://", "https://")):
+            alt = re.sub(r"[\[\]\s]+", " ", a.get("alt") or "").strip()
+            self._write(f"![{alt}](<{src}>)" if " " in src else f"![{alt}]({src})")
+
+    def _url(self, value: str | None) -> str:
+        """An absolute http(s) or mailto URL, or "" (javascript:, data: and the like)."""
+        url = urljoin(self.base_url or "", (value or "").strip())
+        return url if url.lower().startswith(_LINK_SCHEMES) else ""
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.handle_starttag(tag, attrs)
@@ -268,7 +280,7 @@ class _Converter(HTMLParser):
             self._write("`")
         elif tag == "a":
             href = self.links.pop() if self.links else ""
-            self._write(f"]({href})" if href else "]")
+            self._write((f"](<{href}>)" if " " in href else f"]({href})") if href else "]")
 
     def handle_data(self, data: str) -> None:
         if not self.skip:
@@ -287,9 +299,10 @@ class _Converter(HTMLParser):
         return markdown.strip() + "\n" if markdown.strip() else ""
 
 
-def to_markdown(enml: str, media: dict[str, str]) -> str:
-    """Markdown for one note's ENML; `media` maps MD5 hex to the attachment's file name."""
-    converter = _Converter(media)
+def to_markdown(enml: str, media: dict[str, str], base_url: str | None = None) -> str:
+    """Markdown for one note's ENML (or any HTML, as for web clips); `media` maps MD5 hex
+    to the attachment's file name, `base_url` resolves relative links and images."""
+    converter = _Converter(media, base_url)
     converter.feed(re.sub(r"<\?xml[^>]*\?>|<!DOCTYPE[^>]*>", "", enml))
     converter.close()
     return converter.result()

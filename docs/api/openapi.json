@@ -240,6 +240,57 @@
         "title": "Body_upload_attachment",
         "type": "object"
       },
+      "ClipCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "default": "Clippings",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Folder",
+            "type": "string"
+          },
+          "html": {
+            "description": "The selection or the page's main content, as HTML; converted to Markdown",
+            "maxLength": 5242880,
+            "title": "Html",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "default": "",
+            "maxLength": 1024,
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "description": "The clipped page's http(s) URL",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          },
+          "vault_id": {
+            "format": "uuid",
+            "title": "Vault Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vault_id",
+          "url",
+          "html"
+        ],
+        "title": "ClipCreate",
+        "type": "object"
+      },
       "Device": {
         "properties": {
           "created_at": {
@@ -2412,6 +2463,59 @@
         "summary": "Token",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/clips": {
+      "post": {
+        "description": "Save a clipped page as a note in `folder` (default `Clippings`). A personal access\ntoken with write scope for the vault works, which is what the extension uses.",
+        "operationId": "create_clip",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClipCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Note"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Create Clip",
+        "tags": [
+          "clips"
         ]
       }
     },

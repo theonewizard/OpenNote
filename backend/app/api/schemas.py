@@ -353,3 +353,25 @@ class ImportResult(BaseModel):
     notes: list[NoteRef] = Field(description="The notes created, in export order")
     attachments: int = Field(description="Attachments created for them")
     skipped: list[ImportSkip]
+
+
+# Web clips --------------------------------------------------------------------------------
+
+
+class ClipCreate(_Body):
+    vault_id: uuid.UUID
+    url: str = Field(min_length=1, max_length=4096, description="The clipped page's http(s) URL")
+    title: str = Field(default="", max_length=1024)
+    html: str = Field(
+        max_length=5 * 1024 * 1024,
+        description="The selection or the page's main content, as HTML; converted to Markdown",
+    )
+    folder: str = Field(default="Clippings", min_length=1, max_length=512)
+    tags: list[str] = Field(default_factory=list, max_length=50)
+
+    @field_validator("url")
+    @classmethod
+    def _http(cls, value: str) -> str:
+        if not value.lower().startswith(("http://", "https://")):
+            raise ValueError("must be an http or https URL")
+        return value

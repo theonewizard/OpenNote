@@ -172,6 +172,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/clips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Clip
+         * @description Save a clipped page as a note in `folder` (default `Clippings`). A personal access
+         *     token with write scope for the vault works, which is what the extension uses.
+         */
+        post: operations["create_clip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/devices": {
         parameters: {
             query?: never;
@@ -755,6 +776,36 @@ export interface components {
             file: string;
             /** Path */
             path: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** ClipCreate */
+        ClipCreate: {
+            /**
+             * Folder
+             * @default Clippings
+             */
+            folder: string;
+            /**
+             * Html
+             * @description The selection or the page's main content, as HTML; converted to Markdown
+             */
+            html: string;
+            /** Tags */
+            tags?: string[];
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Url
+             * @description The clipped page's http(s) URL
+             */
+            url: string;
             /**
              * Vault Id
              * Format: uuid
@@ -1727,6 +1778,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_clip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
                 };
             };
             /** @description Problem details (RFC 9457) */

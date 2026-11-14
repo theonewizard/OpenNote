@@ -21,6 +21,7 @@ from app import __version__
 from app.api import (
     attachments,
     auth,
+    clips,
     folders,
     health,
     imports,
@@ -55,6 +56,7 @@ ROUTERS: list[APIRouter] = [
     attachments.router,
     search.router,
     imports.router,
+    clips.router,
 ]
 
 # The only routes callable without credentials; adding one needs review (API contract §2).
