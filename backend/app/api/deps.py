@@ -14,6 +14,7 @@ from sqlalchemy import Engine, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.ai.notify import request_embedding
 from app.auth.dependencies import Principal
 from app.core.config import Settings
 from app.core.db import make_sync_engine
@@ -137,6 +138,9 @@ async def commit(
                     row = session.get(File, op.file_id)
                 if row is None or row.revision != expected_revision:
                     raise StaleRevision
-            return committer.commit(op, device_id, blob)
+            result = committer.commit(op, device_id, blob)
+        if result.status not in ("rejected", "duplicate"):
+            request_embedding(committers.settings, vault.id)
+        return result
 
     return await anyio.to_thread.run_sync(run)

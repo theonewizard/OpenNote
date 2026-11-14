@@ -43,6 +43,7 @@ The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each
 | `OPENNOTE_MAX_BLOB_BYTES` | largest attachment upload in bytes; default 536870912 (512 MiB) |
 | `OPENNOTE_ENVIRONMENT` | `development`, `test` or `production`; default `production` |
 | `OPENNOTE_RATE_LIMIT_PER_PRINCIPAL`, `OPENNOTE_RATE_LIMIT_PER_IP`, `OPENNOTE_RATE_LIMIT_AUTH_PER_IP` | requests per minute; defaults `600`, `1200`, `10`; `0` turns a limit off (see below) |
+| `OPENNOTE_AI_*` | optional AI, off by default: [AI guide](../deployment/ai.md) |
 
 The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); Valkey speaks the Redis protocol, so its URL uses `redis://`.
 
