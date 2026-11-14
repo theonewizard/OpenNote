@@ -32,9 +32,11 @@ RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-10 \
     && curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
         --retry 3 --output /tmp/epel-release.rpm \
         https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
-    && rpm --checksig /tmp/epel-release.rpm | tee /dev/stderr | grep -q 'signatures OK' \
+    && rpm --checksig /tmp/epel-release.rpm > /tmp/epel-release.sig \
+    && cat /tmp/epel-release.sig \
+    && grep -q 'signatures OK' /tmp/epel-release.sig \
     && rpm -i /tmp/epel-release.rpm \
-    && rm /tmp/epel-release.rpm \
+    && rm /tmp/epel-release.rpm /tmp/epel-release.sig \
     && microdnf install -y --nodocs --setopt=install_weak_deps=0 \
         python3.14 tesseract tesseract-langpack-eng \
     && microdnf clean all \
