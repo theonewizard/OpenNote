@@ -46,7 +46,11 @@ jobs:
 
       - name: Versions installed in the images
         run: |
-          docker run --rm --entrypoint rpm opennote-api:dev -q python3.14
+          docker run --rm --entrypoint rpm opennote-api:dev -q python3.14 tesseract tesseract-langpack-eng
+          # OCR (P6-06): Tesseract and its English data run as an arbitrary UID on a
+          # read-only root filesystem, as the worker does.
+          docker run --rm --user 1000870000:0 --read-only --tmpfs /tmp --entrypoint tesseract \
+            opennote-api:dev --list-langs
           docker run --rm --entrypoint rpm opennote-web:dev -q nginx-core
           docker run --rm --entrypoint rpm opennote-postgres:dev -q \
             postgresql18-server postgresql18-contrib pgvector_18

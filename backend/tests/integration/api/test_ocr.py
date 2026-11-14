@@ -51,7 +51,7 @@ async def test_an_image_upload_enqueues_the_ocr_job(api, stub):
     alice = api.user("alice")
     work = api.vault(alice)
     headers = await api.bearer(alice)
-    response = await upload(api, headers, work, "Scans/receipt.png", ocr_samples.png())
+    response = await upload(api, headers, work, "Scans/scan-1.png", ocr_samples.png())
     assert response.status_code == 201, response.text
     [message] = sent(stub)
     assert (message.actor_name, message.args) == (jobs.ocr_vault_job.actor_name, (str(work),))
@@ -82,12 +82,12 @@ async def test_search_finds_a_note_by_the_text_of_its_scans(api):
     alice = api.user("alice")
     work = api.vault(alice)
     headers = await api.bearer(alice)
-    put(api, work, "Scans/receipt.png", ocr_samples.png())
-    put(api, work, "Scans/invoice.pdf", ocr_samples.scanned_pdf("Invoice from Bornholm"))
-    put(api, work, "Scans/letter.pdf", ocr_samples.text_pdf("Letter about Gotland"))
+    put(api, work, "Scans/scan-1.png", ocr_samples.png())
+    put(api, work, "Scans/scan-2.pdf", ocr_samples.scanned_pdf("Invoice from Bornholm"))
+    put(api, work, "Scans/scan-3.pdf", ocr_samples.text_pdf("Letter about Gotland"))
     put(api, work, "Scans/broken.pdf", b"%PDF-1.4 broken")
-    put(api, work, "Expenses.md", "Paid.\n\n![[receipt.png]]\n")
-    put(api, work, "Trip.md", "See [[invoice.pdf]] and [[letter.pdf]].\n")
+    put(api, work, "Expenses.md", "Paid.\n\n![[scan-1.png]]\n")
+    put(api, work, "Trip.md", "See [[scan-2.pdf]] and [[scan-3.pdf]].\n")
     put(api, work, "Unrelated.md", "Nothing attached.\n")
 
     assert await search(api, headers, work, "receipt") == []
@@ -107,8 +107,8 @@ async def test_text_of_deleted_attachments_is_removed_and_not_found(api):
     alice = api.user("alice")
     work = api.vault(alice)
     headers = await api.bearer(alice)
-    image = put(api, work, "Scans/receipt.png", ocr_samples.png())
-    put(api, work, "Expenses.md", "![[receipt.png]]\n")
+    image = put(api, work, "Scans/scan-1.png", ocr_samples.png())
+    put(api, work, "Expenses.md", "![[scan-1.png]]\n")
     assert ocr_vault(api.engine, work, "eng") == 1
 
     response = await api.client.delete(
@@ -124,9 +124,9 @@ async def test_ocr_text_stays_inside_its_vault(api):
     alice, bob = api.user("alice"), api.user("bob")
     work, other = api.vault(alice, "Work"), api.vault(bob, "Other")
     data = ocr_samples.png()
-    put(api, work, "receipt.png", data)
-    put(api, other, "receipt.png", data)
-    put(api, other, "Bob.md", "![[receipt.png]]\n")
+    put(api, work, "scan-1.png", data)
+    put(api, other, "scan-1.png", data)
+    put(api, other, "Bob.md", "![[scan-1.png]]\n")
     assert ocr_vault(api.engine, work, "eng") == 1
     assert await search(api, await api.bearer(bob), other, "receipt") == []
 
@@ -142,11 +142,20 @@ async def test_a_vault_in_use_is_left_for_later(api):
     assert ocr_vault(api.engine, work, "eng") == 0
 
 
-def test_without_tesseract_nothing_is_read(api, monkeypatch, caplog):
+async def test_without_tesseract_nothing_is_read(api, monkeypatch, caplog):
     monkeypatch.setattr(vault.shutil, "which", lambda name: None)
     alice = api.user("alice")
     work = api.vault(alice)
-    put(api, work, "receipt.png", ocr_samples.png())
+    put(api, work, "scan-1.png", ocr_samples.png())
     assert ocr_vault(api.engine, work, "eng") == 0
     assert rows(api, work) == {}
     assert "tesseract is not installed" in caplog.text
+
+
+async def test_a_language_without_data_reads_nothing(api, caplog):
+    alice = api.user("alice")
+    work = api.vault(alice)
+    put(api, work, "scan-1.png", ocr_samples.png())
+    assert ocr_vault(api.engine, work, "eng+xyz") == 0
+    assert rows(api, work) == {}
+    assert "no Tesseract data for ['xyz']" in caplog.text

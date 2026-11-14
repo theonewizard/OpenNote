@@ -41,6 +41,7 @@ The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each
 | `OPENNOTE_VAULT_ROOT`, `OPENNOTE_HISTORY_ROOT` | writable directories |
 | `OPENNOTE_LOG_LEVEL` | default `INFO` |
 | `OPENNOTE_MAX_BLOB_BYTES` | largest attachment upload in bytes; default 536870912 (512 MiB) |
+| `OPENNOTE_OCR_LANGUAGES` | Tesseract languages for OCR of image and PDF attachments, joined with `+` (`eng+dan`); default `eng`, the only language in the image (see [OCR](../deployment/ocr.md)) |
 | `OPENNOTE_ENVIRONMENT` | `development`, `test` or `production`; default `production` |
 | `OPENNOTE_RATE_LIMIT_PER_PRINCIPAL`, `OPENNOTE_RATE_LIMIT_PER_IP`, `OPENNOTE_RATE_LIMIT_AUTH_PER_IP` | requests per minute; defaults `600`, `1200`, `10`; `0` turns a limit off (see below) |
 | `OPENNOTE_AI_*` | optional AI, off by default: [AI guide](../deployment/ai.md) |

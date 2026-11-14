@@ -19,9 +19,26 @@ LABEL org.opencontainers.image.title="opennote-api" \
 
 # Packages from the UBI 10 repositories are not version-pinned: they take the 10.3 stream's
 # security updates on top of the base image, which is pinned by digest.
+#
+# Tesseract for OCR (P6-06) comes from EPEL 10, the one repository outside Red Hat's
+# (Flemming's ruling, 2026-11-14). The worker uses it; the API runs from the same image.
+# The EPEL 10 signing key is committed next to this file (fingerprint
+# 7D8D15CBFC4E62688591FB2633D98517E37ED158, from Fedora's distribution-gpg-keys), so
+# epel-release is installed only if its signature checks out against that key, and
+# every EPEL package is signature-checked by microdnf.
+COPY infrastructure/containers/api/RPM-GPG-KEY-EPEL-10 /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-10
 # hadolint ignore=DL3041
-RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
-    && microdnf clean all
+RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-10 \
+    && curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
+        --retry 3 --output /tmp/epel-release.rpm \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+    && rpm --checksig /tmp/epel-release.rpm | tee /dev/stderr | grep -q 'signatures OK' \
+    && rpm -i /tmp/epel-release.rpm \
+    && rm /tmp/epel-release.rpm \
+    && microdnf install -y --nodocs --setopt=install_weak_deps=0 \
+        python3.14 tesseract tesseract-langpack-eng \
+    && microdnf clean all \
+    && tesseract --version
 
 COPY backend/requirements.txt backend/constraints.txt /tmp/
 # Wheels only: every pinned package has a cp314 manylinux wheel, so the build needs no

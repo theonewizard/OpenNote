@@ -11,6 +11,7 @@ import logging
 import os
 import resource
 import shutil
+import signal
 import subprocess  # nosec B404  # fixed argv, no shell
 import sys
 import uuid
@@ -50,32 +51,52 @@ def _limit() -> None:  # runs in the child between fork and exec
 
 
 def run_isolated(data: bytes, languages: str) -> str | None:
-    """The file's text, or None when it cannot be read (logged without its content)."""
-    try:
-        result = subprocess.run(  # noqa: S603  # nosec B603  # fixed argv, languages validated
-            [sys.executable, "-m", "app.ocr", languages],
-            input=data,
-            capture_output=True,
-            timeout=FILE_TIMEOUT,
-            check=False,
-            preexec_fn=_limit,  # only setrlimit, which is async-signal-safe
-            cwd=Path(__file__).resolve().parents[2],  # where `app` is importable
-        )
-    except subprocess.TimeoutExpired:
-        log.warning("ocr: gave up after %d s", FILE_TIMEOUT)
+    """The file's text, or None when it cannot be read (logged without its content).
+    The child runs in its own process group, so a timeout also kills its Tesseract."""
+    with subprocess.Popen(  # noqa: S603  # nosec B603  # fixed argv, languages validated
+        [sys.executable, "-m", "app.ocr", languages],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        process_group=0,
+        preexec_fn=_limit,  # only setrlimit, which is async-signal-safe
+        cwd=Path(__file__).resolve().parents[2],  # where `app` is importable
+    ) as child:
+        try:
+            out, err = child.communicate(data, timeout=FILE_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            os.killpg(child.pid, signal.SIGKILL)
+            child.communicate()
+            log.warning("ocr: gave up after %s s", FILE_TIMEOUT)
+            return None
+    if child.returncode != 0:
+        reason = err.decode("utf-8", "replace").strip().splitlines()[-1:]
+        log.info("ocr: unreadable (%s)", reason[0][:200] if reason else child.returncode)
         return None
-    if result.returncode != 0:
-        reason = result.stderr.decode("utf-8", "replace").strip().splitlines()[-1:]
-        log.info("ocr: unreadable (%s)", reason[0][:200] if reason else result.returncode)
+    return out.decode("utf-8", "replace")[:MAX_TEXT]
+
+
+def missing_languages(languages: str) -> set[str] | None:
+    """The configured languages Tesseract has no data for, or None without Tesseract."""
+    binary = shutil.which("tesseract")
+    if binary is None:
         return None
-    return result.stdout.decode("utf-8", "replace")[:MAX_TEXT]
+    listed = subprocess.run(  # noqa: S603  # nosec B603  # fixed argv
+        [binary, "--list-langs"], capture_output=True, timeout=30, check=False, text=True
+    )
+    return set(languages.split("+")) - set(listed.stdout.split()[1:])
 
 
 def ocr_vault(engine: Engine, vault_id: uuid.UUID, languages: str) -> int | None:
     """Read the vault's new attachments; return how many were read, or None when another
-    run holds the vault (try again later). Does nothing without the tesseract binary."""
-    if shutil.which("tesseract") is None:
+    run holds the vault (try again later). Reads nothing without Tesseract or without
+    data for a configured language, so no file is wrongly recorded as unreadable."""
+    missing = missing_languages(languages)
+    if missing is None:
         log.warning("ocr: tesseract is not installed; attachments are not read")
+        return 0
+    if missing:
+        log.error("ocr: no Tesseract data for %s; attachments are not read", sorted(missing))
         return 0
     with engine.connect() as lock:
         key = int.from_bytes(vault_id.bytes[:4], signed=True)

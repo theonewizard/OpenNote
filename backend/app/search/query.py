@@ -197,7 +197,7 @@ def compile_tree(tree: Node) -> Compiled:
         match node:
             case Word(text):
                 query = _tsquery(text)
-                parts = []
+                parts: list[ColumnElement[bool]] = []
                 if query is not None:
                     parts.append(D.tsv.op("@@")(query))
                     parts.append(_attachment_text(query))
