@@ -12,7 +12,8 @@ files the log says are live. Unmatched vaults, and vaults already in the databas
 reported and skipped. Each matched vault gets, in one transaction: its `vaults` row
 (name from the config, else the folder name), every revision, the per-vault sequence,
 the `files` registry at each file's last revision, and the derived index built from the
-history bytes of those revisions. A logged revision whose object retention removed (P5-07) is left out. `--owner` makes an existing user the owner of every
+history bytes of those revisions. A logged revision whose object retention removed
+(P5-07) is left out. `--owner` makes an existing user the owner of every
 rebuilt vault; without it only administrators see them until members are added.
 
 What the log does not hold is not rebuilt: users, devices, tokens and sessions,
