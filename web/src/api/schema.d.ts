@@ -433,7 +433,7 @@ export interface paths {
         /**
          * Update Task
          * @description Check or uncheck a task, based on the note revision in `If-Match`. One character
-         *     changes; completing a recurring task also stamps it `✅` and adds the next occurrence
+         *     changes; completing a recurring task also stamps its done date and adds the next occurrence
          *     above it, as the Tasks plugin does. Returns the note after the change.
          */
         patch: operations["update_task"];
@@ -1256,12 +1256,12 @@ export interface components {
             done: boolean;
             /**
              * Done On
-             * @description Tasks plugin ✅
+             * @description Done date (Tasks plugin)
              */
             done_on: string | null;
             /**
              * Due
-             * @description Tasks plugin 📅
+             * @description Due date (Tasks plugin)
              */
             due: string | null;
             /**
@@ -1284,7 +1284,7 @@ export interface components {
             priority: ("highest" | "high" | "medium" | "low" | "lowest") | null;
             /**
              * Recurrence
-             * @description Tasks plugin 🔁 rule as written
+             * @description Recurrence rule as written (Tasks plugin)
              */
             recurrence: string | null;
             /**
@@ -1294,12 +1294,12 @@ export interface components {
             revision: number;
             /**
              * Scheduled
-             * @description Tasks plugin ⏳
+             * @description Scheduled date (Tasks plugin)
              */
             scheduled: string | null;
             /**
              * Start
-             * @description Tasks plugin 🛫
+             * @description Start date (Tasks plugin)
              */
             start: string | null;
             /**
@@ -1329,7 +1329,7 @@ export interface components {
             done: boolean;
             /**
              * Today
-             * @description The caller's local date, for the `✅` date and the next occurrence of a recurring task; omitted, the server's date in UTC
+             * @description The caller's local date, for the done date and the next occurrence of a recurring task; omitted, the server's date in UTC
              */
             today?: string | null;
         };

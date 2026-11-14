@@ -128,7 +128,7 @@ async def update_task(
     if_match: IfMatch = None,
 ) -> Note:
     """Check or uncheck a task, based on the note revision in `If-Match`. One character
-    changes; completing a recurring task also stamps it `✅` and adds the next occurrence
+    changes; completing a recurring task also stamps its done date and adds the next occurrence
     above it, as the Tasks plugin does. Returns the note after the change."""
     file, vault, note = await _load(db, caller, note_id, "editor")
     check_if_match(if_match, file.revision, note.model_dump(mode="json"))

@@ -1,5 +1,6 @@
 """The OpenAPI document that scripts/gen-openapi.sh exports and the clients are generated from."""
 
+import json
 from typing import Any
 
 import pytest
@@ -117,3 +118,10 @@ def test_the_export_check_finds_operation_ids_used_twice(build_app):
     with pytest.warns(UserWarning, match="Duplicate Operation ID list_items"):
         document = build_app(router).openapi()  # FastAPI only warns
     assert duplicate_operation_ids(document) == ["list_items"]
+
+
+def test_document_stays_in_the_basic_multilingual_plane():
+    """swift-openapi-generator reads the JSON with a YAML parser that rejects the surrogate
+    pair escapes json.dump writes for characters such as emoji (the macOS build fails)."""
+    text = json.dumps(openapi(), ensure_ascii=False)
+    assert all(ord(c) <= 0xFFFF for c in text)

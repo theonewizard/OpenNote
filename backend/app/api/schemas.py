@@ -373,12 +373,12 @@ class Task(BaseModel):
     done: bool = Field(description="Any status but a space")
     text: str = Field(description="The task's first line after `[c] `, as written")
     parent: int | None = Field(description="`ordinal` of the enclosing task, for subtasks")
-    due: dt.date | None = Field(description="Tasks plugin 📅")
-    scheduled: dt.date | None = Field(description="Tasks plugin ⏳")
-    start: dt.date | None = Field(description="Tasks plugin 🛫")
-    done_on: dt.date | None = Field(description="Tasks plugin ✅")
+    due: dt.date | None = Field(description="Due date (Tasks plugin)")
+    scheduled: dt.date | None = Field(description="Scheduled date (Tasks plugin)")
+    start: dt.date | None = Field(description="Start date (Tasks plugin)")
+    done_on: dt.date | None = Field(description="Done date (Tasks plugin)")
     priority: Literal["highest", "high", "medium", "low", "lowest"] | None
-    recurrence: str | None = Field(description="Tasks plugin 🔁 rule as written")
+    recurrence: str | None = Field(description="Recurrence rule as written (Tasks plugin)")
 
 
 class TaskPage(_Page):
@@ -389,7 +389,7 @@ class TaskPatch(_Body):
     done: StrictBool
     today: dt.date | None = Field(
         default=None,
-        description="The caller's local date, for the `✅` date and the next occurrence of a "
+        description="The caller's local date, for the done date and the next occurrence of a "
         "recurring task; omitted, the server's date in UTC",
     )
 

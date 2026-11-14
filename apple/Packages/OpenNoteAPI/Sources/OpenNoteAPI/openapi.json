@@ -1351,7 +1351,7 @@
                 "type": "null"
               }
             ],
-            "description": "Tasks plugin \u2705",
+            "description": "Done date (Tasks plugin)",
             "title": "Done On"
           },
           "due": {
@@ -1364,7 +1364,7 @@
                 "type": "null"
               }
             ],
-            "description": "Tasks plugin \ud83d\udcc5",
+            "description": "Due date (Tasks plugin)",
             "title": "Due"
           },
           "line": {
@@ -1419,7 +1419,7 @@
                 "type": "null"
               }
             ],
-            "description": "Tasks plugin \ud83d\udd01 rule as written",
+            "description": "Recurrence rule as written (Tasks plugin)",
             "title": "Recurrence"
           },
           "revision": {
@@ -1437,7 +1437,7 @@
                 "type": "null"
               }
             ],
-            "description": "Tasks plugin \u23f3",
+            "description": "Scheduled date (Tasks plugin)",
             "title": "Scheduled"
           },
           "start": {
@@ -1450,7 +1450,7 @@
                 "type": "null"
               }
             ],
-            "description": "Tasks plugin \ud83d\udeeb",
+            "description": "Start date (Tasks plugin)",
             "title": "Start"
           },
           "status": {
@@ -1529,7 +1529,7 @@
                 "type": "null"
               }
             ],
-            "description": "The caller's local date, for the `\u2705` date and the next occurrence of a recurring task; omitted, the server's date in UTC",
+            "description": "The caller's local date, for the done date and the next occurrence of a recurring task; omitted, the server's date in UTC",
             "title": "Today"
           }
         },
@@ -3891,7 +3891,7 @@
     },
     "/api/v1/notes/{note_id}/tasks/{ordinal}": {
       "patch": {
-        "description": "Check or uncheck a task, based on the note revision in `If-Match`. One character\nchanges; completing a recurring task also stamps it `\u2705` and adds the next occurrence\nabove it, as the Tasks plugin does. Returns the note after the change.",
+        "description": "Check or uncheck a task, based on the note revision in `If-Match`. One character\nchanges; completing a recurring task also stamps its done date and adds the next occurrence\nabove it, as the Tasks plugin does. Returns the note after the change.",
         "operationId": "update_task",
         "parameters": [
           {
