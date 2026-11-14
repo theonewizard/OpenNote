@@ -45,6 +45,7 @@ The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each
 | `OPENNOTE_TOMBSTONE_RETENTION_DAYS` | deletes and operation results are kept this many days; default `90`, at least `8` |
 | `OPENNOTE_ENVIRONMENT` | `development`, `test` or `production`; default `production` |
 | `OPENNOTE_RATE_LIMIT_PER_PRINCIPAL`, `OPENNOTE_RATE_LIMIT_PER_IP`, `OPENNOTE_RATE_LIMIT_AUTH_PER_IP` | requests per minute; defaults `600`, `1200`, `10`; `0` turns a limit off (see below) |
+| `OPENNOTE_AI_*` | optional AI, off by default: [AI guide](../deployment/ai.md) |
 
 The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); Valkey speaks the Redis protocol, so its URL uses `redis://`.
 

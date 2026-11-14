@@ -11,9 +11,9 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 
 ## Output
 
-- Branch `feature/sync-server` in `.worktrees/sync/` (PR A of the plan): P5-01 endpoints and P5-06 history, migration 0008, tests, regenerated OpenAPI document and clients, docs.
+- Branch `feature/sync-server` in `.worktrees/sync/` (PR A of the plan): P5-01 endpoints and P5-06 history, migration 0009 (first numbered 0008), tests, regenerated OpenAPI document and clients, docs.
 - Branch `feature/resumable-blobs` in `.worktrees/blobs/` (PR B, stacked on PR A): P5-02 resumable chunked uploads and the streaming commit path; nginx body limits for `/api/` (R-P5-009, R-P5-010).
-- Branch `feature/sync-retention` in `.worktrees/retention/` (PR C, stacked on PR B): P5-07 retention in days, history GC, cursor expiry by retention horizon, migration 0009, daily run in the vault watcher (R-P5-011 to R-P5-013).
+- Branch `feature/sync-retention` in `.worktrees/retention/` (PR C, stacked on PR B): P5-07 retention in days, history GC, cursor expiry by retention horizon, migration 0010 (first numbered 0009), daily run in the vault watcher (R-P5-011 to R-P5-013).
 
 ## Notes from other threads
 
@@ -21,3 +21,4 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 |---|---|---|
 | 2026-11-14 01:47 | Coordinator | Migration 0008 is also used by Phase 6 PR #52 and AI PR #37; whichever merges later renumbers and rebases `down_revision`. |
 | 2026-11-14 01:49 | Phase 8 thread | PR #56 (P8-01) adds a migration 0008 and edits `Committer._index`, `_recover` and `service.ingest_fs_changes`; whichever merges second rebases. A later PR adds `python -m app.sync.rebuild`. |
+| 2026-11-14 23:23 | GitHub | Flemming merged #63 into `feature/resumable-blobs` and #62 into `feature/sync-server`, so #55 now carries P5-01, P5-02, P5-06 and P5-07. Main gained the AI migration 0008 (#37), so the sync migrations were renumbered 0009 and 0010 while merging main into `feature/sync-server`. |

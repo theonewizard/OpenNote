@@ -2,16 +2,16 @@
 removed. A pull cursor older than it is answered 410, so the client reconciles from a
 snapshot instead of missing a delete.
 
-Revision ID: 0009
-Revises: 0008
+Revision ID: 0010
+Revises: 0009
 Create Date: 2026-11-14
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0009"
-down_revision: str | None = "0008"
+revision: str = "0010"
+down_revision: str | None = "0009"
 branch_labels: str | None = None
 depends_on: str | None = None
 
