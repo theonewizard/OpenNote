@@ -17,6 +17,7 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 - R-P7-013: model `claude-opus-5-5` by default (the current default Claude model; `OPENNOTE_AI_CLAUDE_MODEL` changes it, for example to `claude-sonnet-5-5`), effort `medium` set explicitly, server-side refusal fallback `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`), at most 12 model calls per question, 16,000 output tokens per call, 50,000 characters per note read.
 - R-P7-014: entry point is `python -m app.ai ask` for now; an API route needs the OpenAPI document, clients and Zod schemas in the same change (CLAUDE.md §14) and a screen to be useful, so it is a follow-up.
 - R-P7-015: `make constraints` also moved two unrelated transitive pins (annotated-doc, argon2-cffi-bindings); they were put back to keep the change surgical (CLAUDE.md §20). The new pins are anthropic's own dependencies.
+- R-P7-016: CI's contract test failed on this branch only: Schemathesis generated a malformed `Content-Length` header, which uvicorn refuses with a text/plain 400 before the request reaches the API. The test now drops the framing headers `Content-Length` and `Transfer-Encoding` from generated cases; they belong to the HTTP client, not to the API contract. Why generation reached them here and not on main was not found.
 
 ## Output
 
