@@ -32,8 +32,10 @@ gpg --armor --export-secret-keys "OpenNote backups" > backup-private-key.asc   #
 The backup is taken while OpenNote writes. OpenNote makes each revision durable in a fixed order: history object, database (the commit point), revision log, vault file ([sync protocol](../architecture/sync-protocol.md) §2.3, `app/sync/commit.py`). `opennote-backup` reads in an order that matches: the logs first, then the database snapshot, then the history objects, then the vaults. So in every backup:
 
 - the logs hold no revision the database lacks (they were copied before the snapshot);
-- every revision in the database has its history object (objects are read after the snapshot, and never removed);
+- every revision in the database has its history object (objects are read after the snapshot; retention, which deletes old revisions and then their objects, leaves objects alone while a backup runs, see below);
 - a vault file is the database's revision of it, or newer.
+
+Retention (sync protocol, P5-07) removes revisions past their keep period from the database and then the history objects nothing refers to any more. `opennote-backup` holds a shared PostgreSQL advisory lock (key 5714577825249056080, "ONBACKUP" in ASCII) from before the logs are copied until it exits; retention takes the same key exclusively before it removes objects, and leaves them for its next run when a backup holds it. So no object of a revision in the snapshot is removed before the backup reads it.
 
 That is a state a crash between two commit steps can leave, and OpenNote's recovery (`Committer.recover`) repairs it: it appends the revisions the logs lack, and commits a vault file that is newer than the database as an edit from the server's file system, so it is kept rather than overwritten. tar reports a file or directory that changed while it was read (exit 1); the backup logs a warning and continues. That happens routinely when a directory gains a file during the backup, which is harmless for the reasons above. OpenNote replaces files by rename, so only a file edited in place outside OpenNote can be captured half-written; recovery then commits it as an edit, and its previous revision stays in the history.
 

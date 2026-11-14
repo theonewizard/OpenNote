@@ -21,8 +21,9 @@
 #   vaults/         the vault directories, read last
 # Each revision is made durable in the order history object, database, log, vault file
 # (app/sync/commit.py), so this order gives a backup in which the log holds no revision the
-# database lacks, every revision in the database has its history object, and a vault file is
-# either the database's revision or newer: the state a crash between two commit steps leaves,
+# database lacks, every revision in the database has its history object (retention leaves
+# objects alone while the backup lock below is held), and a vault file is either the
+# database's revision or newer: the state a crash between two commit steps leaves,
 # which OpenNote's recovery repairs on start (docs/deployment/backup.md, "Consistency").
 #
 # The private key never needs to be where backups are taken. Exits 0 after writing the
@@ -69,6 +70,7 @@ gnupg_home=$(mktemp -d)
 name=opennote-$(date -u +%Y%m%dT%H%M%SZ).tar.gz.gpg
 partial=$backup_dir/.$name.partial
 cleanup() {
+  [[ -z ${LOCK_PID:-} ]] || kill "$LOCK_PID" 2>/dev/null || true
   rm -rf "$stage" "$gnupg_home" "$partial"
 }
 trap cleanup EXIT
@@ -76,6 +78,18 @@ trap cleanup EXIT
 # The key is checked before anything is read, so a wrong key fails in seconds.
 gpg_args=(--batch --quiet --homedir "$gnupg_home" --trust-model always --recipient-file "$public_key")
 gpg "${gpg_args[@]}" --encrypt </dev/null >/dev/null || die "cannot encrypt to OPENNOTE_BACKUP_PUBLIC_KEY_FILE"
+
+# Retention (P5-07) deletes old revisions from the database and then their history objects.
+# One that ran between the snapshot (step 2) and reading the objects (step 3) would leave
+# revisions in the backup without their bytes. This session-level advisory lock, held
+# until the script exits, makes retention leave history objects alone meanwhile; it takes
+# the same key exclusively, and only for removing objects. Shared, so backups can overlap.
+# The key is "ONBACKUP" in ASCII.
+lock_key=5714577825249056080
+coproc LOCK { psql -X -q -A -t -v ON_ERROR_STOP=1 --dbname "$dburl"; }
+echo "select 'locked' from pg_advisory_lock_shared($lock_key);" >&"${LOCK[1]}"
+read -r -t 300 locked <&"${LOCK[0]}" || true
+[[ ${locked:-} == locked ]] || die "cannot take the backup lock in the database"
 
 log "1/4 revision logs"
 mkdir "$stage/history-log"
