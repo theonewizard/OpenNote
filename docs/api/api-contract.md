@@ -32,6 +32,7 @@ The complete initial `KEYLESS_ROUTES` list. Adding to it needs review.
 | `GET /api/v1/meta` | Server version, API and sync protocol versions, enabled login methods |
 | `GET /api/v1/meta/path-rules` | Shared filename rules for clients |
 | `GET /api/v1/auth/authorize`, `POST /api/v1/auth/token`, `GET /api/v1/auth/oidc/{provider}/callback`, `POST /api/v1/auth/login` | Login and token exchange (protected by PKCE, CSRF state and rate limits). `authorize?provider=<name>` starts an upstream OIDC login, so no separate start route is needed |
+| `GET /api/v1/calendar/tasks.ics?token=` | Calendar feed (P6-03): calendar apps cannot send a bearer token, so the feed's own 256-bit token is the credential. Only its SHA-256 is stored, it sits in the query string (which neither the web proxy nor the API logs), each fetch rechecks that the feed's owner can still read the vault, and deleting the feed revokes it at once |
 
 ## 3. Resources
 
@@ -95,12 +96,15 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | POST | `/api/v1/vaults` | Create a vault (empty, or register an existing directory under the server's vault root; admin only) [2] |
 | GET / PATCH / DELETE | `/api/v1/vaults/{vault_id}` | Read, rename/settings, delete (soft; owner, `If-Match`) [2] |
 | GET | `/api/v1/notes?vault_id=&folder=&tag=&cursor=&limit=&sort=` | List note metadata [2] |
-| POST | `/api/v1/notes` | Create: `{ vault_id, path, content }` (content optional; OpenNote-created notes get `id` frontmatter) [2] |
+| POST | `/api/v1/notes` | Create: `{ vault_id, path, content }` (content optional; OpenNote-created notes get `id` frontmatter) [2]; or `{ vault_id, path, template_id, local_time? }` from a template note, Obsidian `{{title}}`/`{{date}}`/`{{time}}` syntax, the template's `id` replaced [6] |
 | GET | `/api/v1/notes/{id}` | Metadata [2] |
 | GET / PUT | `/api/v1/notes/{id}/content` | Read / replace bytes [2] |
 | PATCH | `/api/v1/notes/{id}` | Move/rename `{ path }`, or metadata edit `{ tags?, aliases?, opennote? }` applied with the round-trip YAML editor [2] |
 | DELETE | `/api/v1/notes/{id}` | Delete (tombstone + history) [2] |
 | GET | `/api/v1/notes/{id}/links` | Outgoing, incoming (backlinks), unresolved [2 basic, 6 full] |
+| GET | `/api/v1/graph?vault_id=&attachments=&unresolved=&center=&depth=` | Link graph: every note plus counted edges, optional attachments and unresolved targets, or the local graph around `center` [6] |
+| GET | `/api/v1/tasks?vault_id=&status=open\|done\|any&note_id=&due_before=&remind_before=&cursor=&limit=` | Tasks from the derived index, with the Tasks plugin's dates, priority and recurrence and the Reminder plugin's reminder, sorted by due date (undated last), path, position [6] |
+| PATCH | `/api/v1/notes/{id}/tasks/{ordinal}` | Check or uncheck a task `{ done, today? }` (`If-Match` on the note): one character changes; completing a recurring task adds `✅ today` and the next occurrence above it [6] |
 | GET | `/api/v1/notes/{id}/revisions`, `/revisions/{rev}`, `/revisions/{rev}/content` | History [5] |
 | POST | `/api/v1/notes/{id}/restore` | Restore `{ from_revision }` [5] |
 | GET | `/api/v1/folders?vault_id=` | Folder tree [2] |
@@ -111,6 +115,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/tags?vault_id=` | Tag list with counts [2] |
 | GET | `/api/v1/search?vault_id=&q=&cursor=&limit=` | Search, grammar in §5 [2] |
 | GET / POST / DELETE | `/api/v1/saved-searches` | [6] |
+| GET / POST / DELETE | `/api/v1/calendar-feeds`, `/calendar-feeds/{id}` | Read-only iCalendar feeds of a vault's open tasks with a due date or reminder; `POST { vault_id, name }` returns the feed URL with its token once (not for personal access tokens) [6] |
 | PUT / HEAD | `/api/v1/blobs/{sha256}` | Content-addressed upload / existence check for sync [5, prototype 1] |
 | GET | `/api/v1/sync/{vault_id}/changes?cursor=` | Pull [5] |
 | GET | `/api/v1/sync/{vault_id}/snapshot` | Full file list for reconcile [5] |

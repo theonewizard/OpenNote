@@ -18,7 +18,19 @@ from redis.asyncio import Redis
 from starlette.exceptions import HTTPException
 
 from app import __version__
-from app.api import attachments, auth, folders, health, meta, notes, search, users, vaults
+from app.api import (
+    attachments,
+    auth,
+    calendar,
+    folders,
+    health,
+    meta,
+    notes,
+    search,
+    tasks,
+    users,
+    vaults,
+)
 from app.api.deps import Committers
 from app.api.ratelimit import rate_limit_middleware
 from app.auth.dependencies import get_api_key, get_caller, get_current_principal
@@ -43,6 +55,8 @@ ROUTERS: list[APIRouter] = [
     folders.router,
     attachments.router,
     search.router,
+    tasks.router,
+    calendar.router,
 ]
 
 # The only routes callable without credentials; adding one needs review (API contract §2).
@@ -56,6 +70,7 @@ KEYLESS_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/token"),
         ("GET", "/api/v1/auth/oidc/{provider}/callback"),
+        ("GET", "/api/v1/calendar/tasks.ics"),  # the feed token in the query is the credential
     }
 )
 
