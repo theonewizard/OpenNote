@@ -252,6 +252,27 @@ class NoteRef(BaseModel):
     title: str
 
 
+class NoteRename(_Body):
+    path: str = Field(min_length=1, max_length=1024, description="The new vault-relative path")
+    update_links: StrictBool = Field(
+        default=True, description="Rewrite links in other notes that point at this note"
+    )
+
+
+class LinkUpdate(BaseModel):
+    note: NoteRef
+    revision: int = Field(description="The linking note's revision after the rewrite")
+    previous_revision: int = Field(description="Its revision before; restore it to undo")
+
+
+class RenameResult(BaseModel):
+    note: Note
+    updated: list[LinkUpdate] = Field(description="Notes whose links were rewritten")
+    skipped: list[NoteRef] = Field(
+        description="Linking notes left alone: changed meanwhile, read-only, or too large"
+    )
+
+
 class OutgoingLink(BaseModel):
     target: str = Field(description="The link text as written, without alias or heading")
     resolved: NoteRef | None = Field(description="The note it points at; null if unresolved")

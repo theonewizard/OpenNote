@@ -99,6 +99,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/notes/{id}` | Metadata [2] |
 | GET / PUT | `/api/v1/notes/{id}/content` | Read / replace bytes [2] |
 | PATCH | `/api/v1/notes/{id}` | Move/rename `{ path }`, or metadata edit `{ tags?, aliases?, opennote? }` applied with the round-trip YAML editor [2] |
+| POST | `/api/v1/notes/{id}/rename` | Move/rename `{ path, update_links }` (`If-Match`); rewrites links to the note in other notes, each a revision listed with the one before it for undo, skipping any that changed meanwhile [6] |
 | DELETE | `/api/v1/notes/{id}` | Delete (tombstone + history) [2] |
 | GET | `/api/v1/notes/{id}/links` | Outgoing, incoming (backlinks), unresolved [2 basic, 6 full] |
 | GET | `/api/v1/notes/{id}/revisions`, `/revisions/{rev}`, `/revisions/{rev}/content` | History [5] |
