@@ -124,8 +124,8 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P7-01 | AI provider abstraction (Ollama, OpenAI-compatible, faster-whisper), off by default | M5 | P2 | Core works with AI disabled/absent | NOT_STARTED |
-| P7-02 | Embedding pipeline (chunking, pgvector, incremental on change) | P7-01 | P2 | Index updates after edits | NOT_STARTED |
+| P7-01 | AI provider abstraction (Ollama, OpenAI-compatible, faster-whisper), off by default | M5 | P2 | Core works with AI disabled/absent | IN_PROGRESS: `backend/app/ai` has the `AIProvider` protocol (`embed`, `generate`) with Ollama and OpenAI-compatible providers, off by default, external providers only for vaults that opt in ([AI guide](deployment/ai.md)); the full suite passes with AI unset. faster-whisper (`transcribe`) is left to P7-07, the first feature that needs it |
+| P7-02 | Embedding pipeline (chunking, pgvector, incremental on change) | P7-01 | P2 | Index updates after edits | TESTING: migration `0008`; every API commit enqueues `embed_vault_job` when a provider is set, and a run re-embeds only changed chunks (integration tests); `python -m app.ai embed` for changes made outside the API. Not verified against a real model |
 | P7-03 | Hybrid semantic search | P7-02, P2-08 | P2 | Results cite notes; vault-scoped | NOT_STARTED |
 | P7-04 | AI assistant with citations and injection defenses | P7-03 | P2 | Red-team cases pass | NOT_STARTED |
 | P7-05 | Auto-tagging and classification suggestions | P7-01 | P2 | Suggestions only; no unapproved writes | NOT_STARTED |
@@ -138,11 +138,11 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
 | P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | NOT_STARTED |
-| P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | NOT_STARTED |
+| P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | IN_PROGRESS (DAST: ZAP API scan in the containers workflow, `scripts/dast.sh`; the external review is still to be arranged) |
 | P8-03 | Accessibility review (VoiceOver, keyboard, WCAG 2.2 AA web) | M5 | P0 | — | IN_PROGRESS (web: axe WCAG 2.2 AA and keyboard-only Playwright checks on every push, `web/tests/e2e/accessibility.spec.ts`; VoiceOver on the Apple apps and a manual web review still open) |
 | P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | NOT_STARTED |
-| P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | NOT_STARTED |
+| P8-05 | Disaster recovery test, including DB rebuild from vault + history log | P8-04 | P0 | — | TESTING (`python -m app.sync.rebuild`, [disaster-recovery.md](deployment/disaster-recovery.md); integration tests and a manual drill; the Compose drill in CI follows P8-04's merge) |
 | P8-06 | OpenShift production deployment (Helm, Routes, restricted SCC) | P0-11 | P0 | Deploys on OpenShift 4.16+ | NOT_STARTED |
-| P8-07 | User, operator and API documentation | — | P0 | — | NOT_STARTED |
+| P8-07 | User, operator and API documentation | — | P0 | — | TESTING ([user-guide.md](user-guide.md), [operator-guide.md](deployment/operator-guide.md), [using-the-api.md](api/using-the-api.md); the user guide grows with the web and Apple apps) |
 | P8-08 | Release automation, image signing, app notarization/TestFlight | — | P0 | — | NOT_STARTED |
 | P8-09 | Beta program | P8-01…P8-08 | P0 | — | NOT_STARTED |

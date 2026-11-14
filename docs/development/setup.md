@@ -9,7 +9,7 @@ How to set up a working copy and run the checks CI runs. Describes the repositor
 | Git, GNU Make | everything |
 | Python 3.14 (the floor since Phase 1, decision D10; the version CI tests and the images run) | backend, worker |
 | Node.js 26 with npm (`web/.npmrc` sets `engine-strict`, so npm refuses to install with a Node.js or npm outside `web/package.json`'s `engines`) | web app |
-| Docker with Compose, or Podman with `podman compose` (supported by design but untested; only Docker has been exercised) | PostgreSQL and Valkey for integration tests; the full stack |
+| Docker with Compose, or Podman with `podman compose` (supported by design but untested; only Docker has been exercised) | PostgreSQL and Valkey for integration tests; the full stack (the images are UBI 10, so an x86_64 host needs an x86-64-v3 CPU: Intel Haswell, AMD Excavator or newer) |
 | macOS with Xcode and XcodeGen | Apple apps only |
 
 If `python3` on your machine is another version, pass a suitable interpreter: `make bootstrap PYTHON=python3.14`.
@@ -43,6 +43,7 @@ The backend reads settings from `OPENNOTE_`-prefixed environment variables. Each
 | `OPENNOTE_MAX_BLOB_BYTES` | largest attachment upload in bytes; default 536870912 (512 MiB) |
 | `OPENNOTE_ENVIRONMENT` | `development`, `test` or `production`; default `production` |
 | `OPENNOTE_RATE_LIMIT_PER_PRINCIPAL`, `OPENNOTE_RATE_LIMIT_PER_IP`, `OPENNOTE_RATE_LIMIT_AUTH_PER_IP` | requests per minute; defaults `600`, `1200`, `10`; `0` turns a limit off (see below) |
+| `OPENNOTE_AI_*` | optional AI, off by default: [AI guide](../deployment/ai.md) |
 
 The database URL uses SQLAlchemy's `postgresql+psycopg://` scheme (psycopg 3); Valkey speaks the Redis protocol, so its URL uses `redis://`.
 
