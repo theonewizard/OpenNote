@@ -1,0 +1,43 @@
+# Throwaway probe (branch probe/ubi10-krb5, deleted afterwards): UBI 10 package availability
+# and whether krb5-libs can be removed from the UBI 9 images.
+name: probe-ubi10
+on:
+  push:
+    branches: [probe/ubi10-krb5]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: UBI 10.3 packages
+        run: |
+          docker run --rm registry.access.redhat.com/ubi10/ubi-minimal:10.3 bash -c '
+            set -x
+            cat /etc/redhat-release; rpm -q krb5-libs
+            microdnf -y upgrade --nodocs krb5-libs >/dev/null; rpm -q krb5-libs
+            microdnf repoquery python3.14 python3.13 python3.12 nginx-core nginx 2>/dev/null || true
+            microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 >/dev/null && python3.14 -VV || echo "NO python3.14"
+            microdnf module list nginx 2>/dev/null | tail -5 || true
+            microdnf install -y --nodocs --setopt=install_weak_deps=0 nginx-core >/dev/null && nginx -v || echo "NO nginx-core"
+            curl -fsSL -o /tmp/k https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL && rpm --import /tmp/k
+            printf "%s\n" "[pgdg18]" "name=pgdg18" "baseurl=https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-10-x86_64" "enabled=1" "gpgcheck=1" > /etc/yum.repos.d/pgdg18.repo
+            microdnf install -y --nodocs --setopt=install_weak_deps=0 postgresql18-server-18.7 postgresql18-contrib-18.7 pgvector_18-0.8.7 >/dev/null \
+              && rpm -q postgresql18-server pgvector_18 && /usr/pgsql-18/bin/postgres --version || echo "NO PGDG EL10 packages"
+            microdnf install -y --nodocs gcc make openssl-devel tar gzip >/dev/null && echo "valkey build deps OK" || echo "NO valkey build deps"
+          '
+      - name: Remove krb5-libs from UBI 9.9 images
+        run: |
+          docker run --rm registry.access.redhat.com/ubi9/ubi-minimal:9.9 bash -c '
+            set -x
+            microdnf -y install --nodocs python3.14 nginx-core >/dev/null 2>&1 || microdnf -y install --nodocs python3.14 >/dev/null
+            curl -fsSL -o /tmp/k https://download.postgresql.org/pub/repos/yum/keys/PGDG-RPM-GPG-KEY-RHEL && rpm --import /tmp/k
+            printf "%s\n" "[pgdg18]" "name=pgdg18" "baseurl=https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-9-x86_64" "enabled=1" "gpgcheck=1" > /etc/yum.repos.d/pgdg18.repo
+            microdnf install -y --nodocs --setopt=install_weak_deps=0 postgresql18-server-18.7 >/dev/null
+            rpm -q --whatrequires krb5-libs; rpm -q --whatrequires "libgssapi_krb5.so.2()(64bit)"
+            rpm -e --nodeps krb5-libs
+            curl --version | head -1 || echo "curl BROKEN"
+            /usr/pgsql-18/bin/postgres --version || echo "postgres BROKEN"
+            python3.14 -c "import ssl, hashlib, sqlite3; print(\"python OK\")" || echo "python BROKEN"
+            microdnf --help >/dev/null 2>&1 && echo "microdnf OK" || echo "microdnf BROKEN"
+          '
