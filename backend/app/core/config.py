@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     max_blob_bytes: int = Field(
         default=512 * 1024 * 1024, ge=1, description="Largest attachment upload, in bytes"
     )
+    ocr_languages: str = Field(
+        default="eng",
+        pattern=r"^[a-z_]{3,16}(\+[a-z_]{3,16}){0,7}$",
+        description="Tesseract languages for OCR, joined with +, e.g. eng+dan",
+    )
     log_level: str = "INFO"
     environment: Literal["development", "test", "production"] = "production"
     # Requests per minute under /api/ (app.api.ratelimit); 0 turns that limit off.
