@@ -20,7 +20,11 @@ LABEL org.opencontainers.image.title="opennote-api" \
 # Packages from the UBI 9 repositories are not version-pinned: they take the 9.9 stream's
 # security updates on top of the base image, which is pinned by digest.
 # hadolint ignore=DL3041
-RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
+# krb5-libs is upgraded explicitly: the 9.9 base image (2026-11-12) still carries
+# 1.21.1-10.el9_8.1, which has HIGH CVE-2026-107364, fixed in 1.21.1-10.el9_9.2. Drop the
+# upgrade once a base image build ships the fixed package.
+RUN microdnf upgrade -y --nodocs krb5-libs \
+    && microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
     && microdnf clean all
 
 COPY backend/requirements.txt backend/constraints.txt /tmp/

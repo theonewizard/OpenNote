@@ -36,6 +36,13 @@ LABEL org.opencontainers.image.title="opennote-valkey" \
       org.opencontainers.image.source="https://github.com/theonewizard/OpenNote" \
       org.opencontainers.image.licenses="BSD-3-Clause"
 
+# krb5-libs is upgraded explicitly: the 9.9 base image (2026-11-12) still carries
+# 1.21.1-10.el9_8.1, which has HIGH CVE-2026-107364, fixed in 1.21.1-10.el9_9.2. Drop the
+# upgrade once a base image build ships the fixed package.
+# hadolint ignore=DL3041
+RUN microdnf upgrade -y --nodocs krb5-libs \
+    && microdnf clean all
+
 COPY --from=builder /opt/valkey/bin/valkey-server /opt/valkey/bin/valkey-cli /usr/local/bin/
 
 USER 1001:0

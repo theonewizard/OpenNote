@@ -25,6 +25,9 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # OpenPGP v4 fingerprint is the SHA-1 of the key's public-key packet, which for this key is
 # the first 400 decoded bytes (header 0x99, length 397), so no gpg is needed.
 # $basearch is expanded by microdnf, not the shell.
+# krb5-libs is upgraded explicitly: the 9.9 base image (2026-11-12) still carries
+# 1.21.1-10.el9_8.1, which has HIGH CVE-2026-107364, fixed in 1.21.1-10.el9_9.2. Drop the
+# upgrade once a base image build ships the fixed package.
 # hadolint ignore=SC2016
 RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
     && curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
@@ -45,6 +48,7 @@ RUN key=/etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL \
         'gpgcheck=1' \
         'gpgkey=file:///etc/pki/rpm-gpg/PGDG-RPM-GPG-KEY-RHEL' \
         > /etc/yum.repos.d/pgdg18.repo \
+    && microdnf upgrade -y --nodocs krb5-libs \
     && microdnf install -y --nodocs --setopt=install_weak_deps=0 \
         postgresql18-server-18.7 postgresql18-contrib-18.7 pgvector_18-0.8.7 \
     && microdnf clean all
