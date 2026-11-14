@@ -123,6 +123,27 @@ jobs:
           [[ $state == "true 0" ]]
           docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" down -v
 
+      # P8-02: OWASP ZAP API scan of the full stack through the web proxy, signed in; any
+      # High risk alert fails the job (scripts/dast.sh). Rate limits are off for the scan,
+      # or most of its requests would only see 429.
+      - name: DAST, ZAP API scan
+        run: |
+          OPENNOTE_MIGRATE_ON_START=true OPENNOTE_RATE_LIMIT_PER_PRINCIPAL=0 \
+            OPENNOTE_RATE_LIMIT_PER_IP=0 OPENNOTE_RATE_LIMIT_AUTH_PER_IP=0 \
+            docker compose -f "$FULL" up -d --wait --wait-timeout 300
+          rc=0
+          scripts/dast.sh http://localhost:8080 "$RUNNER_TEMP/dast" || rc=$?
+          [ -f "$RUNNER_TEMP/dast/report.md" ] && cat "$RUNNER_TEMP/dast/report.md" >> "$GITHUB_STEP_SUMMARY"
+          docker compose -f "$FULL" down -v
+          exit "$rc"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: dast-report
+          path: ${{ runner.temp }}/dast/report.*
+          if-no-files-found: ignore
+
       - name: Dev stack (make up-deps) with the test database
         run: |
           docker compose -f "$DEV" up -d --wait --wait-timeout 300 postgres valkey
