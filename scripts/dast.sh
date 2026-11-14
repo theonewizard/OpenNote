@@ -56,6 +56,10 @@ if ((rc != 0 && rc != 2)) || [[ ! -s $out/report.json ]]; then
 fi
 
 jq -r '.site[].alerts[] | "\(.riskdesc)\t\(.alert)\t\(.count) instance(s)"' "$out/report.json" | sort
+# Status codes of the 4xx answers ZAP saw: a scan that lost its session shows 401s here.
+echo "4xx responses by status:"
+jq -r '.site[].alerts[] | select(.pluginid == "100000") | .instances[] | "\(.evidence) \(.method)"' \
+  "$out/report.json" | sort | uniq -c | sort -rn
 high=$(jq '[.site[].alerts[] | select(.riskcode == "3")] | length' "$out/report.json")
 if ((high > 0)); then
   echo "FAIL  ZAP reported $high High risk alert type(s); see $out/report.html" >&2
