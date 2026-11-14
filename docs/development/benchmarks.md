@@ -30,8 +30,9 @@ Times in milliseconds as p50 / p95, durations in seconds.
 |---|---|---|---|---|---|---|---|---|---|---|
 | 2026-11-14 | Claude cloud container, 4 vCPU, 16 GB, PostgreSQL 16 | 2,000 | 51 s | 12.5 s | 9 / 13 | 47 / 59 | 22 / 29 | 14 / 20 | 10 / 18 | 28 / 47 |
 | 2026-11-14 | Claude cloud container, 4 vCPU, 16 GB, PostgreSQL 16 | 10,000 | 248 s | 60 s | 9 / 10 | 42 / 55 | 17 / 23 | 12 / 16 | 16 / 23 | 20 / 116 |
+| 2026-11-14 | GitHub `ubuntu-latest`, 4 vCPU, PostgreSQL 18 ([run](https://github.com/theonewizard/OpenNote/actions/runs/43547249632)) | 100,000 | 2,416 s | 428 s | 7 / 8 | 47 / 80 | 19 / 22 | 10 / 12 | 60 / 80 | 49 / 393 |
 
-The container is not the reference VM, and its numbers are indicative only. Import and rebuild grow linearly (about 25 ms and 6 ms per note), so a 100k-note vault imports in about 40 minutes there. The 100k-note rows come from the nightly CI run.
+Neither the container nor the GitHub runner is the reference VM, so these numbers are indicative only. At 100,000 notes both targets hold: open p95 is 8 ms (target 200 ms) and search p95 is 393 ms (target 500 ms). The separate search benchmark measured 185 ms over its 20 queries. Search has the least headroom and is the number to watch. Import and rebuild grow about linearly: a 100k-note vault imports in about 40 minutes and rebuilds its index in about 7. The nightly job adds a row's worth of data to its summary every night.
 
 ## Findings fixed on the way
 
