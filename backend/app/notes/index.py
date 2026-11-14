@@ -7,6 +7,7 @@ Only `notes`, `note_tags`, `note_links` and `search_documents` are written here;
 import os
 import posixpath
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 
 from sqlalchemy import ColumnElement, delete, func, or_, select, update
@@ -49,8 +50,14 @@ def index_file(
     )
 
 
-def rebuild_index(session: Session, vault_id: uuid.UUID, root: Path) -> None:
-    """Drop and recreate the derived rows of every live note, reading it from disk."""
+def rebuild_index(
+    session: Session,
+    vault_id: uuid.UUID,
+    root: Path,
+    read: Callable[[str], bytes] | None = None,
+) -> None:
+    """Drop and recreate the derived rows of every live note, reading it from disk, or
+    with `read(path)` (the database rebuild reads the history store)."""
     vault_files = select(File.file_id).where(File.vault_id == vault_id)
     for model in DERIVED:
         session.execute(delete(model).where(model.file_id.in_(vault_files)))
@@ -64,7 +71,8 @@ def rebuild_index(session: Session, vault_id: uuid.UUID, root: Path) -> None:
         last = ""
         while batch := session.execute(live_notes.where(File.path > last).limit(BATCH)).all():
             for file_id, path in batch:
-                _write_rows(session, vault_id, file_id, read_file(root_fd, path), path)
+                raw = read(path) if read else read_file(root_fd, path)
+                _write_rows(session, vault_id, file_id, raw, path)
             session.flush()
             last = batch[-1].path
     finally:
