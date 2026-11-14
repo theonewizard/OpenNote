@@ -1,4 +1,4 @@
-"""The derived task index (migration 0008): one row per task in a live note, written with
+"""The derived task index (migration 0009): one row per task in a live note, written with
 the other derived rows by `app.notes.index` and rebuildable from the vault."""
 
 import datetime as dt
