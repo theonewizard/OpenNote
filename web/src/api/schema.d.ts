@@ -243,6 +243,27 @@ export interface paths {
         patch: operations["move_folder"];
         trace?: never;
     };
+    "/api/v1/imports/enex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Enex
+         * @description Import every note of an ENEX export into `folder` (R-P6-011). A note that cannot be
+         *     written is listed in `skipped`; the others are imported.
+         */
+        post: operations["import_enex"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -685,6 +706,24 @@ export interface components {
              */
             next_cursor: string | null;
         };
+        /** Body_import_enex */
+        Body_import_enex: {
+            /**
+             * File
+             * @description An Evernote export (.enex)
+             */
+            file: string;
+            /**
+             * Folder
+             * @default Evernote
+             */
+            folder: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
         /** Body_token */
         Body_token: {
             /** Client Id */
@@ -819,6 +858,31 @@ export interface components {
              * @description Files moved, each as one revision
              */
             moved_files: number;
+        };
+        /** ImportResult */
+        ImportResult: {
+            /**
+             * Attachments
+             * @description Attachments created for them
+             */
+            attachments: number;
+            /**
+             * Notes
+             * @description The notes created, in export order
+             */
+            notes: components["schemas"]["NoteRef"][];
+            /** Skipped */
+            skipped: components["schemas"]["ImportSkip"][];
+        };
+        /** ImportSkip */
+        ImportSkip: {
+            /** Reason */
+            reason: string;
+            /**
+             * Title
+             * @description The note's title in the export; empty for the file itself
+             */
+            title: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1860,6 +1924,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FolderMoveResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    import_enex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_enex"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
                 };
             };
             /** @description Problem details (RFC 9457) */

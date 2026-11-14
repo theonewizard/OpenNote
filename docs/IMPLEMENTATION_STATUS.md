@@ -29,6 +29,7 @@ Phase 0: **Phase 0 — Foundation, implemented; pre-release.** Phase 0, the work
 | P6-01 tasks (parse part) | IN_PROGRESS | `app/tasks/parse.py` finds tasks (any status character, nesting, quotes and callouts; not in code or comments) and computes the one-character toggle; nothing stores tasks or writes the toggle until P2-04 ([record](../.conversations/2026-11-07-links-tasks-templates.md)) |
 | P6-05 templates (parse part) | IN_PROGRESS | `app/notes/templates.py` renders `{{title}}`, `{{date}}`, `{{time}}` and `{{date:FORMAT}}` with Moment.js tokens; creating a note from a template waits for P2-04 |
 | P6-08 backlinks and graph | IN_PROGRESS | `app/notes/graph.py` queries backlinks, the vault graph and the local graph from `note_links`; the `/notes/{id}/links` route and client panels follow the Phase 2 API |
+| P6-10 Evernote import | IN_PROGRESS | `POST /api/v1/imports/enex` streams an export with `app/imports/enex.py` (expat, no external entities), converts ENML to Markdown (tasks, lists, code, tables, embeds) and creates notes and attachments through the commit path; email-to-note remains ([record](../.conversations/2026-11-14-enex-import.md)) |
 
 ## Verified where
 

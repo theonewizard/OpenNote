@@ -109,6 +109,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/attachments?vault_id=&folder=&cursor=&limit=` | List attachments [2] |
 | GET / DELETE | `/api/v1/attachments/{id}`, `/content` | [2] |
 | GET | `/api/v1/tags?vault_id=` | Tag list with counts [2] |
+| POST | `/api/v1/imports/enex` | Multipart `{ vault_id, folder = "Evernote", file }`: one note per Evernote note (ENML converted to Markdown, tags, created, updated and source in frontmatter), attachments in `folder/_resources/<note>.resources/` [6] |
 | GET | `/api/v1/search?vault_id=&q=&cursor=&limit=` | Search, grammar in §5 [2] |
 | GET / POST / DELETE | `/api/v1/saved-searches` | [6] |
 | PUT / HEAD | `/api/v1/blobs/{sha256}` | Content-addressed upload / existence check for sync [5, prototype 1] |
