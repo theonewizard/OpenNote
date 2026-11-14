@@ -5,13 +5,13 @@ import os
 import uuid
 
 import pytest
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 
 from app.notes.models import File
 from app.sync.commit import Delete, Update
 from app.sync.cursor import CursorExpired, encode_cursor
 from app.sync.models import ClientOp, Conflict, Revision, VaultSeq
-from app.sync.retention import GRACE, prune
+from app.sync.retention import BACKUP_LOCK, GRACE, prune
 from app.sync.service import changes
 from tests.integration.sync.conftest import create, sha
 
@@ -145,3 +145,19 @@ def test_garbage_collection_spares_referenced_and_recent_objects(aged):
     assert history.has(orphan_new)
     assert not history.has(orphan_old)
     assert not part.exists()
+
+
+def test_no_object_is_removed_while_a_backup_runs(aged, engine):
+    _factory, history, _vault, committer, _at = aged
+    orphan = history.put(b"a backup may still copy this\n")
+    stale = (NOW - GRACE - dt.timedelta(hours=1)).timestamp()
+    os.utime(history._object(orphan), (stale, stale))
+    lock = text("SELECT pg_advisory_lock_shared(:k)")
+    with engine.connect() as backup:  # what opennote-backup holds for its whole run
+        backup.execute(lock, {"k": BACKUP_LOCK})
+        backup.commit()
+        assert prune(committer, **POLICY, now=NOW)["objects"] == 0
+        assert history.has(orphan)
+        backup.execute(text("SELECT pg_advisory_unlock_shared(:k)"), {"k": BACKUP_LOCK})
+        backup.commit()
+    assert prune(committer, **POLICY, now=NOW)["objects"] == 1

@@ -35,6 +35,9 @@ log = logging.getLogger(__name__)
 # Unreferenced objects, unfinished uploads and temporary files younger than this stay:
 # a blob is uploaded before the push that commits it.
 GRACE = dt.timedelta(days=7)
+# opennote-backup holds this advisory lock shared for its whole run (b"ONBACKUP" as a
+# big-endian integer): objects are not removed while a backup may still copy them.
+BACKUP_LOCK = 5714577825249056080
 
 # Revisions that are neither current nor named by a conflict, ranked newest first within
 # their file and UTC day; a revision past keep-daily goes, one past keep-all goes unless
@@ -103,15 +106,19 @@ def prune(
                     ),
                 ),
             }
-        with committer.session_factory() as s:
-            referenced: set[str | None] = set(
-                s.scalars(
-                    select(Revision.content_hash)
-                    .where(Revision.vault_id == vault, Revision.content_hash.is_not(None))
-                    .distinct()
+        removed["objects"] = 0
+        with committer.session_factory.begin() as s:  # the lock lasts until this commits
+            if not s.scalar(text("SELECT pg_try_advisory_xact_lock(:k)"), {"k": BACKUP_LOCK}):
+                log.info("backup running; history objects left for the next retention run")
+            else:
+                referenced: set[str | None] = set(
+                    s.scalars(
+                        select(Revision.content_hash)
+                        .where(Revision.vault_id == vault, Revision.content_hash.is_not(None))
+                        .distinct()
+                    )
                 )
-            )
-        removed["objects"] = _collect_garbage(committer.history.root, referenced, now)
+                removed["objects"] = _collect_garbage(committer.history.root, referenced, now)
     if any(removed.values()):
         log.info("retention applied", extra={"vault_id": str(vault), **removed})
     return removed
