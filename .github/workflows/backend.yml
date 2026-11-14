@@ -43,6 +43,9 @@ jobs:
           python -m pip install --dry-run --quiet -c backend/constraints.txt \
             -r backend/requirements.txt -r backend/requirements-dev.txt \
             || { echo "backend/constraints.txt is stale: run make constraints"; exit 1; }
+      # Every file that carries OpenNote's version carries the same one (docs/development/release.md).
+      - name: Version strings agree
+        run: scripts/check-version.sh
 
   test:
     name: test (${{ matrix.python }})
