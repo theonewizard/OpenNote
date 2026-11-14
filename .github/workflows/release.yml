@@ -1,0 +1,152 @@
+# Release: on a tag v<major>.<minor>.<patch>, build the four images, refuse fixable HIGH and
+# CRITICAL findings, push the images and the Helm chart to ghcr.io, sign them keyless with
+# cosign (Sigstore), attach a CycloneDX SBOM attestation to each image, and create the GitHub
+# release with the SBOMs and the digests. Pull requests that change the release path, and a
+# manual run, do the same as a dry run against a registry inside the job with a throwaway
+# key: nothing leaves the runner (docs/development/release.md).
+name: release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+    # Branch pushes that change the release path run the dry run (paths do not filter tags).
+    branches: ["feature/**", "fix/**", "security/**"]
+    paths: &release-path
+      - .github/workflows/release.yml
+      - scripts/release.sh
+      - scripts/check-version.sh
+  pull_request:
+    paths: *release-path
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    name: version check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Every place carries the same version, on a tag the tag's
+        run: |
+          if [[ $GITHUB_REF_TYPE == tag ]]; then
+            scripts/check-version.sh "${GITHUB_REF_NAME#v}"
+          else
+            scripts/check-version.sh
+          fi
+
+  dry-run:
+    name: dry run (local registry, throwaway key)
+    if: github.ref_type != 'tag'
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      registry:
+        image: registry:3.1.2@sha256:38907510915c3f1604c7e83d6ab602ab3020d092f73bdaed8696773693ff768c
+        ports: ["5000:5000"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.76.0
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+      - name: Release to the job's registry
+        env:
+          COSIGN_PASSWORD: ""
+        run: |
+          cd "$RUNNER_TEMP" && cosign generate-key-pair && cd "$GITHUB_WORKSPACE"
+          scripts/release.sh localhost:5000/opennote "$(scripts/check-version.sh)" key "$RUNNER_TEMP/cosign"
+      - name: What a user would check
+        run: |
+          while read -r ref; do
+            cosign verify --allow-insecure-registry --key "$RUNNER_TEMP/cosign.pub" \
+              --insecure-ignore-tlog=true "$ref" >/dev/null
+            echo "verified: $ref"
+          done < dist/digests.txt
+          helm pull --plain-http "oci://localhost:5000/opennote/charts/opennote" \
+            --version "$(scripts/check-version.sh)" --destination "$RUNNER_TEMP"
+
+  publish:
+    name: publish
+    if: github.ref_type == 'tag'
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: release
+    permissions:
+      contents: write # the GitHub release
+      packages: write # images and chart on ghcr.io
+      id-token: write # the OIDC token cosign trades for a signing certificate
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.76.0
+      - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: v3.1.4
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+      - name: Log in to ghcr.io
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          echo "$TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Build, scan, push, sign, attest
+        run: scripts/release.sh ghcr.io/theonewizard "${GITHUB_REF_NAME#v}" keyless
+      # 0.x versions are marked as pre-releases.
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=${GITHUB_REF_NAME#v}
+          {
+            echo "## Images and chart"
+            echo
+            echo '```'
+            cat dist/digests.txt
+            echo '```'
+            echo
+            echo "Verify a signature (docs/development/release.md):"
+            echo
+            echo '```'
+            echo "cosign verify \\"
+            echo "  --certificate-identity https://github.com/theonewizard/OpenNote/.github/workflows/release.yml@refs/tags/$GITHUB_REF_NAME \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\"
+            echo "  $(head -n 1 dist/digests.txt)"
+            echo '```'
+          } > "$RUNNER_TEMP/notes.md"
+          prerelease=()
+          [[ $version == 0.* ]] && prerelease=(--prerelease)
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "OpenNote $version" \
+            --notes-file "$RUNNER_TEMP/notes.md" --generate-notes "${prerelease[@]}" \
+            dist/*.cdx.json dist/digests.txt
+      - name: Log out
+        if: always()
+        run: |
+          docker logout ghcr.io || true
+          helm registry logout ghcr.io || true
