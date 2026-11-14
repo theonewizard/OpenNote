@@ -212,3 +212,16 @@ def test_invalid_settings_stop_the_server_with_one_line_and_no_secret():
         "OpenNote cannot start: invalid or missing settings: database_url"
     ]
     assert "hunter2" not in result.stdout + result.stderr
+
+
+def test_retention_defaults_and_daily_window_not_below_keep_all(monkeypatch):
+    settings = load_settings()
+    assert (settings.history_keep_all_days, settings.history_keep_daily_days) == (30, 365)
+    assert settings.tombstone_retention_days == 90
+    monkeypatch.setenv("OPENNOTE_HISTORY_KEEP_ALL_DAYS", "60")
+    monkeypatch.setenv("OPENNOTE_HISTORY_KEEP_DAILY_DAYS", "45")
+    with pytest.raises(SettingsError, match="history_keep_daily_days"):
+        load_settings()
+    monkeypatch.setenv("OPENNOTE_TOMBSTONE_RETENTION_DAYS", "7")  # under the client margin
+    with pytest.raises(SettingsError, match="tombstone_retention_days"):
+        load_settings()

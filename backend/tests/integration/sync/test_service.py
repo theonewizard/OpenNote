@@ -5,12 +5,14 @@ import errno
 import uuid
 
 import pytest
+from sqlalchemy import update as sql_update
 
 from app.notes.identity import diff_scan
 from app.notes.models import File
 from app.sync import commit as commit_module
 from app.sync.commit import SERVER_FS, Create, Delete, Move, Update
-from app.sync.cursor import RETENTION_SEQ_WINDOW, CursorExpired, decode_cursor, encode_cursor
+from app.sync.cursor import CursorExpired, decode_cursor, encode_cursor
+from app.sync.models import VaultSeq
 from app.sync.service import changes, ingest_fs_changes, push, snapshot
 from app.vaults.scan import scan
 from tests.integration.sync.conftest import BASE, create, sha
@@ -54,16 +56,16 @@ def test_malformed_cursor_rejected(junk):
         decode_cursor(junk, uuid.uuid7())
 
 
-def test_expired_cursor_raises(server, monkeypatch):
+def test_expired_cursor_raises(server):
     _root, factory, vault_id, committer = server
-    monkeypatch.setattr("app.sync.service.RETENTION_SEQ_WINDOW", 2)
     for i in range(4):
         seed(committer, f"n{i}.md", f"{i}\n".encode())
+    with factory.begin() as s:  # as retention does when it forgets a tombstone at seq 2
+        s.execute(sql_update(VaultSeq).where(VaultSeq.vault_id == vault_id).values(horizon_seq=2))
     with factory() as s:
         with pytest.raises(CursorExpired):
             changes(s, vault_id, encode_cursor(vault_id, 1))
         assert len(changes(s, vault_id, encode_cursor(vault_id, 2)).entries) == 2
-    assert RETENTION_SEQ_WINDOW > 1000
 
 
 # Pull (§4): the entries each row of the client's table acts on ---------------------------
