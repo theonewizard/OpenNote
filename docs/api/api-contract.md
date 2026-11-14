@@ -112,7 +112,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/tags?vault_id=` | Tag list with counts [2] |
 | GET | `/api/v1/search?vault_id=&q=&cursor=&limit=` | Search, grammar in §5 [2] |
 | GET / POST / DELETE | `/api/v1/saved-searches` | [6] |
-| PUT / HEAD / GET | `/api/v1/blobs/{sha256}?vault_id=` | Content-addressed upload (bytes must hash to `sha256`, else 422) / existence check / download, in the vault's store [5] |
+| PUT / HEAD / GET | `/api/v1/blobs/{sha256}?vault_id=` | Content-addressed upload (bytes must hash to `sha256`, else 422; in chunks with `Content-Range: bytes first-last/total`, each at most 8 MiB, 202 with `Upload-Offset` until the last, 409 with `Upload-Offset` for a chunk not starting there) / existence check (404 carries `Upload-Offset` of an upload under way) / download, in the vault's store [5] |
 | GET | `/api/v1/sync/{vault_id}/changes?cursor=` | Pull [5] |
 | GET | `/api/v1/sync/{vault_id}/snapshot?page=&limit=` | Full file list for reconcile, paged by path, one `cursor` for all pages [5] |
 | POST | `/api/v1/sync/{vault_id}/push` | Push operations [5] |

@@ -1,7 +1,6 @@
 """Attachment endpoints (P2-06): upload with server-side type sniffing, Range download."""
 
 import codecs
-import hashlib
 import os
 import re
 import uuid
@@ -161,7 +160,7 @@ def _media_type(request: Request, vault: Vault, row: FileRow) -> str:
         return cached
     fd = _open_vault_file(vault, row)
     if fd is None:
-        head = _history(request, vault).get(row.content_hash)[:SNIFF_BYTES]
+        head = next(_history_range(_history(request, vault), row.content_hash, 0, SNIFF_BYTES), b"")
     else:
         try:
             head = os.pread(fd, SNIFF_BYTES, 0)
@@ -301,13 +300,25 @@ async def upload_attachment(
         raise ProblemError(422, "Invalid path", "invalid-path", "This path is not an attachment.")
 
     max_bytes: int = request.app.state.settings.max_blob_bytes
-    digest, size = hashlib.sha256(), 0
-    while chunk := await file.read(_CHUNK):
-        size += len(chunk)
-        if size > max_bytes:
-            raise too_large(max_bytes)
-        digest.update(chunk)
-    content_hash = "sha256:" + digest.hexdigest()
+    # Streamed into the vault's history store, where the commit reads it (P5-02); a
+    # refused upload leaves an orphan object that history GC removes.
+    writer = await anyio.to_thread.run_sync(_history(request, vault).writer)
+    head = b""
+    try:
+        while chunk := await file.read(_CHUNK):
+            if writer.size + len(chunk) > max_bytes:
+                raise too_large(max_bytes)
+            if len(head) < SNIFF_BYTES:
+                head += chunk[: SNIFF_BYTES - len(head)]
+            await anyio.to_thread.run_sync(writer.write, chunk)
+        size = writer.size
+        stored = await anyio.to_thread.run_sync(writer.finish)
+    except BaseException:
+        await anyio.to_thread.run_sync(writer.abort)
+        raise
+    if stored is None:  # finish() without a hash always stores
+        raise RuntimeError("attachment not stored")
+    content_hash = stored
 
     fingerprint = conventions.request_hash(str(vault_id), path, content_hash)
     if replayed := await conventions.replay(db, caller, idempotency_key, fingerprint):
@@ -320,11 +331,9 @@ async def upload_attachment(
     if taken is not None:
         raise ProblemError(409, "Path is taken", "path-taken", "A file already has this path.")
 
-    await file.seek(0)
-    blob = await file.read()  # the Committer takes whole blobs until P5-02 (streaming)
-    _remember_type(content_hash, sniff(blob[:SNIFF_BYTES], size))
+    _remember_type(content_hash, sniff(head, size))
     op = Create(uuid.uuid7(), uuid.uuid7(), path, "attachment", content_hash)
-    result = await commit(request, vault, op, caller.device_id, blob)
+    result = await commit(request, vault, op, caller.device_id, None)
     # "conflict": a racing upload took the path first; ours was kept under a copy's name.
     if result.status not in ("applied", "conflict"):
         raise _problem(result)
@@ -453,5 +462,23 @@ async def get_attachment_content(
     if fd is not None:
         body = _stream(fd, start, end - start + 1)
         return StreamingResponse(body, status, headers, media_type=media_type)
-    data = await anyio.to_thread.run_sync(lambda: _history(request, vault).get(row.content_hash))
-    return Response(data[start : end + 1], status, headers, media_type=media_type)
+    body = _history_range(_history(request, vault), row.content_hash, start, end - start + 1)
+    return StreamingResponse(body, status, headers, media_type=media_type)
+
+
+def _history_range(
+    history: HistoryStore, content_hash: str, start: int, length: int
+) -> Iterator[bytes]:
+    """`length` bytes from `start` of a history object, decompressed as they are read;
+    the bytes before `start` are decompressed and dropped."""
+    offset = 0
+    for chunk in history.stream(content_hash):
+        if length <= 0:
+            return
+        lo = max(start - offset, 0)
+        offset += len(chunk)
+        if lo >= len(chunk):
+            continue
+        piece = chunk[lo : lo + length]
+        length -= len(piece)
+        yield piece

@@ -74,7 +74,7 @@ A local file is **dirty** when `local_hash != base_hash`.
 | `delete` | `client_op_id`, `file_id`, `base_revision` | — |
 | `restore` | `client_op_id`, `file_id`, `from_revision` | Revision exists in history |
 
-Content travels as content-addressed blobs (`PUT /api/v1/blobs/{sha256}?vault_id=`, existence check with `HEAD`, download with `GET`), so an operation is small and a retried upload is free. A blob is stored in the vault's history store, where the commit reads it (R-P5-001); `HEAD` first and upload only what is missing. Large blobs use chunked, resumable upload (`Content-Range`, 8 MiB chunks, P5-02).
+Content travels as content-addressed blobs (`PUT /api/v1/blobs/{sha256}?vault_id=`, existence check with `HEAD`, download with `GET`), so an operation is small and a retried upload is free. A blob is stored in the vault's history store, where the commit reads it (R-P5-001); `HEAD` first and upload only what is missing. Large blobs use chunked, resumable upload (P5-02): each `PUT` carries `Content-Range: bytes first-last/total` with at most 8 MiB and answers 202 with `Upload-Offset`; the chunk that completes `total` stores the blob (204, or 422 and the partial upload discarded when the bytes do not match the hash). After an interruption, `HEAD` answers 404 with the `Upload-Offset` to continue from; a chunk starting anywhere else is a 409 carrying it. The server keeps partial uploads outside the objects until they complete or retention removes them. Committing never holds a blob whole: the server streams it from the history store into the vault.
 
 ## 4. Pull
 

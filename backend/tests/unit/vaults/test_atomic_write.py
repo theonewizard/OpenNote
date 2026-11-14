@@ -364,3 +364,34 @@ def test_a_name_near_the_length_limit_still_writes(vault, recovery):
     before = fsio.hash_path(fd, name)
     fsio.atomic_write(fd, name, b"y\n", expected_hash=before, recovery_dir=recovery)
     assert (root / name).read_bytes() == b"y\n" and temps(root) == []
+
+
+def test_streamed_chunks_are_written_and_checked_against_new_hash(tmp_path):
+    root_fd = fsio.open_root(tmp_path)
+    try:
+        chunks = [b"one ", b"two ", b"three"]
+        good = "sha256:" + hashlib.sha256(b"".join(chunks)).hexdigest()
+        assert (
+            fsio.atomic_write(
+                root_fd,
+                "a.bin",
+                iter(chunks),
+                expected_hash=None,
+                recovery_dir=tmp_path,
+                new_hash=good,
+            )
+            == good
+        )
+        assert (tmp_path / "a.bin").read_bytes() == b"one two three"
+        with pytest.raises(ValueError):
+            fsio.atomic_write(
+                root_fd,
+                "b.bin",
+                iter(chunks),
+                expected_hash=None,
+                recovery_dir=tmp_path,
+                new_hash="sha256:" + "0" * 64,
+            )
+        assert sorted(p.name for p in tmp_path.iterdir()) == ["a.bin"]  # no temp left
+    finally:
+        os.close(root_fd)

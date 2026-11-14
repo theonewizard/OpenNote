@@ -68,7 +68,7 @@ These are repository settings only the owner can change ([workflow.md](developme
 ## Open items
 
 - Phase 1, from the final review (2026-11-01), decided for later rather than fixed ([record](../.conversations/2026-11-01-phase-1-storage-sync.md), R149):
-  - Memory: the commit path takes whole blobs, so a 2 GiB attachment is held in memory several times on ingest and commit; streaming is P5-02 (resumable blob upload).
+  - Memory: the commit path took whole blobs. Since P5-02 (branch `feature/resumable-blobs`) uploads, ingest, commits and history reads stream attachments; only notes up to 16 MiB are read whole, to merge or index (a 500 MiB upload and commit peaked at 243 MiB resident for the whole test process).
 - The remote branch `probe/ubi-python`, a throwaway CI probe one commit ahead of `main` (the whole tree of `main` at `84eefbc` plus `.github/workflows/probe.yml`), could not be deleted from the Claude Code environment. Delete it on GitHub; it is never merged.
 - `backend/migrations/script.py.mako`, the template `alembic revision` uses, renders files that ruff flags. The first real migration (Phase 1) adds a ruff post-write hook or adapts the template.
 - The version 0.1.0 is written in `backend/app/__init__.py`, `OpenNoteCore.version`, `MARKETING_VERSION` in `apple/project.yml`, `version` and `appVersion` in `infrastructure/helm/opennote/Chart.yaml` and the four image tags in `infrastructure/kubernetes/base/*.yaml`; three Swift tests assert it, and the generated OpenAPI documents (`docs/api/openapi.json` and its Swift copy) carry it. No check compares them yet (a `make check-versions` target or a CI step, Phase 1, covering all of these). `web/package.json` carries the create-vite placeholder 0.0.0.

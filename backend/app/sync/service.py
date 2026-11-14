@@ -1,7 +1,6 @@
 """Push, pull and snapshot over the Committer, and ingestion of changes made directly
 on the server's vault (sync protocol §4, §5, §7)."""
 
-import hashlib
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -14,7 +13,7 @@ from app.notes.models import File
 from app.sync.commit import SERVER_FS, Committer, Create, Delete, Move, Operation, OpResult, Update
 from app.sync.cursor import RETENTION_SEQ_WINDOW, CursorExpired, decode_cursor, encode_cursor
 from app.sync.models import Revision
-from app.vaults.fsio import hash_path, read_file
+from app.vaults.fsio import hash_path
 from app.vaults.paths import classify
 from app.vaults.scan import MAX_NOTE_BYTES
 
@@ -151,16 +150,15 @@ def _ops_for(committer: Committer, change: FsChange) -> list[tuple[Operation, by
         if row is None or hash_path(committer.root_fd, path) is not None:
             return []  # back since the scan (a recovered write, or a re-save)
         return [(Delete(uuid.uuid7(), file_id, revision), None)]
-    try:
-        blob = read_file(committer.root_fd, path)
+    try:  # streamed into the history store: the commit reads it there (P5-02)
+        content = committer._store_vault_file(path)
     except FileNotFoundError:
         return []  # gone again; the next scan reports it
-    content = "sha256:" + hashlib.sha256(blob).hexdigest()
     if change.kind == "create":
         kind = classify(path)
-        if kind == "note" and len(blob) > MAX_NOTE_BYTES:
+        if kind == "note" and committer.history.size(content) > MAX_NOTE_BYTES:
             kind = "attachment"  # opaque, as the scan classifies it
-        return [(Create(uuid.uuid7(), file_id, path, kind, content), blob)]
+        return [(Create(uuid.uuid7(), file_id, path, kind, content), None)]
     if row is None:
         return []
     ops: list[tuple[Operation, bytes | None]] = []
@@ -168,5 +166,5 @@ def _ops_for(committer: Committer, change: FsChange) -> list[tuple[Operation, by
         ops.append((Move(uuid.uuid7(), file_id, revision, path), None))
         revision += 1
     if content != known_hash:
-        ops.append((Update(uuid.uuid7(), file_id, revision, content), blob))
+        ops.append((Update(uuid.uuid7(), file_id, revision, content), None))
     return ops
