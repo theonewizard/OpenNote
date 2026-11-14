@@ -198,7 +198,8 @@ def rebuild_vault(
     session.add(VaultSeq(vault_id=vault_id, last_seq=entries[-1].seq if entries else 0))
     # Tombstones first: a live file may sit at a path a deleted one had (one unique index
     # over live paths).
-    for e in sorted(last_states(entries).values(), key=lambda e: not e.deleted):
+    last = last_states(entries)
+    for e in sorted(last.values(), key=lambda e: not e.deleted):
         session.add(
             File(
                 file_id=e.file_id,
@@ -218,7 +219,7 @@ def rebuild_vault(
         session.flush()
     if owner is not None:
         session.add(VaultMember(vault_id=vault_id, user_id=owner, role="owner"))
-    hashes = {e.path: content[e.file_id] for e in last_states(entries).values() if not e.deleted}
+    hashes = {e.path: content[e.file_id] for e in last.values() if not e.deleted}
     rebuild_index(session, vault_id, folder, read=lambda path: history.get(hashes[path]))
 
 
