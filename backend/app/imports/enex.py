@@ -19,7 +19,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import IO
-from xml.etree.ElementTree import Element, ParseError, iterparse  # see docstring
+from xml.etree.ElementTree import Element, ParseError, iterparse  # nosec B405  # see docstring
 
 from app.vaults.paths import FORBIDDEN_CHARS, LINK_CHARS, RESERVED_NAMES, truncate_utf8
 
@@ -76,7 +76,7 @@ def _resource(element: Element, index: int) -> Resource | None:
 
 def read_enex(stream: IO[bytes]) -> Iterator[EnexNote]:
     try:
-        for _, element in iterparse(stream, events=("end",)):  # noqa: S314  # see docstring
+        for _, element in iterparse(stream, events=("end",)):  # noqa: S314  # nosec B314  # see docstring
             if element.tag != "note":
                 continue
             resources = [
