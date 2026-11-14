@@ -20,6 +20,7 @@ zap_image=zaproxy/zap-stable:2.17.0@sha256:9624669db72f54d86c4b46a7064518bd9bf79
 compose=(docker compose -f infrastructure/compose/compose.yaml)
 
 mkdir -p "$out"
+out=$(cd "$out" && pwd) # absolute, for the docker bind mount
 chmod 777 "$out" # ZAP runs as its own user (uid 1000) and writes the reports here
 
 password=$(head -c 24 /dev/urandom | base64 | tr -d '/+=')
@@ -44,7 +45,7 @@ replace() { # index header value
     "$1" "matchstr=$2" "$1" regex=false "$1" "replacement=$3"
 }
 rc=0
-docker run --rm --network host -v "$PWD/$out:/zap/wrk:rw" "$zap_image" \
+docker run --rm --network host -v "$out:/zap/wrk:rw" "$zap_image" \
   zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -O "$base" \
   -J report.json -r report.html -w report.md -I \
   -z "$(replace 0 Cookie "$cookie")$(replace 1 X-CSRF-Token "$csrf")" || rc=$?
