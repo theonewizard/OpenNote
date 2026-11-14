@@ -14,6 +14,9 @@ Self-hosted, local-first note-taking with Evernote-style productivity on top of 
 | Rules for AI-assisted development | [CLAUDE.md](CLAUDE.md) |
 | Development setup | [docs/development/setup.md](docs/development/setup.md) |
 | Kubernetes and OpenShift | [docs/deployment/kubernetes.md](docs/deployment/kubernetes.md) |
+| Operator guide (Compose install, upgrade) | [docs/deployment/operator-guide.md](docs/deployment/operator-guide.md) |
+| User guide | [docs/user-guide.md](docs/user-guide.md) |
+| Using the API | [docs/api/using-the-api.md](docs/api/using-the-api.md) |
 | Tool versions | [docs/development/versions.md](docs/development/versions.md) |
 
 ## Repository layout
