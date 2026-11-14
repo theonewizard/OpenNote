@@ -13,6 +13,7 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 
 - Branch `feature/sync-server` in `.worktrees/sync/` (PR A of the plan): P5-01 endpoints and P5-06 history, migration 0008, tests, regenerated OpenAPI document and clients, docs.
 - Branch `feature/resumable-blobs` in `.worktrees/blobs/` (PR B, stacked on PR A): P5-02 resumable chunked uploads and the streaming commit path; nginx body limits for `/api/` (R-P5-009, R-P5-010).
+- Branch `feature/sync-retention` in `.worktrees/retention/` (PR C, stacked on PR B): P5-07 retention in days, history GC, cursor expiry by retention horizon, migration 0009, daily run in the vault watcher (R-P5-011 to R-P5-013).
 
 ## Notes from other threads
 

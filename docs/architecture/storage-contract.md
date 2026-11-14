@@ -145,4 +145,4 @@ Every resolved absolute path must be inside the vault root after `realpath`; ope
 
 ## 7. History store (server)
 
-Every committed revision's bytes are stored once, content-addressed, at `<history_root>/<vault_id>/objects/<aa>/<bbbb…>` (zstd-compressed), outside the vault and outside PostgreSQL. Revision metadata (file ID, revision, path, hash, device, time, op) is in PostgreSQL and is also appended to `<history_root>/<vault_id>/log/YYYY-MM.jsonl` so history can be rebuilt without the database. Retention per decision D6.
+Every committed revision's bytes are stored once, content-addressed, at `<history_root>/<vault_id>/objects/<aa>/<bbbb…>` (zstd-compressed), outside the vault and outside PostgreSQL. Revision metadata (file ID, revision, path, hash, device, time, op) is in PostgreSQL and is also appended to `<history_root>/<vault_id>/log/YYYY-MM.jsonl` so history can be rebuilt without the database. Retention per decision D6 ([sync protocol §2.1](sync-protocol.md#21-server-state-per-vault)): retention removes objects no remaining revision refers to, so a rebuild from the log must tolerate missing objects.

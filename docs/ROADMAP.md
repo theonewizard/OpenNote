@@ -100,7 +100,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P5-04 | Web sync engine | P5-01, P3-08 | P0 | Cross-client e2e | NOT_STARTED |
 | P5-05 | Conflict list and resolution UI (all clients) | P5-03, P5-04 | P0 | Conflicts visible and resolvable | NOT_STARTED |
 | P5-06 | Version history browse, diff, restore, deleted-note recovery | P1-13, P5-01 | P0 | Restore any revision | IN_PROGRESS: server side (revisions, content, restore, deleted-note list) on `feature/sync-server`; browse/diff UI comes with the clients |
-| P5-07 | Tombstone retention and history GC per D6 | P5-01 | P0 | GC never removes newest or conflict-referenced revisions | NOT_STARTED |
+| P5-07 | Tombstone retention and history GC per D6 | P5-01 | P0 | GC never removes newest or conflict-referenced revisions | TESTING |
 | P5-08 | Detection of competing sync tools (iCloud/Dropbox/Obsidian Sync) | P5-03 | P1 | Warning shown | NOT_STARTED |
 | P5-09 | Cross-client end-to-end sync suite | P5-03, P5-04 | P0 | Nightly green | NOT_STARTED |
 | P5-10 | Device management UI and sync status indicator | P5-03, P5-04 | P0 | — | NOT_STARTED |
