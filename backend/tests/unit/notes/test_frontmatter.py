@@ -117,3 +117,23 @@ def test_editing_other_top_level_key_refused(key):
 def test_splice_keys_writes_any_key_for_the_merge():
     out = splice_keys(parse_note(b"---\ntitle: a\ncssclasses: [w]\n---\n"), {"title": "b"})
     assert out == b"---\ntitle: b\ncssclasses: [w]\n---\n"
+
+
+def test_impossible_date_is_a_frontmatter_error_not_a_crash():
+    from app.notes.document import parse_note
+    from app.notes.frontmatter import read_properties
+
+    assert read_properties(parse_note(b"---\ncreated: 2024-02-30\n---\nx\n")) == (None, True)
+
+
+def test_tagged_and_non_finite_scalars_become_json_safe_text():
+    import json
+
+    from app.notes.document import parse_note
+    from app.notes.frontmatter import read_properties
+
+    raw = b"---\na: !!str 5\nb: !foo bar\nc: .NaN\nd: -.inf\ne: 1e400\nf: 1.5\n---\n"
+    props, error = read_properties(parse_note(raw))
+    assert error is False
+    assert props == {"a": "5", "b": "bar", "c": ".NaN", "d": "-.inf", "e": "1e400", "f": 1.5}
+    json.dumps(props, allow_nan=False)

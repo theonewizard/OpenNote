@@ -46,7 +46,7 @@ class VaultWatcher:
         root: Path,
         vault_id: uuid.UUID,
         session_factory: sessionmaker[Session],
-        on_changes: Callable[[list[FsChange]], None],
+        on_changes: Callable[[list[FsChange]], object],
         *,
         debounce_s: float = 0.5,
         rescan_s: float = 900,

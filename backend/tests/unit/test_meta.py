@@ -8,5 +8,5 @@ def test_meta_reports_versions(client):
         "server_version": app_version(),
         "api_versions": ["v1"],
         "sync_protocol_versions": [1],
-        "login_methods": [],
+        "login_methods": ["password"],
     }

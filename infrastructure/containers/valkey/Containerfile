@@ -1,5 +1,5 @@
-# opennote-valkey: Valkey 9.1.2 built from the upstream source release on UBI 9 minimal
-# (the UBI 9 repositories carry no Valkey 9).
+# opennote-valkey: Valkey 9.1.2 built from the upstream source release on UBI 10 minimal
+# (the UBI 10 repositories carry no Valkey 9).
 #
 # Build from the repository root:
 #   docker build -f infrastructure/containers/valkey/Containerfile -t opennote-valkey:dev .
@@ -7,11 +7,11 @@
 # Runs as UID 1001 group 0 or any other UID, on a read-only root filesystem: it keeps no
 # data on disk (see CMD).
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c AS builder
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741 AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Build tools from the UBI 9 repositories, not version-pinned (builder stage only).
+# Build tools from the UBI 10 repositories, not version-pinned (builder stage only).
 # hadolint ignore=DL3041
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
         gcc make openssl-devel tar gzip findutils \
@@ -29,7 +29,7 @@ RUN curl --fail --silent --show-error --location --connect-timeout 20 --max-time
     && make -C /src -j"$(nproc)" BUILD_TLS=yes USE_SYSTEMD=no \
     && make -C /src install PREFIX=/opt/valkey
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.8@sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741
 
 LABEL org.opencontainers.image.title="opennote-valkey" \
       org.opencontainers.image.description="Valkey 9.1.2 for OpenNote background jobs" \

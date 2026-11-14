@@ -340,3 +340,25 @@ def test_an_oversized_note_from_the_server_disk_is_opaque(server):
     with factory() as s:
         assert s.get(File, result.file_id).kind == "attachment"
         assert s.get(Note, result.file_id) is None  # never parsed
+
+
+def test_a_write_another_process_has_not_finished_is_not_reverted(server, monkeypatch):
+    """The watcher runs in its own process, which never saw the API's failed write: the
+    registry's written_revision, read under the vault lock, must stop the revert."""
+    root, factory, vault_id, committer = server
+    op, data = create()
+    committer.commit(op, "a", data)
+    real = commit_module.atomic_write
+
+    def disk_full(*args, **kwargs):
+        raise OSError(errno.ENOSPC, "No space left on device")
+
+    monkeypatch.setattr(commit_module, "atomic_write", disk_full)
+    ours = BASE.replace(b"three", b"ours")
+    push(committer, "a", *update(op.file_id, 1, ours))
+    monkeypatch.setattr(commit_module, "atomic_write", real)
+    committer.unsettled.clear()  # what a committer in the watcher process knows
+    ingest_fs_changes(committer, fs_changes(root, factory, vault_id))
+    assert (root / "n.md").read_bytes() == ours
+    with factory() as s:
+        assert s.get(File, op.file_id).revision == 2

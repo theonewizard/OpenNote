@@ -1,6 +1,6 @@
 """Server metadata (keyless): what a client needs to know before it logs in."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from app import __version__
@@ -21,13 +21,16 @@ def app_version() -> str:
 
 
 @router.get("/api/v1/meta")
-async def get_meta() -> ServerMeta:
+async def get_meta(request: Request) -> ServerMeta:
     """The server version, the API and sync protocol versions, and the login methods."""
     return ServerMeta(
         server_version=app_version(),
         api_versions=["v1"],
         sync_protocol_versions=[1],
-        login_methods=[],
+        login_methods=[
+            "password",
+            *(provider.name for provider in request.app.state.settings.oidc_providers),
+        ],
     )
 
 
