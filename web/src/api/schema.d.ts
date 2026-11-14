@@ -395,6 +395,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notes/{note_id}/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rename Note
+         * @description Move or rename the note and, with `update_links`, rewrite the links to it in other
+         *     notes (R-P6-009). Each linking note is its own revision, listed with the one before it
+         *     so a client can undo; one that changed meanwhile is skipped, never merged.
+         */
+        post: operations["rename_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -820,6 +842,20 @@ export interface components {
              */
             moved_files: number;
         };
+        /** LinkUpdate */
+        LinkUpdate: {
+            note: components["schemas"]["NoteRef"];
+            /**
+             * Previous Revision
+             * @description Its revision before; restore it to undo
+             */
+            previous_revision: number;
+            /**
+             * Revision
+             * @description The linking note's revision after the rewrite
+             */
+            revision: number;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -983,6 +1019,20 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** NoteRename */
+        NoteRename: {
+            /**
+             * Path
+             * @description The new vault-relative path
+             */
+            path: string;
+            /**
+             * Update Links
+             * @description Rewrite links in other notes that point at this note
+             * @default true
+             */
+            update_links: boolean;
+        };
         /** OutgoingLink */
         OutgoingLink: {
             /** Alias */
@@ -1081,6 +1131,20 @@ export interface components {
             type: string;
         } & {
             [key: string]: unknown;
+        };
+        /** RenameResult */
+        RenameResult: {
+            note: components["schemas"]["Note"];
+            /**
+             * Skipped
+             * @description Linking notes left alone: changed meanwhile, read-only, or too large
+             */
+            skipped: components["schemas"]["NoteRef"][];
+            /**
+             * Updated
+             * @description Notes whose links were rewritten
+             */
+            updated: components["schemas"]["LinkUpdate"][];
         };
         /** SearchHit */
         SearchHit: {
@@ -2237,6 +2301,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoteLinks"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    rename_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteRename"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenameResult"];
                 };
             };
             /** @description Problem details (RFC 9457) */

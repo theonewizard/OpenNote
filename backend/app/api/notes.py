@@ -27,14 +27,17 @@ from app.api.conventions import (
 from app.api.deps import DB, StaleRevision, commit, not_found, require_vault
 from app.api.http import Cursor, IdempotencyKey, IfMatch, Limit, VaultIdQuery
 from app.api.schemas import (
+    LinkUpdate,
     Note,
     NoteCreate,
     NoteLinks,
     NotePage,
     NotePatch,
     NoteRef,
+    NoteRename,
     NoteSort,
     OutgoingLink,
+    RenameResult,
     Role,
 )
 from app.auth.dependencies import Principal, get_caller
@@ -50,6 +53,7 @@ from app.notes.frontmatter import (
 )
 from app.notes.models import File, NoteLink, NoteTag
 from app.notes.models import Note as NoteRow
+from app.notes.rename import rewrite_links
 from app.sync.commit import Create, Delete, Move, Operation, OpResult, Update
 from app.sync.history import HistoryStore
 from app.sync.models import ClientOp, Revision
@@ -444,6 +448,87 @@ async def update_note(
             note = await _commit_at(request, db, caller, vault, op, data)
     response.headers["ETag"] = etag(note.revision)
     return note
+
+
+@router.post("/{note_id}/rename", responses={200: {"headers": _ETAG}})
+async def rename_note(
+    note_id: uuid.UUID,
+    body: NoteRename,
+    request: Request,
+    caller: Caller,
+    db: DB,
+    response: Response,
+    if_match: IfMatch = None,
+) -> RenameResult:
+    """Move or rename the note and, with `update_links`, rewrite the links to it in other
+    notes (R-P6-009). Each linking note is its own revision, listed with the one before it
+    so a client can undo; one that changed meanwhile is skipped, never merged."""
+    file, vault, note = await _load(db, caller, note_id, "editor")
+    check_if_match(if_match, file.revision, note.model_dump(mode="json"))
+    path, old_path = _note_path(body.path), file.path
+    if path == old_path:
+        response.headers["ETag"] = etag(note.revision)
+        return RenameResult(note=note, updated=[], skipped=[])
+    if (other := await live_file_at(db, vault.id, path)) and other != file.file_id:
+        raise _path_taken()
+    before: list[str] = []
+    linking: list[uuid.UUID] = []
+    if body.update_links:
+        before = list(
+            await db.scalars(select(File.path).where(File.vault_id == vault.id, ~File.deleted))
+        )
+        linking = list(
+            await db.scalars(
+                select(NoteLink.file_id)
+                .join(File, File.file_id == NoteLink.file_id)
+                .where(
+                    NoteLink.resolved_file_id == file.file_id,
+                    NoteLink.file_id != file.file_id,
+                    ~File.deleted,
+                )
+                .distinct()
+            )
+        )
+    note = await _commit_at(
+        request, db, caller, vault, Move(uuid.uuid7(), file.file_id, file.revision, path), None
+    )
+    after = [path if p == old_path else p for p in before]
+    updated: list[LinkUpdate] = []
+    skipped: list[NoteRef] = []
+    for linking_id in sorted(linking):
+        row = (await db.execute(note_query().where(File.file_id == linking_id))).first()
+        if row is None:
+            continue
+        source: File = row[0]
+        ref = NoteRef(
+            id=source.file_id,
+            path=source.path,
+            title=row[1].title if row[1] else _stem(source.path),
+        )
+        data = None
+        if source.size <= MAX_NOTE_BYTES:
+            doc = parse_note(await _bytes(request, vault, source.content_hash))
+            data = rewrite_links(doc, source.path, old_path, path, before, after)
+            if data is None and doc.text is not None:
+                continue  # no link text to change (e.g. it only resolved by alias)
+        if data is None or len(data) > MAX_NOTE_BYTES:
+            skipped.append(ref)
+            continue
+        revision = source.revision
+        op = Update(uuid.uuid7(), source.file_id, revision, _sha(data))
+        try:
+            result = await commit(
+                request, vault, op, caller.device_id, data, expected_revision=revision
+            )
+        except StaleRevision:
+            result = None
+        if result is None or not ok(result):
+            skipped.append(ref)
+            continue
+        new_revision = result.revision if result.revision is not None else revision + 1
+        updated.append(LinkUpdate(note=ref, revision=new_revision, previous_revision=revision))
+    response.headers["ETag"] = etag(note.revision)
+    return RenameResult(note=note, updated=updated, skipped=skipped)
 
 
 @router.delete("/{note_id}", status_code=204)

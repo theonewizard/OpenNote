@@ -427,6 +427,30 @@
         "title": "FolderMoveResult",
         "type": "object"
       },
+      "LinkUpdate": {
+        "properties": {
+          "note": {
+            "$ref": "#/components/schemas/NoteRef"
+          },
+          "previous_revision": {
+            "description": "Its revision before; restore it to undo",
+            "title": "Previous Revision",
+            "type": "integer"
+          },
+          "revision": {
+            "description": "The linking note's revision after the rewrite",
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "note",
+          "revision",
+          "previous_revision"
+        ],
+        "title": "LinkUpdate",
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -799,6 +823,29 @@
         "title": "NoteRef",
         "type": "object"
       },
+      "NoteRename": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "description": "The new vault-relative path",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "update_links": {
+            "default": true,
+            "description": "Rewrite links in other notes that point at this note",
+            "title": "Update Links",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "NoteRename",
+        "type": "object"
+      },
       "OutgoingLink": {
         "properties": {
           "alias": {
@@ -1072,6 +1119,36 @@
           "status"
         ],
         "title": "ProblemDetails",
+        "type": "object"
+      },
+      "RenameResult": {
+        "properties": {
+          "note": {
+            "$ref": "#/components/schemas/Note"
+          },
+          "skipped": {
+            "description": "Linking notes left alone: changed meanwhile, read-only, or too large",
+            "items": {
+              "$ref": "#/components/schemas/NoteRef"
+            },
+            "title": "Skipped",
+            "type": "array"
+          },
+          "updated": {
+            "description": "Notes whose links were rewritten",
+            "items": {
+              "$ref": "#/components/schemas/LinkUpdate"
+            },
+            "title": "Updated",
+            "type": "array"
+          }
+        },
+        "required": [
+          "note",
+          "updated",
+          "skipped"
+        ],
+        "title": "RenameResult",
         "type": "object"
       },
       "SearchHit": {
@@ -3449,6 +3526,97 @@
           }
         ],
         "summary": "Get Note Links",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/api/v1/notes/{note_id}/rename": {
+      "post": {
+        "description": "Move or rename the note and, with `update_links`, rewrite the links to it in other\nnotes (R-P6-009). Each linking note is its own revision, listed with the one before it\nso a client can undo; one that changed meanwhile is skipped, never merged.",
+        "operationId": "rename_note",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "note_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Note Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+            "in": "header",
+            "name": "If-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
+              "title": "If-Match"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteRename"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenameResult"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "The revision, `\"<revision>\"`",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Problem details (RFC 9457)"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Rename Note",
         "tags": [
           "notes"
         ]
