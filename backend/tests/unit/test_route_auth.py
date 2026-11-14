@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.api import main
 from app.api.main import KEYLESS_ROUTES, assert_routes_authenticated, create_app
-from app.auth.dependencies import Principal, get_api_key, get_current_principal
+from app.auth.dependencies import Principal, get_api_key, get_caller, get_current_principal
 from tests.conftest import as_test_user, placeholder_settings
 
 
@@ -42,6 +42,10 @@ def test_keyless_routes_are_exactly_the_documented_set():
         "/readyz",
         "/api/v1/meta",
         "/api/v1/meta/path-rules",
+        "/api/v1/auth/authorize",
+        "/api/v1/auth/login",
+        "/api/v1/auth/token",
+        "/api/v1/auth/oidc/{provider}/callback",
     }
 
 
@@ -174,12 +178,15 @@ def test_route_the_guard_cannot_inspect_fails_startup(build_app):
     ("dependency", "headers"),
     [
         (get_current_principal, {}),
-        (get_current_principal, {"Authorization": "Bearer any-token"}),
+        (get_current_principal, {"Authorization": "Basic Zm9vOmJhcg=="}),  # not Bearer
         (get_api_key, {}),
-        (get_api_key, {"X-API-Key": "any-key"}),
+        (get_api_key, {"X-API-Key": ""}),
+        (get_caller, {}),
     ],
 )
-def test_phase_0_rejects_every_credential_with_a_401_problem(build_app, dependency, headers):
+def test_missing_credentials_are_a_401_problem(build_app, dependency, headers):
+    # Rejected before any database work; wrong credentials are checked against the
+    # credential store in tests/integration/api/test_auth_core.py.
     router = APIRouter()
 
     @router.get("/api/v1/private", dependencies=[Depends(dependency)])

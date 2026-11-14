@@ -9,6 +9,10 @@ PLACEHOLDER_ENV = {
     "OPENNOTE_HISTORY_ROOT": "/nonexistent/opennote/history",
     "OPENNOTE_LOG_LEVEL": "INFO",
     "OPENNOTE_ENVIRONMENT": "test",
+    # Rate limits off: they would count in Valkey (tests/integration/api/test_ratelimit.py).
+    "OPENNOTE_RATE_LIMIT_PER_PRINCIPAL": "0",
+    "OPENNOTE_RATE_LIMIT_PER_IP": "0",
+    "OPENNOTE_RATE_LIMIT_AUTH_PER_IP": "0",
 }
 
 # app.api.main builds its module-level app on import, reading settings from the

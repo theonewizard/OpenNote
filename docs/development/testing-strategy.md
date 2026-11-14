@@ -25,7 +25,7 @@ Status: Proposed (2026-10-17). Implements design §15.13 and `CLAUDE.md` §9. St
 | Apple UI | `apple/Tests` | XCUITest on simulators (iPhone, iPad, Mac) | PRs touching `apple/` (Phase 4+) |
 | Cross-client sync | `tests/e2e/sync` | Backend + headless Swift sync engine (`swift run opennote-sync-cli`) + Playwright web client editing one vault | Nightly (Phase 5+) |
 | Performance | `tests/performance` | Generated 100k-note vault; pytest-benchmark for backend, k6 for API; Swift `measure` for local save/open | Nightly, compared against baseline (planned, P8-01) |
-| Security | CI jobs | ruff security rules + bandit, pip-audit, npm audit, Trivy (images and filesystem), gitleaks (Semgrep: a later phase); path-traversal (Phase 1) and upload (Phase 2) fuzz tests in the integration suite | Every push and pull request; the security and containers workflows also every Monday from `main` (the image scans run in the containers workflow, which rebuilds the images each time) |
+| Security | CI jobs | ruff security rules + bandit, pip-audit, npm audit, Trivy (images and filesystem), gitleaks (Semgrep: a later phase); an OWASP ZAP API scan of the running Compose stack, signed in, over every route in `openapi.json` (`scripts/dast.sh`, fails on a High alert); path-traversal (Phase 1) and upload (Phase 2) fuzz tests in the integration suite | Every push and pull request; the security and containers workflows also every Monday from `main` (the image scans run in the containers workflow, which rebuilds the images each time) |
 | Container | CI job | Build all images, start Compose, wait for health, run smoke tests, run as random UID (`--user 1000870000:0`) with read-only root FS | Every push and pull request, and every Monday from `main` |
 
 ## 3. Compatibility corpus

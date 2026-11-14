@@ -6,6 +6,263 @@
  */
 
 export interface paths {
+    "/api/v1/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Attachments */
+        get: operations["list_attachments"];
+        put?: never;
+        /**
+         * Upload Attachment
+         * @description Upload a new attachment (multipart). The stored `media_type` is sniffed from the
+         *     bytes; the declared type is ignored. An existing path is a 409.
+         */
+        post: operations["upload_attachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Attachment */
+        get: operations["get_attachment"];
+        put?: never;
+        post?: never;
+        /** Delete Attachment */
+        delete: operations["delete_attachment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attachments/{attachment_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Attachment Content
+         * @description The bytes, with `Range` support (one range) and `Content-Type` as sniffed; served
+         *     with `X-Content-Type-Options: nosniff` and as a download unless it is an image, PDF,
+         *     audio or video file.
+         */
+        get: operations["get_attachment_content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Authorize
+         * @description OAuth 2.0 authorization endpoint (code + PKCE, S256 only). With a valid session the
+         *     browser goes straight back to `redirect_uri` with `code` and `state`; otherwise to the
+         *     web login page with an `auth_request` id, or to the OIDC provider.
+         */
+        get: operations["authorize"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login
+         * @description Local password login. Sets the httpOnly session cookie and the CSRF cookie.
+         */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description End the web session, or revoke the calling device's refresh tokens.
+         */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oidc/{provider}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Oidc Callback
+         * @description Redirect target of an upstream OIDC provider: signs the user in (creating the
+         *     account on first login) and continues the pending authorization request.
+         */
+        get: operations["oidc_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Token
+         * @description OAuth 2.0 token endpoint (RFC 6749 §4.1.3, §6): exchange a code with its PKCE
+         *     verifier, or rotate a refresh token. Reusing a spent refresh token revokes the device.
+         */
+        post: operations["token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Devices
+         * @description The caller's devices; a device is created by its first token exchange.
+         */
+        get: operations["list_devices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Device
+         * @description Revoke a device: its refresh tokens stop working at once, its access token within
+         *     15 minutes.
+         */
+        delete: operations["revoke_device"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Folders
+         * @description Every folder of the vault, empty ones included, sorted by path.
+         */
+        get: operations["list_folders"];
+        put?: never;
+        /** Create Folder */
+        post: operations["create_folder"];
+        /**
+         * Delete Folder
+         * @description Delete an empty folder; with `recursive=true`, its files too. A non-empty folder
+         *     without `recursive` is a 409.
+         */
+        delete: operations["delete_folder"];
+        options?: never;
+        head?: never;
+        /**
+         * Move Folder
+         * @description Move or rename a folder: one move revision per file inside it.
+         */
+        patch: operations["move_folder"];
+        trace?: never;
+    };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Me
+         * @description The signed-in user.
+         */
+        get: operations["get_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/meta": {
         parameters: {
             query?: never;
@@ -41,6 +298,298 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Notes */
+        get: operations["list_notes"];
+        put?: never;
+        /**
+         * Create Note
+         * @description Create a note. A note OpenNote creates gets an `id` in its frontmatter.
+         */
+        post: operations["create_note"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Note */
+        get: operations["get_note"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Note
+         * @description Delete: the file moves to the recovery area and a tombstone revision is kept.
+         */
+        delete: operations["delete_note"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Note
+         * @description Move or rename (`path`), or edit `tags`, `aliases` and the `opennote:` namespace
+         *     with the round-trip frontmatter editor, which keeps every other byte.
+         */
+        patch: operations["update_note"];
+        trace?: never;
+    };
+    "/api/v1/notes/{note_id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Note Content
+         * @description The note's exact bytes.
+         */
+        get: operations["get_note_content"];
+        /**
+         * Put Note Content
+         * @description Replace the note's bytes (`text/markdown`, at most 16 MiB). A stale `If-Match` is
+         *     a 412 carrying the current note; clients wanting a merge use sync push (Phase 5).
+         */
+        put: operations["put_note_content"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{note_id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Note Links
+         * @description Outgoing links, backlinks and unresolved targets.
+         */
+        get: operations["get_note_links"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search
+         * @description Full-text search with filters, best match first.
+         */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tags
+         * @description Tags with their note counts, sorted by name.
+         */
+        get: operations["list_tags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tokens
+         * @description The caller's personal access tokens (never their secrets).
+         */
+        get: operations["list_tokens"];
+        put?: never;
+        /**
+         * Create Token
+         * @description Create a personal access token for automation, limited to the given vaults, in
+         *     which the caller must hold at least the matching role.
+         */
+        post: operations["create_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tokens/{token_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke Token
+         * @description Revoke a personal access token.
+         */
+        delete: operations["revoke_token"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description Every local and OIDC user (admin only).
+         */
+        get: operations["list_users"];
+        put?: never;
+        /**
+         * Create User
+         * @description Create a local account (admin only).
+         */
+        post: operations["create_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Vaults
+         * @description The vaults the caller holds a role in.
+         */
+        get: operations["list_vaults"];
+        put?: never;
+        /**
+         * Create Vault
+         * @description Create an empty vault, or register an existing directory under the vault root
+         *     (admin only). The creator becomes its owner.
+         */
+        post: operations["create_vault"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vaults/{vault_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Vault */
+        get: operations["get_vault"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Vault
+         * @description Soft delete (owner): the vault disappears from the API; its files stay on disk.
+         */
+        delete: operations["delete_vault"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Vault
+         * @description Rename or change settings (owner).
+         */
+        patch: operations["update_vault"];
+        trace?: never;
+    };
+    "/api/v1/vaults/{vault_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Vault Members */
+        get: operations["list_vault_members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vaults/{vault_id}/members/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Vault Member
+         * @description Grant or change a user's role (owner). The last owner cannot be demoted.
+         */
+        put: operations["put_vault_member"];
+        post?: never;
+        /**
+         * Remove Vault Member
+         * @description Remove a user's access (owner). The last owner cannot be removed.
+         */
+        delete: operations["remove_vault_member"];
         options?: never;
         head?: never;
         patch?: never;
@@ -90,6 +639,431 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Attachment */
+        Attachment: {
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Media Type
+             * @description Sniffed from the bytes by the server
+             */
+            media_type: string;
+            /**
+             * Modified At
+             * Format: date-time
+             */
+            modified_at: string;
+            /** Path */
+            path: string;
+            /** Revision */
+            revision: number;
+            /** Size */
+            size: number;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** AttachmentPage */
+        AttachmentPage: {
+            /** Items */
+            items: components["schemas"]["Attachment"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /** Body_token */
+        Body_token: {
+            /** Client Id */
+            client_id: string;
+            /** Code */
+            code?: string | null;
+            /** Code Verifier */
+            code_verifier?: string | null;
+            /**
+             * Device Name
+             * @description Names the device on first exchange
+             */
+            device_name?: string | null;
+            /** Device Platform */
+            device_platform?: string | null;
+            /**
+             * Grant Type
+             * @enum {string}
+             */
+            grant_type: "authorization_code" | "refresh_token";
+            /** Redirect Uri */
+            redirect_uri?: string | null;
+            /** Refresh Token */
+            refresh_token?: string | null;
+        };
+        /** Body_upload_attachment */
+        Body_upload_attachment: {
+            /** File */
+            file: string;
+            /** Path */
+            path: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** Device */
+        Device: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Current
+             * @description True for the device the request is authenticated as
+             */
+            current: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Name */
+            name: string;
+            /** Platform */
+            platform: string | null;
+        };
+        /** DevicePage */
+        DevicePage: {
+            /** Items */
+            items: components["schemas"]["Device"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /** Folder */
+        Folder: {
+            /**
+             * Attachment Count
+             * @description Attachments directly in this folder
+             */
+            attachment_count: number;
+            /** Name */
+            name: string;
+            /**
+             * Note Count
+             * @description Notes directly in this folder
+             */
+            note_count: number;
+            /**
+             * Parent
+             * @description The parent folder's path; null at the vault root
+             */
+            parent: string | null;
+            /**
+             * Path
+             * @description Vault-relative, no trailing slash
+             */
+            path: string;
+        };
+        /** FolderCreate */
+        FolderCreate: {
+            /** Path */
+            path: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /**
+         * FolderList
+         * @description Every folder of the vault, sorted by path; the client builds the tree from `parent`.
+         */
+        FolderList: {
+            /** Items */
+            items: components["schemas"]["Folder"][];
+        };
+        /** FolderMove */
+        FolderMove: {
+            /** New Path */
+            new_path: string;
+            /** Path */
+            path: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** FolderMoveResult */
+        FolderMoveResult: {
+            folder: components["schemas"]["Folder"];
+            /**
+             * Moved Files
+             * @description Files moved, each as one revision
+             */
+            moved_files: number;
+        };
+        /** LoginRequest */
+        LoginRequest: {
+            /**
+             * Auth Request
+             * @description The `auth_request` id `GET /api/v1/auth/authorize` put in the login URL; when given, the response's `redirect_to` carries the authorization code
+             */
+            auth_request?: string | null;
+            /** Password */
+            password: string;
+            /** Username */
+            username: string;
+        };
+        /** LoginResult */
+        LoginResult: {
+            /**
+             * Csrf Token
+             * @description Send as `X-CSRF-Token` on mutating requests made with the session cookie; also readable from the `opennote_csrf` cookie
+             */
+            csrf_token: string;
+            /**
+             * Redirect To
+             * @description Where to send the browser next: the OAuth client's redirect URI with `code` and `state` when `auth_request` was given, else null
+             */
+            redirect_to: string | null;
+            user: components["schemas"]["User"];
+        };
+        /** Note */
+        Note: {
+            /** Aliases */
+            aliases: string[];
+            /**
+             * Content Hash
+             * @description `sha256:` and the lowercase hex digest of the bytes
+             */
+            content_hash: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Frontmatter Error */
+            frontmatter_error: boolean;
+            /** Has Id In File */
+            has_id_in_file: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Modified At
+             * Format: date-time
+             */
+            modified_at: string;
+            /** Modified By Device */
+            modified_by_device: string;
+            /** Path */
+            path: string;
+            /**
+             * Path Warning
+             * @description A path rule the existing file name breaks, or null
+             */
+            path_warning: string | null;
+            /**
+             * Properties
+             * @description The frontmatter as JSON; null when there is none or it does not parse
+             */
+            properties: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Read Only
+             * @description True for a note too large to edit (opaque)
+             */
+            read_only: boolean;
+            /** Revision */
+            revision: number;
+            /** Size */
+            size: number;
+            /** Tags */
+            tags: string[];
+            /** Title */
+            title: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** NoteCreate */
+        NoteCreate: {
+            /**
+             * Content
+             * @description The note's Markdown; omitted, the note starts with an `id` frontmatter only
+             */
+            content?: string | null;
+            /**
+             * Path
+             * @description Vault-relative, ends in `.md`
+             */
+            path: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
+        /** NoteLinks */
+        NoteLinks: {
+            /**
+             * Incoming
+             * @description Notes that link here (backlinks)
+             */
+            incoming: components["schemas"]["NoteRef"][];
+            /** Outgoing */
+            outgoing: components["schemas"]["OutgoingLink"][];
+            /**
+             * Unresolved
+             * @description Targets of outgoing links that resolve nowhere
+             */
+            unresolved: string[];
+        };
+        /** NotePage */
+        NotePage: {
+            /** Items */
+            items: components["schemas"]["Note"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /**
+         * NotePatch
+         * @description Either a move (`path`) or a metadata edit (the other fields), not both.
+         */
+        NotePatch: {
+            /** Aliases */
+            aliases?: string[] | null;
+            /**
+             * Opennote
+             * @description Replaces the `opennote:` frontmatter namespace
+             */
+            opennote?: {
+                [key: string]: unknown;
+            } | null;
+            /** Path */
+            path?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+        };
+        /** NoteRef */
+        NoteRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Path */
+            path: string;
+            /** Title */
+            title: string;
+        };
+        /** OutgoingLink */
+        OutgoingLink: {
+            /** Alias */
+            alias: string | null;
+            /** Block */
+            block: string | null;
+            /** Embed */
+            embed: boolean;
+            /** Heading */
+            heading: string | null;
+            /** @description The note it points at; null if unresolved */
+            resolved: components["schemas"]["NoteRef"] | null;
+            /**
+             * Target
+             * @description The link text as written, without alias or heading
+             */
+            target: string;
+        };
+        /** PersonalAccessToken */
+        PersonalAccessToken: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Used At */
+            last_used_at: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "read" | "write";
+            /**
+             * Vault Ids
+             * @description The only vaults the token can reach
+             */
+            vault_ids: string[];
+        };
+        /** PersonalAccessTokenCreate */
+        PersonalAccessTokenCreate: {
+            /** Expires At */
+            expires_at?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Scope
+             * @default read
+             * @enum {string}
+             */
+            scope: "read" | "write";
+            /** Vault Ids */
+            vault_ids: string[];
+        };
+        /** PersonalAccessTokenCreated */
+        PersonalAccessTokenCreated: {
+            /**
+             * Secret
+             * @description Send as `X-API-Key`; shown once and never again
+             */
+            secret: string;
+            token: components["schemas"]["PersonalAccessToken"];
+        };
+        /** PersonalAccessTokenPage */
+        PersonalAccessTokenPage: {
+            /** Items */
+            items: components["schemas"]["PersonalAccessToken"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
         /** ProbeStatus */
         ProbeStatus: {
             /**
@@ -108,6 +1082,27 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** SearchHit */
+        SearchHit: {
+            note: components["schemas"]["Note"];
+            /** Score */
+            score: number;
+            /**
+             * Snippet
+             * @description Plain-text excerpt around the match, or null
+             */
+            snippet: string | null;
+        };
+        /** SearchPage */
+        SearchPage: {
+            /** Items */
+            items: components["schemas"]["SearchHit"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
         /** ServerMeta */
         ServerMeta: {
             /** Api Versions */
@@ -119,6 +1114,209 @@ export interface components {
             /** Sync Protocol Versions */
             sync_protocol_versions: number[];
         };
+        /** Tag */
+        Tag: {
+            /**
+             * Count
+             * @description Notes that carry the tag
+             */
+            count: number;
+            /**
+             * Name
+             * @description As written in the most common spelling, without `#`
+             */
+            name: string;
+        };
+        /** TagPage */
+        TagPage: {
+            /** Items */
+            items: components["schemas"]["Tag"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /**
+         * TokenResponse
+         * @description RFC 6749 §5.1 access token response.
+         */
+        TokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Device Id
+             * Format: uuid
+             */
+            device_id: string;
+            /**
+             * Expires In
+             * @description Seconds until the access token expires
+             */
+            expires_in: number;
+            /**
+             * Refresh Token
+             * @description Opaque, single use: each refresh returns a new one
+             */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @constant
+             */
+            token_type: "Bearer";
+        };
+        /** User */
+        User: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Username */
+            username: string;
+        };
+        /** UserCreate */
+        UserCreate: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Email */
+            email?: string | null;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin: boolean;
+            /** Password */
+            password: string;
+            /** Username */
+            username: string;
+        };
+        /** UserPage */
+        UserPage: {
+            /** Items */
+            items: components["schemas"]["User"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /** Vault */
+        Vault: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Role
+             * @description The caller's role in this vault
+             * @enum {string}
+             */
+            role: "viewer" | "editor" | "owner";
+            settings: components["schemas"]["VaultSettings"];
+        };
+        /** VaultCreate */
+        VaultCreate: {
+            /**
+             * Directory
+             * @description An existing directory under the server's vault root to register, relative to that root; omitted, an empty vault directory is created
+             */
+            directory?: string | null;
+            /** Name */
+            name: string;
+        };
+        /** VaultMember */
+        VaultMember: {
+            /** Display Name */
+            display_name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "editor" | "owner";
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Username */
+            username: string;
+        };
+        /** VaultMemberPage */
+        VaultMemberPage: {
+            /** Items */
+            items: components["schemas"]["VaultMember"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /** VaultMemberPut */
+        VaultMemberPut: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "editor" | "owner";
+        };
+        /** VaultPage */
+        VaultPage: {
+            /** Items */
+            items: components["schemas"]["Vault"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` for the next page; null on the last page
+             */
+            next_cursor: string | null;
+        };
+        /** VaultPatch */
+        VaultPatch: {
+            /** Name */
+            name?: string | null;
+            settings?: components["schemas"]["VaultSettingsPatch"] | null;
+        };
+        /** VaultSettings */
+        VaultSettings: {
+            /**
+             * Ai Enabled
+             * @default false
+             */
+            ai_enabled: boolean;
+            /**
+             * Sync Obsidian Config
+             * @default false
+             */
+            sync_obsidian_config: boolean;
+        };
+        /** VaultSettingsPatch */
+        VaultSettingsPatch: {
+            /** Ai Enabled */
+            ai_enabled?: boolean | null;
+            /** Sync Obsidian Config */
+            sync_obsidian_config?: boolean | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -128,6 +1326,582 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_attachments: {
+        parameters: {
+            query: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                folder?: string | null;
+                /** @description Page size */
+                limit?: number;
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    upload_attachment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating a request with the same key within 24 h returns the first response */
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_attachment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_attachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_attachment: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_attachment_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description The requested byte range */
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            /** @description Range not satisfiable */
+            416: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    authorize: {
+        parameters: {
+            query: {
+                client_id: string;
+                code_challenge: string;
+                code_challenge_method: "S256";
+                /** @description Log in through this OIDC provider */
+                provider?: string | null;
+                redirect_uri: string;
+                response_type: "code";
+                state: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the login page, the IdP or the client */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    oidc_callback: {
+        parameters: {
+            query: {
+                code: string;
+                state: string;
+            };
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the login page, the IdP or the client */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_token"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_devices: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevicePage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    revoke_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_folders: {
+        parameters: {
+            query: {
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderList"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_folder: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating a request with the same key within 24 h returns the first response */
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Folder"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_folder: {
+        parameters: {
+            query: {
+                path: string;
+                /** @description Also delete the files inside, as tombstone revisions */
+                recursive?: boolean;
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    move_folder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderMoveResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     get_meta: {
         parameters: {
             query?: never;
@@ -176,6 +1950,810 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_notes: {
+        parameters: {
+            query: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Only notes directly in this folder */
+                folder?: string | null;
+                /** @description Page size */
+                limit?: number;
+                sort?: "path" | "-path" | "title" | "-title" | "created_at" | "-created_at" | "modified_at" | "-modified_at";
+                /** @description Only notes with this tag or a child tag */
+                tag?: string | null;
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotePage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating a request with the same key within 24 h returns the first response */
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_note: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_note_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/markdown": string;
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    put_note_content: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/markdown": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_note_links: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteLinks"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+                /** @description Query, grammar in API contract §5 */
+                q: string;
+                /** @description One vault; omitted, every vault of the caller */
+                vault_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_tags: {
+        parameters: {
+            query: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+                /** @description The vault to list */
+                vault_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_tokens: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalAccessTokenPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_token: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating a request with the same key within 24 h returns the first response */
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PersonalAccessTokenCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonalAccessTokenCreated"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    revoke_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_users: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_user: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating a request with the same key within 24 h returns the first response */
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_vaults: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    create_vault: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Repeating a request with the same key within 24 h returns the first response */
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VaultCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Vault"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    get_vault: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Vault"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    delete_vault: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    update_vault: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VaultPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Vault"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    list_vault_members: {
+        parameters: {
+            query?: {
+                /** @description `next_cursor` of the previous page */
+                cursor?: string | null;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultMemberPage"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    put_vault_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VaultMemberPut"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VaultMember"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    remove_vault_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+                vault_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Problem details (RFC 9457) */
             default: {
