@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "OpenNote Web Clipper",
+  "version": "0.1.0",
+  "description": "Save the current page or selection as a Markdown note in your OpenNote vault.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "action": { "default_title": "Clip to OpenNote", "default_popup": "popup.html" },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
+  "browser_specific_settings": { "gecko": { "id": "clipper@opennote.invalid", "strict_min_version": "128.0" } }
+}

@@ -18,7 +18,19 @@ from redis.asyncio import Redis
 from starlette.exceptions import HTTPException
 
 from app import __version__
-from app.api import attachments, auth, folders, health, meta, notes, search, users, vaults
+from app.api import (
+    attachments,
+    auth,
+    clips,
+    folders,
+    health,
+    imports,
+    meta,
+    notes,
+    search,
+    users,
+    vaults,
+)
 from app.api.deps import Committers
 from app.api.ratelimit import rate_limit_middleware
 from app.auth.dependencies import get_api_key, get_caller, get_current_principal
@@ -43,6 +55,8 @@ ROUTERS: list[APIRouter] = [
     folders.router,
     attachments.router,
     search.router,
+    imports.router,
+    clips.router,
 ]
 
 # The only routes callable without credentials; adding one needs review (API contract §2).
