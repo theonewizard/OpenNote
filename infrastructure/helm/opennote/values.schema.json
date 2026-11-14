@@ -33,6 +33,7 @@
     "logLevel": {"type": "string", "enum": ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"]},
     "clusterDomain": {"$ref": "#/definitions/name"},
     "fsGroup": {"type": "integer", "minimum": 1},
+    "trustedProxies": {"type": "string", "pattern": "^[0-9a-fA-F.:/, ]*$"},
     "openshift": {
       "type": "object",
       "additionalProperties": false,

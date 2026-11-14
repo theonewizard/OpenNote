@@ -86,7 +86,7 @@ These are repository settings only the owner can change ([workflow.md](developme
 ## Known limits
 
 - Phase 2 (details in the plan's Errata and the [record](../.conversations/2026-11-07-phase-2-backend-api.md)):
-  - Behind the web container every client counts as one IP for rate limits until the proxy's forwarded headers are trusted (`FORWARDED_ALLOW_IPS`); the choice is put to Flemming.
+  - The api trusts `X-Forwarded-For` from the web proxy only (R-P2-010: Compose pins web's address, Helm takes `trustedProxies`, the kustomize base leaves it unset). A TLS proxy in front of web is still seen as the client, because web's nginx does not trust it in turn; behind one, every client shares the proxy's rate limit.
   - A folder move or recursive delete commits one revision per file with no rollback: a failure part-way leaves the files already moved where they are and returns the error.
   - An attachment edited outside OpenNote to exactly the same size, before the watcher sees it, is served with the new bytes (downloads compare size, not hash).
   - Upstream OIDC relies on state and nonce, not PKCE; the callback URL is built from the request's host and scheme, so a reverse proxy must pass the forwarded headers.
