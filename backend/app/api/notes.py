@@ -50,6 +50,7 @@ from app.notes.frontmatter import (
 )
 from app.notes.models import File, NoteLink, NoteTag
 from app.notes.models import Note as NoteRow
+from app.notes.templates import render
 from app.sync.commit import Create, Delete, Move, Operation, OpResult, Update
 from app.sync.history import HistoryStore
 from app.sync.models import ClientOp, Revision
@@ -253,9 +254,10 @@ async def _read_body(request: Request) -> bytes:
     return b"".join(chunks)
 
 
-def _initial_content(content: str | None, file_id: uuid.UUID) -> bytes:
+def _initial_content(content: str | None, file_id: uuid.UUID, *, own_id: bool = False) -> bytes:
     """A new note's bytes: the content with an `id` added to its frontmatter (D5), or
-    only that frontmatter. An `id` already there and invalid YAML are left alone."""
+    only that frontmatter. An `id` already there and invalid YAML are left alone, except
+    that `own_id` (a template's copy) replaces an `id` there with the new note's."""
     if content is None:
         return f"---\nid: {file_id}\n---\n".encode()
     try:
@@ -268,9 +270,28 @@ def _initial_content(content: str | None, file_id: uuid.UUID) -> bytes:
         data = load_frontmatter(doc)
     except FrontmatterInvalid:
         return doc.raw
-    if data is not None and "id" in data:
+    if data is not None and "id" in data and not own_id:
         return doc.raw
     return splice_keys(doc, {"id": str(file_id)})
+
+
+async def _from_template(
+    request: Request, db: DB, vault: Vault, template_id: uuid.UUID, path: str, now: dt.datetime
+) -> str:
+    """The template note's text with its variables filled in (R-P6-006)."""
+    row = await db.get(File, template_id)
+    if row is None or row.vault_id != vault.id or row.kind != "note" or row.deleted:
+        raise ProblemError(
+            422, "Invalid template", "invalid-template", "The template is not a note here."
+        )
+    if row.size > MAX_NOTE_BYTES:
+        raise _too_large()
+    text = parse_note(await _bytes(request, vault, row.content_hash)).text
+    if text is None:
+        raise ProblemError(
+            422, "Invalid template", "invalid-template", "The template is not valid text."
+        )
+    return render(text, title=_stem(path), now=now)
 
 
 # Routes -----------------------------------------------------------------------------------
@@ -343,12 +364,20 @@ async def create_note(
     db: DB,
     idempotency_key: IdempotencyKey = None,
 ) -> Response:
-    """Create a note. A note OpenNote creates gets an `id` in its frontmatter."""
+    """Create a note, empty, from `content`, or from a template note. A note OpenNote
+    creates gets an `id` in its frontmatter."""
     vault, _ = await require_vault(db, caller, body.vault_id, "editor")
     fingerprint = request_hash("POST", "/api/v1/notes", body.model_dump_json())
     if replayed := await replay(db, caller, idempotency_key, fingerprint):
         return replayed
     path = _note_path(body.path)
+    if body.template_id is not None and body.content is not None:
+        raise ProblemError(
+            422,
+            "Content or template",
+            "content-and-template",
+            "Send either `content` or `template_id`, not both.",
+        )
     op_id = uuid.uuid7()
     if idempotency_key is not None:  # a retry after a lost response commits nothing twice
         op_id = uuid.uuid5(
@@ -359,7 +388,11 @@ async def create_note(
     if not retry and await live_file_at(db, vault.id, path):
         raise _path_taken()
     file_id = uuid.uuid7()
-    data = _initial_content(body.content, file_id)
+    content = body.content
+    if body.template_id is not None:
+        now = body.local_time or dt.datetime.now(dt.UTC)
+        content = await _from_template(request, db, vault, body.template_id, path, now)
+    data = _initial_content(content, file_id, own_id=body.template_id is not None)
     if len(data) > MAX_NOTE_BYTES:
         raise _too_large()
     op = Create(op_id, file_id, path, "note", _sha(data))

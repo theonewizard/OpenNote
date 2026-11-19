@@ -224,6 +224,16 @@ async def test_deleted_notes_are_not_found(api, fx):
     assert await found(api, fx, "pancakes") == []
 
 
+@pytest.mark.parametrize("q", ["arch\x00", '"system\x00 architecture"', "title:\x00x"])
+async def test_nul_in_query_is_a_422_not_a_500(api, fx, q):
+    """PostgreSQL text cannot hold NUL; Schemathesis found the 500."""
+    r = await api.client.get(
+        "/api/v1/search", params={"q": q, "vault_id": str(fx.work)}, headers=fx.headers
+    )
+    assert r.status_code == 422
+    assert r.headers["content-type"] == "application/problem+json"
+
+
 async def test_cursor_pages_through_every_hit_once(api, fx):
     everything = await found(api, fx, "-nothingmatchesthis", limit=500)
     assert len(everything) == 4
