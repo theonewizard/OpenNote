@@ -23,7 +23,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # hadolint ignore=DL3041
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
         gcc gcc-c++ make cmake pkgconf-pkg-config tar gzip findutils \
-        zlib-devel libpng-devel libjpeg-turbo-devel libtiff-devel libwebp-devel giflib-devel \
+        zlib-devel libpng-devel libjpeg-turbo-devel libtiff-devel libwebp-devel \
     && microdnf clean all
 
 ARG LEPTONICA=1.87.0
@@ -50,7 +50,7 @@ RUN mkdir -p /src/leptonica /src/tesseract \
     && tar -xzf /tmp/tesseract.tar.gz -C /src/tesseract --strip-components=1 \
     && cmake -S /src/leptonica -B /build/leptonica -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/opt/tesseract -DCMAKE_INSTALL_RPATH=/opt/tesseract/lib64 \
-        -DBUILD_SHARED_LIBS=ON -DBUILD_PROG=OFF -DENABLE_OPENJPEG=OFF \
+        -DBUILD_SHARED_LIBS=ON -DBUILD_PROG=OFF -DENABLE_OPENJPEG=OFF -DENABLE_GIF=OFF \
     && cmake --build /build/leptonica -j"$(nproc)" \
     && cmake --install /build/leptonica \
     && cmake -S /src/tesseract -B /build/tesseract -DCMAKE_BUILD_TYPE=Release \
@@ -77,7 +77,7 @@ LABEL org.opencontainers.image.title="opennote-api" \
 # API runs from the same image.
 # hadolint ignore=DL3041
 RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
-        python3.14 libstdc++ zlib libpng libjpeg-turbo libtiff libwebp giflib \
+        python3.14 libstdc++ zlib libpng libjpeg-turbo libtiff libwebp \
     && microdnf clean all
 
 COPY --from=tesseract /opt/tesseract /opt/tesseract
