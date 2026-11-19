@@ -94,6 +94,7 @@ EXCLUDED_CHECKS = [
     # caller cannot see (404 by design), a path that breaks the path rules, a stale If-Match.
     schemathesis.checks.positive_data_acceptance,
 ]
+FRAMING_HEADERS = {"content-length", "transfer-encoding"}
 
 
 @schema.parametrize()
@@ -104,6 +105,10 @@ EXCLUDED_CHECKS = [
     derandomize=True,
 )
 def test_api_conforms_to_its_openapi_document(case, served):
+    # Framing headers belong to the HTTP client: a generated `Content-Length: =qbE` is
+    # refused by uvicorn's parser (400 text/plain) before the request reaches the API.
+    for name in [n for n in case.headers or {} if n.lower() in FRAMING_HEADERS]:
+        del case.headers[name]
     case.call_and_validate(
         base_url=served["base_url"],
         headers=served["headers"],
