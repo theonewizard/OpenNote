@@ -38,9 +38,10 @@ def update(file_id, base, data):
 
 def test_cursor_roundtrip_is_opaque():
     vault = uuid.uuid7()
-    cursor = encode_cursor(vault, 42)
-    assert str(vault) not in cursor and "42" not in cursor
-    assert decode_cursor(cursor, vault) == 42
+    seq = 987_654_321_012  # long enough not to turn up in the base64 by chance, as 42 did
+    cursor = encode_cursor(vault, seq)
+    assert str(vault) not in cursor and str(seq) not in cursor
+    assert decode_cursor(cursor, vault) == seq
 
 
 def test_cursor_from_other_vault_rejected():
