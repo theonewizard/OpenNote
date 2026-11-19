@@ -190,6 +190,13 @@ Never force-push `main`.
 
 Never rewrite published/shared history without explicit approval.
 
+### CI triggers
+
+CI checks run only on pull requests and on pushes to `main` (plus release tags `vX.Y.Z` for the `release` workflow), as well as on schedule and manual dispatch. They never run on plain branch pushes.
+
+- Open a pull request (a draft is enough) to get checks on a branch.
+- New or changed workflows must keep `push` limited to `branches: [main]` (or tags) and use `pull_request` for branches.
+
 ---
 
 ## 7. Specifications and Plans
