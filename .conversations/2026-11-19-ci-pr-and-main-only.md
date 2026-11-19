@@ -10,3 +10,4 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 ## Rulings
 
 - Since 2026-11-12 the repository saw 195 push runs and 194 pull_request runs: each push to a branch with a pull request ran all workflows twice, and 18 `apple` runs sat queued for macOS runners, `main`'s included. The five workflows now run `push` on `main` only; `release` keeps `push` for its tags and runs the dry run on pull requests and manual runs. A branch without a pull request gets no CI; a draft pull request is enough. setup.md section 9 and release.md "Dry run" say so (replaces the earlier "worth the extra minutes" choice, R101).
+- Flemming, 2026-11-19 08:06 UTC: "make sure to state that as a general rule in claude.md that CI checks only run on main and PR." CLAUDE.md section 6 gains a "CI triggers" subsection saying so.
