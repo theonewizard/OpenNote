@@ -8,6 +8,10 @@ metadata:
   labels:
     {{- include "opennote.labels" . | nindent 4 }}
     app.kubernetes.io/component: web
+  {{- with .Values.openshift.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   {{- with .Values.openshift.route.host }}
   host: {{ . | quote }}
