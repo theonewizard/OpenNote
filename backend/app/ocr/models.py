@@ -1,4 +1,4 @@
-"""Text read from image and PDF attachments (migration 0011). Keyed by vault and content
+"""Text read from image and PDF attachments (migration 0013). Keyed by vault and content
 hash, so a renamed or copied attachment is not read again; rows whose hash no live
 attachment in the vault has any more are removed by the next OCR run."""
 

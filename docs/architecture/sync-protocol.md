@@ -1,6 +1,6 @@
 # Synchronization Protocol
 
-Status: Proposed (2026-10-17), protocol version `1`. Implements design §7 and §15.9. Decision: [ADR-0005](adr/0005-revision-based-sync.md). Prototype in Phase 1 (roadmap P1-12), full implementation in Phase 5.
+Status: Proposed (2026-10-17), protocol version `1`. Implements design §7 and §15.9. Decision: [ADR-0005](adr/0005-revision-based-sync.md). Prototype in Phase 1 (roadmap P1-12); the server endpoints are implemented in Phase 5 (P5-01, [plan](../superpowers/plans/2026-11-14-phase-5-sync-server-plan.md)), the client engines follow.
 
 ## 1. Goals and invariants
 
@@ -27,6 +27,7 @@ The protocol is judged by these invariants, which the simulation suite checks af
 | Cursor | Opaque string encoding `(vault_id, seq, protocol_version)`. Clients store it; only the server interprets it |
 | History | Every revision's bytes in the content-addressed history store ([storage contract §7](storage-contract.md#7-history-store-server)) |
 | Tombstone | A revision with `deleted = true`. Kept for at least the retention window (default 90 days) so offline clients learn about deletes |
+| Retention | Applied daily by the vault watcher (P5-07): every revision is kept 30 days, then the last revision of each UTC day until 365 days; a file's current revision and the revisions a conflict names are never removed. A deleted file whose tombstone is past the retention window is forgotten, and the vault's horizon moves to that tombstone's seq: cursors before it are expired. Stored operation results and resolved conflicts go after the same window; history objects nothing refers to, after 7 days, and never while a backup runs |
 
 Commits are serialized per vault (PostgreSQL row lock on the vault's sequence row), which keeps `seq` gap-free and makes conflict decisions deterministic.
 
@@ -74,7 +75,7 @@ A local file is **dirty** when `local_hash != base_hash`.
 | `delete` | `client_op_id`, `file_id`, `base_revision` | — |
 | `restore` | `client_op_id`, `file_id`, `from_revision` | Revision exists in history |
 
-Content travels as content-addressed blobs (`PUT /api/v1/blobs/{sha256}`), so an operation is small and a retried upload is free. Large blobs use chunked, resumable upload (`Content-Range`, 8 MiB chunks) from Phase 5.
+Content travels as content-addressed blobs (`PUT /api/v1/blobs/{sha256}?vault_id=`, existence check with `HEAD`, download with `GET`), so an operation is small and a retried upload is free. A blob is stored in the vault's history store, where the commit reads it (R-P5-001); `HEAD` first and upload only what is missing. Large blobs use chunked, resumable upload (P5-02): each `PUT` carries `Content-Range: bytes first-last/total` with at most 8 MiB and answers 202 with `Upload-Offset`; the chunk that completes `total` stores the blob (204, or 422 and the partial upload discarded when the bytes do not match the hash). After an interruption, `HEAD` answers 404 with the `Upload-Offset` to continue from; a chunk starting anywhere else is a 409 carrying it. The server keeps partial uploads outside the objects until they complete or retention removes them. Committing never holds a blob whole: the server streams it from the history store into the vault.
 
 ## 4. Pull
 
@@ -90,7 +91,7 @@ Returns ordered entries `{seq, file_id, revision, path, kind, content_hash, size
 | Dirty | Do not touch the file. Record the remote revision; the pending `update` will be merged by the server on push |
 | Locally deleted (pending `delete`) | Keep pending; server decides on push |
 
-A cursor older than the tombstone retention window gets `410 Gone`; the client then performs a **full reconcile**: fetch the complete file list (`GET /sync/{vault_id}/snapshot`), compare hashes, and turn every local difference into ordinary operations. Full reconcile never deletes local content, and it never resurrects a file the server deleted:
+A cursor older than the tombstone retention window gets `410 Gone`; the client then performs a **full reconcile**: fetch the complete file list (`GET /sync/{vault_id}/snapshot`, paged by path with `page`/`next_page`; every page carries the same `cursor`, from which the client pulls once the last page is read, so changes made while paging are not missed, R-P5-003), compare hashes, and turn every local difference into ordinary operations. Full reconcile never deletes local content, and it never resurrects a file the server deleted:
 
 | Local file vs snapshot | Action |
 |---|---|
@@ -100,7 +101,7 @@ A cursor older than the tombstone retention window gets `410 Gone`; the client t
 | Known, missing from the snapshot, dirty | Edit wins (§6): push as a `create` with a new `file_id` and flag it to the user as restored after a remote delete |
 | In the snapshot | Compare hashes; a difference becomes an `update` (dirty) or a download (clean) |
 
-Change notifications arrive over `WSS /api/v1/events` as `{vault_id, seq}` hints. The event channel is advisory; correctness depends only on pull.
+Change notifications arrive as Server-Sent Events from `GET /api/v1/events` (R-P5-004): a `ready` event naming the subscribed vaults (every vault the caller may read), then a `change` event `{vault_id, seq}` after each commit, a comment heartbeat every 25 s, and the end of the stream after 15 minutes, when the client reconnects with a current token. The event channel is advisory; correctness depends only on pull, so a client pulls on `ready` and on each hint.
 
 ## 5. Push
 
