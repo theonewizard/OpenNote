@@ -149,6 +149,18 @@ public struct Vault: Sendable {
         }
     }
 
+    /// Up to `count` bytes of the file at `path` from `offset`: one chunk of a large upload.
+    public func read(_ path: String, offset: UInt64, count: Int) throws(VaultError) -> Data {
+        let full = try resolve(path)
+        let handle = try openNoFollow(full)
+        do {
+            try handle.seek(toOffset: offset)
+            return try handle.read(upToCount: count) ?? Data()
+        } catch {
+            throw .io(full, EIO)
+        }
+    }
+
     /// The content hash of the file at `path`, or nil when there is none.
     public func currentHash(_ path: String) throws(VaultError) -> String? {
         let full = try resolve(path)
