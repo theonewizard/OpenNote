@@ -44,3 +44,22 @@ jobs:
       # The Chromium build that matches @playwright/test, with its system libraries.
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+  # Picks up the next TypeScript major as soon as typescript-eslint and openapi-typescript
+  # accept it: a notice while they do not, a warning with the trial result once they do.
+  # Never fails (scripts/check-typescript-next.sh).
+  typescript-next:
+    name: TypeScript upgrade check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: ../scripts/check-typescript-next.sh
