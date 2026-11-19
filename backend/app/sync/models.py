@@ -1,4 +1,4 @@
-"""ORM models for sync state (migrations 0004, 0009 and 0010, sync protocol §2.1)."""
+"""ORM models for sync state (migrations 0004, 0011 and 0012, sync protocol §2.1)."""
 
 import datetime as dt
 import uuid
@@ -20,7 +20,7 @@ class VaultSeq(Base):
         ForeignKey("vaults.id", ondelete="CASCADE"), primary_key=True
     )
     last_seq: Mapped[int] = mapped_column(BigInteger, default=0)
-    # Cursors before this seq are expired: retention removed a tombstone after it (0010).
+    # Cursors before this seq are expired: retention removed a tombstone after it (0012).
     horizon_seq: Mapped[int] = mapped_column(BigInteger, default=0)
 
 
