@@ -18,6 +18,7 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 - R-P7-014: entry point is `python -m app.ai ask` for now; an API route needs the OpenAPI document, clients and Zod schemas in the same change (CLAUDE.md §14) and a screen to be useful, so it is a follow-up.
 - R-P7-015: `make constraints` also moved two unrelated transitive pins (annotated-doc, argon2-cffi-bindings); they were put back to keep the change surgical (CLAUDE.md §20). The new pins are anthropic's own dependencies.
 - R-P7-016: CI's contract test failed on this branch only: Schemathesis generated a malformed `Content-Length` header, which uvicorn refuses with a text/plain 400 before the request reaches the API. The test now drops the framing headers `Content-Length` and `Transfer-Encoding` from generated cases; they belong to the HTTP client, not to the API contract. Why generation reached them here and not on main was not found.
+- R-P7-017: 2026-11-19, card "Choose how to clear the false secret alarm on the Claude SDK in the api image", Flemming chose "Allow rule for the SDK path". Trivy's secret scanner reported an SDK docstring (an example JSON object of type service_account) as a CRITICAL GCP service-account key. `trivy-secret.yaml` at the repository root skips only `site-packages/anthropic/` for secret matches.
 
 ## Output
 
