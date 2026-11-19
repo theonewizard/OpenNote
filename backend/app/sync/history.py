@@ -4,13 +4,14 @@ zstd-compressed, plus a JSONL revision log, outside the vault and outside Postgr
 """
 
 import dataclasses
+import fcntl
 import hashlib
 import json
 import os
 import re
 import secrets
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from compression import zstd
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,6 +45,20 @@ def _fsync_dir(path: Path) -> None:
         os.close(fd)
 
 
+class UploadOffsetMismatch(Exception):
+    def __init__(self, offset: int) -> None:
+        super().__init__(f"upload continues at byte {offset}")
+        self.offset = offset
+
+
+class UploadBusy(Exception):
+    """Another request is appending to the same upload."""
+
+
+class UploadHashMismatch(Exception):
+    """The completed upload's bytes do not match its hash; the part was removed."""
+
+
 class HistoryStore:
     def __init__(self, history_root: Path, vault_id: uuid.UUID) -> None:
         self.root = history_root / str(vault_id)
@@ -68,6 +83,112 @@ class HistoryStore:
         os.replace(tmp, path)
         _fsync_dir(path.parent)
         return digest
+
+    def has(self, content_hash: str) -> bool:
+        return self._object(content_hash).exists()
+
+    def writer(self) -> ObjectWriter:
+        """A streaming `put`: bytes are hashed and compressed as they arrive."""
+        return ObjectWriter(self)
+
+    def put_stream(self, chunks: Iterable[bytes]) -> str:
+        """Store the bytes of `chunks` without holding them whole; return their hash."""
+        writer = self.writer()
+        try:
+            for chunk in chunks:
+                writer.write(chunk)
+        except BaseException:
+            writer.abort()
+            raise
+        if (digest := writer.finish()) is None:  # finish() without a hash always stores
+            raise RuntimeError("object not stored")
+        return digest
+
+    # Resumable uploads (P5-02): chunks append to a part file outside the objects; the
+    # last chunk turns it into an object. Stale parts are removed by history GC.
+
+    def _part(self, content_hash: str) -> Path:
+        self._object(content_hash)  # validates the hash
+        return self.root / "uploads" / f"{content_hash[7:]}.part"
+
+    def upload_offset(self, content_hash: str) -> int:
+        """Bytes received so far of a resumable upload, 0 when none is under way."""
+        try:
+            return self._part(content_hash).stat().st_size
+        except FileNotFoundError:
+            return 0
+
+    def append_upload(self, content_hash: str, start: int, data: bytes, total: int) -> int:
+        """Append one chunk at `start`, which must be the bytes received so far, and
+        return the new offset. When the chunk completes `total` bytes, the part becomes
+        the object; UploadHashMismatch (and the part removed) if its bytes do not match.
+        UploadOffsetMismatch when `start` is not the offset; UploadBusy when another
+        request is appending to the same upload."""
+        part = self._part(content_hash)
+        part.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(part, os.O_RDWR | os.O_CREAT | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+        try:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise UploadBusy from None
+            offset = os.fstat(fd).st_size
+            if start != offset:
+                raise UploadOffsetMismatch(offset)
+            os.lseek(fd, offset, os.SEEK_SET)
+            view = memoryview(data)
+            while view:
+                view = view[os.write(fd, view) :]
+            os.fsync(fd)
+            offset += len(data)
+            if offset < total:
+                return offset
+            os.lseek(fd, 0, os.SEEK_SET)
+            writer = self.writer()
+            try:
+                while block := os.read(fd, 1 << 20):
+                    writer.write(block)
+            except BaseException:
+                writer.abort()
+                raise
+            stored = writer.finish(content_hash)
+            part.unlink()  # under the lock: a racing append finds a fresh part
+            if stored is None:
+                raise UploadHashMismatch
+            return offset
+        finally:
+            os.close(fd)
+
+    def size(self, content_hash: str) -> int:
+        """The uncompressed size of an object: from its frame header when recorded there,
+        else by decompressing it in chunks."""
+        path = self._object(content_hash)
+        with open(path, "rb") as fh:
+            head = fh.read(18)  # the longest zstd frame header
+        try:
+            known = zstd.get_frame_info(head).decompressed_size
+        except zstd.ZstdError:
+            known = None
+        if known is not None:
+            return int(known)
+        return sum(len(chunk) for chunk in self.stream(content_hash))
+
+    def stream(self, content_hash: str, chunk_size: int = 1 << 20) -> Iterator[bytes]:
+        """The bytes under `content_hash`, decompressed chunk by chunk. FileNotFoundError
+        at once when there is no such object. Unlike `get`, the bytes are not checked
+        against the hash before they are handed out; the reader checks the hash."""
+        path = self._object(content_hash)
+        if not path.exists():
+            raise FileNotFoundError(path.name)
+
+        def chunks() -> Iterator[bytes]:  # opened on first read: an unread stream holds no fd
+            with open(path, "rb") as fh:
+                decompressor = zstd.ZstdDecompressor()
+                while block := fh.read(chunk_size):
+                    if data := decompressor.decompress(block):
+                        yield data
+
+        return chunks()
 
     def get(self, content_hash: str) -> bytes:
         """The bytes stored under `content_hash`; HistoryCorrupt if they do not match it."""
@@ -110,3 +231,44 @@ class HistoryStore:
                     yield RevisionLogEntry(**data)
                 except ValueError, KeyError, TypeError:
                     raise HistoryCorrupt(f"bad revision log line in {path.name}") from None
+
+
+class ObjectWriter:
+    """Receives a blob in chunks into a temporary file beside the objects, then `finish`
+    moves it into place under its hash. `abort` removes the temporary file."""
+
+    def __init__(self, store: HistoryStore) -> None:
+        self.store = store
+        objects = store.root / "objects"
+        objects.mkdir(parents=True, exist_ok=True)
+        self.tmp = objects / f".upload.{secrets.token_hex(8)}.tmp"
+        self._fh = open(self.tmp, "xb")  # noqa: SIM115 - closed by finish or abort
+        self._hash = hashlib.sha256()
+        self._compressor = zstd.ZstdCompressor()
+        self.size = 0
+
+    def write(self, chunk: bytes) -> None:
+        self._hash.update(chunk)
+        self.size += len(chunk)
+        self._fh.write(self._compressor.compress(chunk))
+
+    def finish(self, expected_hash: str | None = None) -> str | None:
+        """Store the bytes under their hash and return it; None (nothing stored) when
+        `expected_hash` is given and they do not match it."""
+        digest = "sha256:" + self._hash.hexdigest()
+        if expected_hash is not None and digest != expected_hash:
+            self.abort()
+            return None
+        self._fh.write(self._compressor.flush())
+        self._fh.flush()
+        os.fsync(self._fh.fileno())
+        self._fh.close()
+        path = self.store._object(digest)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(self.tmp, path)
+        _fsync_dir(path.parent)
+        return digest
+
+    def abort(self) -> None:
+        self._fh.close()
+        self.tmp.unlink(missing_ok=True)
