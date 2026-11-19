@@ -17,9 +17,7 @@ from collections.abc import Iterator
 import filetype  # type: ignore[import-untyped]
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 
-IMAGE_MIMES = frozenset(
-    {"image/png", "image/jpeg", "image/tiff", "image/webp", "image/bmp"}
-)
+IMAGE_MIMES = frozenset({"image/png", "image/jpeg", "image/tiff", "image/webp", "image/bmp"})
 PDF_MIME = "application/pdf"
 MAX_PDF_PAGES = 50  # pages after this one are left out
 DPI = 300
