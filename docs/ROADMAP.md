@@ -79,10 +79,10 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P4-01 | `OpenNoteCore` parsing parity with Python on the corpus | P1-10 | P0 | Same `expected.json` results | NOT_STARTED |
-| P4-02 | `OpenNoteStorage`: local vault, atomic coordinated writes, SQLite state | P4-01 | P0 | Local save < 100 ms; round-trip tests | NOT_STARTED |
+| P4-01 | `OpenNoteCore` parsing parity with Python on the corpus | P1-10 | P0 | Same `expected.json` results | COMPLETED: `OpenNoteCore` corpus tests (round trip, frontmatter, extraction for all 32 cases) and the Python-generated parity fixtures in `tests/compatibility/parity` pass on macOS and Linux ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511), branch `feature/apple-core`); Swift metadata editing is not included ([plan](superpowers/plans/2026-11-07-apple-core-packages-plan.md)) |
+| P4-02 | `OpenNoteStorage`: local vault, atomic coordinated writes, SQLite state | P4-01 | P0 | Local save < 100 ms; round-trip tests | COMPLETED: `OpenNoteStorage` round-trip, never-clobber, recovery and state tests pass on macOS and Linux; median local save of a 100 KB note under 100 ms on both CI runners ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511)) |
 | P4-03 | `OpenNoteAPI`: generated client, auth via ASWebAuthenticationSession, Keychain | P2-10 | P0 | Login on macOS and iOS | TESTING |
-| P4-04 | `OpenNoteEditor`: TextKit 2 Markdown editor with live styling | P4-02 | P0 | Corpus edits preserve bytes | NOT_STARTED |
+| P4-04 | `OpenNoteEditor`: TextKit 2 Markdown editor with live styling | P4-02 | P0 | Corpus edits preserve bytes | COMPLETED: `OpenNoteEditor` drives a real TextKit 2 `NSTextView` with every corpus note and a typed CRLF line break, bytes unchanged ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511), macOS); not yet placed in the app windows (P4-05/P4-06) |
 | P4-05 | macOS app: windows, menus, shortcuts, drag and drop, user-chosen vault folder | P4-02, P4-04 | P0 | XCUITest smoke | NOT_STARTED |
 | P4-06 | iOS app: app-container vault exposed in Files, camera attachments | P4-02, P4-04 | P0 | XCUITest smoke | NOT_STARTED |
 | P4-07 | iPadOS: split view, keyboard, Pencil-friendly interactions | P4-06 | P0 | XCUITest on iPad | NOT_STARTED |
