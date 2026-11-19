@@ -69,16 +69,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -96,54 +92,38 @@
             "type": "string"
           },
           "code": {
-            "anyOf": [
-              {
-                "maxLength": 512,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Code"
+            "maxLength": 512,
+            "title": "Code",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "code_verifier": {
-            "anyOf": [
-              {
-                "maxLength": 128,
-                "minLength": 43,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Code Verifier"
+            "maxLength": 128,
+            "minLength": 43,
+            "title": "Code Verifier",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "device_name": {
-            "anyOf": [
-              {
-                "maxLength": 255,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Names the device on first exchange",
-            "title": "Device Name"
+            "maxLength": 255,
+            "title": "Device Name",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "device_platform": {
-            "anyOf": [
-              {
-                "maxLength": 64,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Device Platform"
+            "maxLength": 64,
+            "title": "Device Platform",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "grant_type": {
             "enum": [
@@ -154,28 +134,20 @@
             "type": "string"
           },
           "redirect_uri": {
-            "anyOf": [
-              {
-                "maxLength": 2048,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Redirect Uri"
+            "maxLength": 2048,
+            "title": "Redirect Uri",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "refresh_token": {
-            "anyOf": [
-              {
-                "maxLength": 512,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Refresh Token"
+            "maxLength": 512,
+            "title": "Refresh Token",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -242,16 +214,12 @@
             "type": "string"
           },
           "resolved_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Resolved At"
+            "format": "date-time",
+            "title": "Resolved At",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "revision": {
             "title": "Revision",
@@ -301,16 +269,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -392,16 +356,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -429,31 +389,23 @@
             "type": "string"
           },
           "last_seen_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Seen At"
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "title": "Name",
             "type": "string"
           },
           "platform": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Platform"
+            "title": "Platform",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -477,16 +429,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -513,16 +461,12 @@
             "type": "integer"
           },
           "parent": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "The parent folder's path; null at the vault root",
-            "title": "Parent"
+            "title": "Parent",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "path": {
             "description": "Vault-relative, no trailing slash",
@@ -695,15 +639,11 @@
             "type": "string"
           },
           "path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Path"
+            "title": "Path",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -719,16 +659,12 @@
         "additionalProperties": false,
         "properties": {
           "auth_request": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "The `auth_request` id `GET /api/v1/auth/authorize` put in the login URL; when given, the response's `redirect_to` carries the authorization code",
-            "title": "Auth Request"
+            "title": "Auth Request",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "password": {
             "maxLength": 1024,
@@ -758,16 +694,12 @@
             "type": "string"
           },
           "redirect_to": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Where to send the browser next: the OAuth client's redirect URI with `code` and `state` when `auth_request` was given, else null",
-            "title": "Redirect To"
+            "title": "Redirect To",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "user": {
             "$ref": "#/components/schemas/User"
@@ -827,29 +759,21 @@
             "type": "string"
           },
           "path_warning": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "A path rule the existing file name breaks, or null",
-            "title": "Path Warning"
+            "title": "Path Warning",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "properties": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "additionalProperties": true,
             "description": "The frontmatter as JSON; null when there is none or it does not parse",
-            "title": "Properties"
+            "title": "Properties",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "read_only": {
             "description": "True for a note too large to edit (opaque)",
@@ -907,29 +831,21 @@
         "additionalProperties": false,
         "properties": {
           "content": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "The note's Markdown; omitted, the note starts with an `id` frontmatter only",
-            "title": "Content"
+            "title": "Content",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "local_time": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "The creator's local time with its UTC offset, for the template's dates; omitted, the server's time in UTC",
-            "title": "Local Time"
+            "format": "date-time",
+            "title": "Local Time",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "path": {
             "description": "Vault-relative, ends in `.md`",
@@ -939,17 +855,13 @@
             "type": "string"
           },
           "template_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "A note in the same vault to start from instead of `content`: its `{{title}}`, `{{date}}`, `{{time}}`, `{{date:FORMAT}}` and `{{time:FORMAT}}` are filled in (Obsidian Templates syntax) and its `id` is replaced by the new note's",
-            "title": "Template Id"
+            "format": "uuid",
+            "title": "Template Id",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "vault_id": {
             "format": "uuid",
@@ -1008,16 +920,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1032,58 +940,42 @@
         "description": "Either a move (`path`) or a metadata edit (the other fields), not both.",
         "properties": {
           "aliases": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aliases"
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "opennote": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "additionalProperties": true,
             "description": "Replaces the `opennote:` frontmatter namespace",
-            "title": "Opennote"
+            "title": "Opennote",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "path": {
-            "anyOf": [
-              {
-                "maxLength": 1024,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Path"
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "tags": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tags"
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": [
+              "array",
+              "null"
+            ]
           }
         },
         "title": "NotePatch",
@@ -1137,16 +1029,12 @@
             "type": "string"
           },
           "content_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Null for a delete (tombstone)",
-            "title": "Content Hash"
+            "title": "Content Hash",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "deleted": {
             "title": "Deleted",
@@ -1210,16 +1098,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1232,41 +1116,29 @@
       "OutgoingLink": {
         "properties": {
           "alias": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Alias"
+            "title": "Alias",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "block": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Block"
+            "title": "Block",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "embed": {
             "title": "Embed",
             "type": "boolean"
           },
           "heading": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Heading"
+            "title": "Heading",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "resolved": {
             "anyOf": [
@@ -1304,16 +1176,12 @@
             "type": "string"
           },
           "expires_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expires At"
+            "format": "date-time",
+            "title": "Expires At",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "format": "uuid",
@@ -1321,16 +1189,12 @@
             "type": "string"
           },
           "last_used_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Used At"
+            "format": "date-time",
+            "title": "Last Used At",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "title": "Name",
@@ -1370,16 +1234,12 @@
         "additionalProperties": false,
         "properties": {
           "expires_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expires At"
+            "format": "date-time",
+            "title": "Expires At",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "maxLength": 255,
@@ -1441,16 +1301,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1668,15 +1524,11 @@
         "description": "For `conflict`, the fields describe the conflict copy and `problem` names the\noriginal file (`original_file_id`); for `rejected`, `problem` says why.",
         "properties": {
           "content_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Content Hash"
+            "title": "Content Hash",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "file_id": {
             "format": "uuid",
@@ -1684,49 +1536,33 @@
             "type": "string"
           },
           "path": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Path"
+            "title": "Path",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "problem": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Problem"
+            "additionalProperties": true,
+            "title": "Problem",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "revision": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Revision"
+            "title": "Revision",
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "seq": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Seq"
+            "title": "Seq",
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "status": {
             "enum": [
@@ -1803,16 +1639,12 @@
             "type": "number"
           },
           "snippet": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Plain-text excerpt around the match, or null",
-            "title": "Snippet"
+            "title": "Snippet",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1833,16 +1665,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1919,16 +1747,12 @@
       "SyncEntry": {
         "properties": {
           "content_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Null for a tombstone",
-            "title": "Content Hash"
+            "title": "Content Hash",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "deleted": {
             "title": "Deleted",
@@ -2062,16 +1886,12 @@
             "type": "array"
           },
           "next_page": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `page` for the next page; null on the last",
-            "title": "Next Page"
+            "title": "Next Page",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2112,16 +1932,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2139,30 +1955,22 @@
             "type": "boolean"
           },
           "done_on": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Done date (Tasks plugin)",
-            "title": "Done On"
+            "format": "date",
+            "title": "Done On",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "due": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Due date (Tasks plugin)",
-            "title": "Due"
+            "format": "date",
+            "title": "Due",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "line": {
             "description": "0-based line in the note, frontmatter included",
@@ -2178,59 +1986,44 @@
             "type": "integer"
           },
           "parent": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "`ordinal` of the enclosing task, for subtasks",
-            "title": "Parent"
+            "title": "Parent",
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "priority": {
-            "anyOf": [
-              {
-                "enum": [
-                  "highest",
-                  "high",
-                  "medium",
-                  "low",
-                  "lowest"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "enum": [
+              "highest",
+              "high",
+              "medium",
+              "low",
+              "lowest",
+              null
             ],
-            "title": "Priority"
+            "title": "Priority",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "recurrence": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Recurrence rule as written (Tasks plugin)",
-            "title": "Recurrence"
+            "title": "Recurrence",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "remind_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Reminder plugin `(@date time)`: local wall-clock time, no UTC offset",
-            "title": "Remind At"
+            "format": "date-time",
+            "title": "Remind At",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "revision": {
             "description": "The note's revision; send it as `If-Match` to toggle",
@@ -2238,30 +2031,22 @@
             "type": "integer"
           },
           "scheduled": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Scheduled date (Tasks plugin)",
-            "title": "Scheduled"
+            "format": "date",
+            "title": "Scheduled",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "start": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Start date (Tasks plugin)",
-            "title": "Start"
+            "format": "date",
+            "title": "Start",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "description": "The character between the brackets",
@@ -2304,16 +2089,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2331,17 +2112,13 @@
             "type": "boolean"
           },
           "today": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "The caller's local date, for the done date and the next occurrence of a recurring task; omitted, the server's date in UTC",
-            "title": "Today"
+            "format": "date",
+            "title": "Today",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2400,15 +2177,11 @@
             "type": "string"
           },
           "email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
+            "title": "Email",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "format": "uuid",
@@ -2439,28 +2212,20 @@
         "additionalProperties": false,
         "properties": {
           "display_name": {
-            "anyOf": [
-              {
-                "maxLength": 255,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Name"
+            "maxLength": 255,
+            "title": "Display Name",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "email": {
-            "anyOf": [
-              {
-                "maxLength": 320,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
+            "maxLength": 320,
+            "title": "Email",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "is_admin": {
             "default": false,
@@ -2497,16 +2262,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2565,16 +2326,12 @@
         "additionalProperties": false,
         "properties": {
           "directory": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "An existing directory under the server's vault root to register, relative to that root; omitted, an empty vault directory is created",
-            "title": "Directory"
+            "title": "Directory",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "maxLength": 255,
@@ -2633,16 +2390,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2681,16 +2434,12 @@
             "type": "array"
           },
           "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
             "description": "Pass as `cursor` for the next page; null on the last page",
-            "title": "Next Cursor"
+            "title": "Next Cursor",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -2704,17 +2453,13 @@
         "additionalProperties": false,
         "properties": {
           "name": {
-            "anyOf": [
-              {
-                "maxLength": 255,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "settings": {
             "anyOf": [
@@ -2750,26 +2495,18 @@
         "additionalProperties": false,
         "properties": {
           "ai_enabled": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ai Enabled"
+            "title": "Ai Enabled",
+            "type": [
+              "boolean",
+              "null"
+            ]
           },
           "sync_obsidian_config": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Sync Obsidian Config"
+            "title": "Sync Obsidian Config",
+            "type": [
+              "boolean",
+              "null"
+            ]
           }
         },
         "title": "VaultSettingsPatch",
@@ -2821,16 +2558,12 @@
             "name": "folder",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 1024,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Folder"
+              "maxLength": 1024,
+              "title": "Folder",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -2839,16 +2572,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -2914,17 +2643,13 @@
             "name": "Idempotency-Key",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Repeating a request with the same key within 24 h returns the first response",
-              "title": "Idempotency-Key"
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -3005,16 +2730,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -3260,17 +2981,13 @@
             "name": "provider",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 64,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Log in through this OIDC provider",
-              "title": "Provider"
+              "maxLength": 64,
+              "title": "Provider",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -3631,16 +3348,12 @@
             "name": "Content-Range",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`bytes <first>-<last>/<total>` for one chunk of a resumable upload (at most 8388608 bytes, starting at the `Upload-Offset` `HEAD` gives)",
-              "title": "Content-Range"
+              "title": "Content-Range",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -3721,21 +3434,18 @@
             "name": "status",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "open",
-                    "resolved"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "default": "open",
               "description": "Only this status; open by default",
-              "title": "Status"
+              "enum": [
+                "open",
+                "resolved",
+                null
+              ],
+              "title": "Status",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -3743,16 +3453,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 256,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
+              "maxLength": 256,
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -3890,16 +3596,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -3971,16 +3673,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -4327,17 +4025,13 @@
             "name": "Idempotency-Key",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Repeating a request with the same key within 24 h returns the first response",
-              "title": "Idempotency-Key"
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -4437,17 +4131,13 @@
             "name": "center",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Local graph around this note instead",
-              "title": "Center"
+              "format": "uuid",
+              "title": "Center",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -4627,17 +4317,13 @@
             "name": "folder",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 1024,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Only notes directly in this folder",
-              "title": "Folder"
+              "maxLength": 1024,
+              "title": "Folder",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -4646,17 +4332,13 @@
             "name": "tag",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 255,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Only notes with this tag or a child tag",
-              "title": "Tag"
+              "maxLength": 255,
+              "title": "Tag",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -4685,16 +4367,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -4760,17 +4438,13 @@
             "name": "Idempotency-Key",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Repeating a request with the same key within 24 h returns the first response",
-              "title": "Idempotency-Key"
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -4852,16 +4526,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -4976,16 +4646,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -5128,16 +4794,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -5274,16 +4936,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -5365,16 +5023,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -5590,16 +5244,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -5683,17 +5333,13 @@
             "name": "vault_id",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "One vault; omitted, every vault of the caller",
-              "title": "Vault Id"
+              "format": "uuid",
+              "title": "Vault Id",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -5702,16 +5348,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -5789,17 +5431,13 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 256,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the last pull; omitted, from the start",
-              "title": "Cursor"
+              "maxLength": 256,
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -5877,17 +5515,13 @@
             "name": "Idempotency-Key",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Repeating a request with the same key within 24 h returns the first response",
-              "title": "Idempotency-Key"
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -5961,17 +5595,13 @@
             "name": "page",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 4096,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_page` of the previous page",
-              "title": "Page"
+              "maxLength": 4096,
+              "title": "Page",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6051,16 +5681,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6155,17 +5781,13 @@
             "name": "note_id",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Only this note's tasks",
-              "title": "Note Id"
+              "format": "uuid",
+              "title": "Note Id",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6174,17 +5796,13 @@
             "name": "due_before",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "date",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Only tasks due on or before this date",
-              "title": "Due Before"
+              "format": "date",
+              "title": "Due Before",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6193,17 +5811,13 @@
             "name": "remind_before",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Only tasks with a reminder at or before this local time",
-              "title": "Remind Before"
+              "format": "date-time",
+              "title": "Remind Before",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6212,16 +5826,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6289,16 +5899,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6361,17 +5967,13 @@
             "name": "Idempotency-Key",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Repeating a request with the same key within 24 h returns the first response",
-              "title": "Idempotency-Key"
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -6477,16 +6079,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6549,17 +6147,13 @@
             "name": "Idempotency-Key",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Repeating a request with the same key within 24 h returns the first response",
-              "title": "Idempotency-Key"
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -6620,16 +6214,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -6695,17 +6285,13 @@
             "name": "Idempotency-Key",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "Repeating a request with the same key within 24 h returns the first response",
-              "title": "Idempotency-Key"
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -6776,16 +6362,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -6889,16 +6471,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -6969,16 +6547,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {
@@ -7055,16 +6629,12 @@
             "name": "cursor",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "`next_cursor` of the previous page",
-              "title": "Cursor"
+              "title": "Cursor",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           },
           {

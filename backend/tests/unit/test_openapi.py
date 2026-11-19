@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from app import __version__
 from app.api.main import create_app
-from app.api.openapi import duplicate_operation_ids
+from app.api.openapi import duplicate_operation_ids, nullable_as_type_arrays
 from app.auth.dependencies import get_current_principal
 from tests.conftest import as_test_user, placeholder_settings
 
@@ -125,3 +125,32 @@ def test_document_stays_in_the_basic_multilingual_plane():
     pair escapes json.dump writes for characters such as emoji (the macOS build fails)."""
     text = json.dumps(openapi(), ensure_ascii=False)
     assert all(ord(c) <= 0xFFFF for c in text)
+
+
+def test_nullable_values_are_type_arrays_the_swift_generator_keeps():
+    """swift-openapi-generator drops a property or parameter spelled `anyOf: [..., null]`."""
+    document = openapi()
+    entry = document["components"]["schemas"]["SyncEntry"]["properties"]["content_hash"]
+    assert entry["type"] == ["string", "null"]
+    assert "anyOf" not in entry
+    leftovers = [s for s in _schemas(document) if {"type": "null"} in s.get("anyOf", [])]
+    # Only a $ref, which a type array cannot express, keeps the anyOf.
+    assert all(any("$ref" in o for o in s["anyOf"]) for s in leftovers)
+
+
+def test_nullable_enum_lists_null():
+    node = {"anyOf": [{"type": "string", "enum": ["open"]}, {"type": "null"}], "title": "S"}
+    nullable_as_type_arrays(node)
+    assert node == {
+        "title": "S",
+        "type": ["string", "null"],
+        "enum": ["open", None],
+    }
+
+
+def _schemas(node: Any) -> list[dict[str, Any]]:
+    if isinstance(node, list):
+        return [s for item in node for s in _schemas(item)]
+    if isinstance(node, dict):
+        return [node, *(s for value in node.values() for s in _schemas(value))]
+    return []
