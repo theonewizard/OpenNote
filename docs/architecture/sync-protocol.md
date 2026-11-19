@@ -166,7 +166,7 @@ Local editing never waits for any of this. Each step is resumable from the outbo
 
 ## 10. Web client
 
-Same protocol, with IndexedDB holding files, bases, outbox and cursor. The browser cache may be evicted; on eviction the client re-pulls from a fresh snapshot (the server is complete), and the outbox lives in a separate store requested with `navigator.storage.persist()`. Unsynced web edits are flagged in the UI.
+Same protocol, with IndexedDB holding files, bases, outbox and cursor. The browser cache may be evicted; on eviction the client re-pulls from a fresh snapshot (the server is complete), and the outbox lives in a separate store requested with `navigator.storage.persist()`. Unsynced web edits are flagged in the UI. Implemented in `web/src/sync/` (P5-04, [plan](../superpowers/plans/2026-11-19-web-sync-engine-plan.md)): one IndexedDB database per user, bytes kept by hash, note bytes cached eagerly and attachments when read.
 
 ## 11. Interaction with other sync tools
 

@@ -1,12 +1,14 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { getJson } from "@/api/client";
-import type { FolderList, NoteMeta, NotePage, VaultPage } from "@/api/types";
+import { ApiError, getJson } from "@/api/client";
+import type { FolderList, NotePage, VaultPage } from "@/api/types";
 import { Button } from "@/components/ui/button";
-import { NoteEditor } from "@/features/NoteEditor";
+import { NoteEditor, type NoteRef } from "@/features/NoteEditor";
 import { saveStateText, type SaveState } from "@/features/saveState";
 import { cn } from "@/lib/utils";
+import type { SyncEngine, SyncStatus } from "@/sync/engine";
+import { useSyncEngine, useSyncStatus } from "@/sync/useSync";
 
 // Below the md breakpoint one pane shows at a time; selecting moves to the next pane and
 // the header's Back button returns (roadmap P3-10: usable at 375 px).
@@ -19,18 +21,64 @@ function paneClass(pane: Pane, shown: Pane) {
   return cn("min-h-0 flex-col md:flex", pane === shown ? "flex" : "hidden");
 }
 
+/** The vault list, or the one cached on this device when the server cannot be reached. */
+async function loadVaults(engine: SyncEngine | undefined): Promise<VaultPage> {
+  try {
+    const page = await getJson<VaultPage>("/api/v1/vaults");
+    await engine?.remember("vaults", page);
+    return page;
+  } catch (error) {
+    const cached = error instanceof ApiError ? undefined : await engine?.recall<VaultPage>("vaults");
+    if (!cached) throw error;
+    return cached;
+  }
+}
+
+/** Notes cached on this device, for when the note list cannot be loaded (offline). */
+async function cachedNotes(engine: SyncEngine, vaultId: string, folder: string | undefined): Promise<NoteRef[]> {
+  return (await engine.files(vaultId))
+    .filter((f) => f.kind === "note" && !f.deleted && f.local_hash)
+    .filter((f) => folder === undefined || f.path.slice(0, Math.max(f.path.lastIndexOf("/"), 0)) === folder)
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map((f) => ({
+      id: f.file_id,
+      path: f.path,
+      title: f.path.split("/").at(-1)!.replace(/\.md$/, ""),
+      revision: f.base_revision,
+      content_hash: f.local_hash!,
+      read_only: false,
+    }));
+}
+
+function syncText(sync: SyncStatus): string | undefined {
+  if (sync.rejected) return `${sync.rejected} not synced: rejected by the server`;
+  const offline = sync.state === "offline" ? " (offline)" : "";
+  if (sync.unsynced) return `${sync.unsynced} ${sync.unsynced === 1 ? "change" : "changes"} not synced yet${offline}`;
+  if (sync.state === "offline") return "Offline";
+  if (sync.state === "error") return "Sync failed, retrying";
+  return undefined;
+}
+
 export function Layout() {
   const [pane, setPane] = useState<Pane>("nav");
   const [vaultId, setVaultId] = useState<string>();
   const [folder, setFolder] = useState<string>();
-  const [note, setNote] = useState<NoteMeta>();
+  const [note, setNote] = useState<NoteRef>();
   const [saveState, setSaveState] = useState<SaveState>();
 
+  const engine = useSyncEngine();
   const vaults = useQuery({
     queryKey: ["vaults"],
-    queryFn: () => getJson<VaultPage>("/api/v1/vaults"),
+    queryFn: () => loadVaults(engine.data),
+    enabled: !engine.isPending,
   });
   const vault = vaults.data?.items.find((v) => v.id === vaultId) ?? vaults.data?.items[0];
+  const sync = useSyncStatus(engine.data, vault?.id);
+  useEffect(() => {
+    if (!engine.data || !vault) return;
+    engine.data.start(vault.id);
+    return () => engine.data.stop();
+  }, [engine.data, vault]);
 
   const folders = useQuery({
     queryKey: ["folders", vault?.id],
@@ -45,7 +93,12 @@ export function Layout() {
     getNextPageParam: (page) => page.next_cursor ?? undefined,
     enabled: !!vault,
   });
-  const noteItems = notes.data?.pages.flatMap((page) => page.items);
+  const offlineNotes = useQuery({
+    queryKey: ["offline-notes", vault?.id, folder],
+    queryFn: () => cachedNotes(engine.data!, vault!.id, folder),
+    enabled: notes.isError && !!engine.data && !!vault,
+  });
+  const noteItems: NoteRef[] | undefined = notes.data?.pages.flatMap((page) => page.items) ?? offlineNotes.data;
 
   function openFolder(path: string | undefined) {
     setFolder(path);
@@ -54,6 +107,8 @@ export function Layout() {
 
   let status = "Connecting…";
   if (vaults.isError) status = "Not connected";
+  else if (note && saveState && saveState !== "saved") status = saveStateText[saveState];
+  else if (syncText(sync)) status = syncText(sync)!;
   else if (note && saveState) status = saveStateText[saveState];
   else if (vaults.isSuccess) status = "Connected";
 
@@ -120,7 +175,7 @@ export function Layout() {
           aria-label="Note list"
           className={cn(paneClass("list", pane), "overflow-auto md:w-80 md:shrink-0 md:border-r")}
         >
-          {notes.isError && <p className="p-4">Could not load notes.</p>}
+          {notes.isError && !offlineNotes.data?.length && <p className="p-4">Could not load notes.</p>}
           {noteItems?.length === 0 && <p className="p-4 text-muted-foreground">No notes here</p>}
           <ul>
             {noteItems?.map((n) => (
@@ -156,8 +211,16 @@ export function Layout() {
           )}
         </section>
         <main className={cn(paneClass("note", pane), "min-w-0 flex-1")}>
-          {note ? (
-            <NoteEditor key={note.id} note={note} readOnly={note.read_only || vault?.role === "viewer"} onSaveState={setSaveState} />
+          {engine.isError && <p className="p-4">This browser cannot keep notes on this device, so they cannot be edited.</p>}
+          {note && vault && engine.data ? (
+            <NoteEditor
+              key={note.id}
+              note={note}
+              vaultId={vault.id}
+              engine={engine.data}
+              readOnly={note.read_only || vault.role === "viewer"}
+              onSaveState={setSaveState}
+            />
           ) : (
             <p className="p-4">No note selected</p>
           )}
