@@ -4,3 +4,10 @@
 # The spec's risk table, row R10: the word for registry authentication followed by the
 # PGDG and pgvector package names matches the generic-api-key rule. It is prose.
 217a00a970a23abbda0e428df0da64625ef53ada:docs/superpowers/specs/2026-10-17-opennote-architecture-design.md:generic-api-key:89
+
+# Integration tests send a fixed UUIDv7 as the Idempotency-Key request header
+# (0192a0c4-6a1e-7c3e-9a0b-5d0e1f2a3b4c); the header name contains "Key", so the
+# generic-api-key rule matches. It is test data, not a credential. Found by the weekly
+# full-history scan of 2026-11-16.
+93d874d2230d9220c05885630c1e529922185ef9:backend/tests/integration/api/test_folders.py:generic-api-key:97
+00c35f805e83e7b17fed89aa4c29782c88fd3765:backend/tests/integration/api/test_vaults.py:generic-api-key:94

@@ -48,7 +48,7 @@ The same `cosign verify` works for `ghcr.io/theonewizard/charts/opennote@sha256:
 
 ## Dry run
 
-Every pull request and branch push that changes the release path (`release.yml`, `scripts/release.sh`, `scripts/check-version.sh`), and a manual run on any branch, runs the `dry run` job instead of `publish`: the same `scripts/release.sh` against a registry started inside the job (`localhost:5000`) with a throwaway cosign key and no transparency log, then a user's `cosign verify` of every digest and a `helm pull` of the chart. Nothing leaves the runner. It does not exercise keyless signing, the GitHub login or `gh release create`; the first real tag does.
+Every pull request that changes the release path (`release.yml`, `scripts/release.sh`, `scripts/check-version.sh`), and a manual run on any branch, runs the `dry run` job instead of `publish`: the same `scripts/release.sh` against a registry started inside the job (`localhost:5000`) with a throwaway cosign key and no transparency log, then a user's `cosign verify` of every digest and a `helm pull` of the chart. Nothing leaves the runner. It does not exercise keyless signing, the GitHub login or `gh release create`; the first real tag does.
 
 ## First release: owner steps
 
