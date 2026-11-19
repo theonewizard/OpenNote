@@ -1,4 +1,4 @@
-"""Calendar feed tokens (migration 0011): each one lets a calendar app read one vault's
+"""Calendar feed tokens (migration 0013): each one lets a calendar app read one vault's
 dated tasks as iCalendar. Only the token's SHA-256 is stored."""
 
 import datetime as dt
