@@ -56,7 +56,9 @@ def test_rejected_operations_change_nothing(world):
     bad_path = c.commit(
         Create(uuid.uuid7(), uuid.uuid7(), "a/../b.md", "note", sha(BASE)), "d", BASE
     )
-    no_blob = c.commit(Create(uuid.uuid7(), uuid.uuid7(), "x.md", "note", sha(BASE)), "d", None)
+    # Without bytes the blob must be in the history store already (P5-02); this one is not.
+    absent = sha(b"never stored")
+    no_blob = c.commit(Create(uuid.uuid7(), uuid.uuid7(), "x.md", "note", absent), "d", None)
     wrong_blob = c.commit(Create(uuid.uuid7(), uuid.uuid7(), "x.md", "note", sha(BASE)), "d", b"x")
     unknown = c.commit(Update(uuid.uuid7(), uuid.uuid7(), 1, sha(BASE)), "d", BASE)
     for result in (bad_path, no_blob, wrong_blob, unknown):

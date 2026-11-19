@@ -1,7 +1,6 @@
 """Push, pull and snapshot over the Committer, and ingestion of changes made directly
 on the server's vault (sync protocol §4, §5, §7)."""
 
-import hashlib
 import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -13,9 +12,9 @@ from app.core.db import uuid_array
 from app.notes.identity import FsChange
 from app.notes.models import File
 from app.sync.commit import SERVER_FS, Committer, Create, Delete, Move, Operation, OpResult, Update
-from app.sync.cursor import RETENTION_SEQ_WINDOW, CursorExpired, decode_cursor, encode_cursor
-from app.sync.models import Revision
-from app.vaults.fsio import hash_path, read_file
+from app.sync.cursor import CursorExpired, decode_cursor, encode_cursor
+from app.sync.models import Revision, VaultSeq
+from app.vaults.fsio import hash_path
 from app.vaults.paths import classify
 from app.vaults.scan import MAX_NOTE_BYTES
 
@@ -73,10 +72,11 @@ def push(
 def changes(
     session: Session, vault_id: uuid.UUID, cursor: str | None, limit: int = 500
 ) -> ChangesPage:
-    """Revisions after `cursor`, in seq order. CursorExpired beyond the retention window."""
+    """Revisions after `cursor`, in seq order. CursorExpired when retention has removed a
+    tombstone the cursor has not seen (the vault's horizon, P5-07)."""
     after = decode_cursor(cursor, vault_id) if cursor else 0
-    last = session.scalar(select(func.max(Revision.seq)).where(Revision.vault_id == vault_id))
-    if cursor and last is not None and after < last - RETENTION_SEQ_WINDOW:
+    horizon = session.scalar(select(VaultSeq.horizon_seq).where(VaultSeq.vault_id == vault_id))
+    if cursor and horizon and after < horizon:
         raise CursorExpired("cursor is older than the retention window")
     rows = session.scalars(
         select(Revision)
@@ -89,15 +89,27 @@ def changes(
     return ChangesPage(page, encode_cursor(vault_id, next_seq), len(rows) > limit)
 
 
-def snapshot(session: Session, vault_id: uuid.UUID) -> list[ChangeEntry]:
-    """The current revision of every live file, for a full reconcile."""
-    rows = session.scalars(
+def snapshot(
+    session: Session, vault_id: uuid.UUID, after: str | None = None, limit: int | None = None
+) -> list[ChangeEntry]:
+    """The current revision of every live file, for a full reconcile, ordered by path
+    (bytewise): the page after path `after`, of at most `limit` files."""
+    path = Revision.path.collate("C")
+    query = (
         select(Revision)
         .join(File, (File.file_id == Revision.file_id) & (File.revision == Revision.revision))
         .where(Revision.vault_id == vault_id, ~File.deleted)
-        .order_by(Revision.path)
-    ).all()
-    return [_entry(r) for r in rows]
+        .order_by(path)
+        .limit(limit)
+    )
+    if after is not None:
+        query = query.where(path > after)
+    return [_entry(r) for r in session.scalars(query).all()]
+
+
+def last_seq(session: Session, vault_id: uuid.UUID) -> int:
+    seq = session.scalar(select(func.max(Revision.seq)).where(Revision.vault_id == vault_id))
+    return seq or 0
 
 
 def ingest_fs_changes(committer: Committer, fs_changes: list[FsChange]) -> list[OpResult]:
@@ -140,16 +152,15 @@ def _ops_for(committer: Committer, change: FsChange) -> list[tuple[Operation, by
         if row is None or hash_path(committer.root_fd, path) is not None:
             return []  # back since the scan (a recovered write, or a re-save)
         return [(Delete(uuid.uuid7(), file_id, revision), None)]
-    try:
-        blob = read_file(committer.root_fd, path)
+    try:  # streamed into the history store: the commit reads it there (P5-02)
+        content = committer._store_vault_file(path)
     except FileNotFoundError:
         return []  # gone again; the next scan reports it
-    content = "sha256:" + hashlib.sha256(blob).hexdigest()
     if change.kind == "create":
         kind = classify(path)
-        if kind == "note" and len(blob) > MAX_NOTE_BYTES:
+        if kind == "note" and committer.history.size(content) > MAX_NOTE_BYTES:
             kind = "attachment"  # opaque, as the scan classifies it
-        return [(Create(uuid.uuid7(), file_id, path, kind, content), blob)]
+        return [(Create(uuid.uuid7(), file_id, path, kind, content), None)]
     if row is None:
         return []
     ops: list[tuple[Operation, bytes | None]] = []
@@ -157,5 +168,5 @@ def _ops_for(committer: Committer, change: FsChange) -> list[tuple[Operation, by
         ops.append((Move(uuid.uuid7(), file_id, revision, path), None))
         revision += 1
     if content != known_hash:
-        ops.append((Update(uuid.uuid7(), file_id, revision, content), blob))
+        ops.append((Update(uuid.uuid7(), file_id, revision, content), None))
     return ops

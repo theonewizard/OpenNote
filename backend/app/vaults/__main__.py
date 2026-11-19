@@ -4,7 +4,8 @@ outside OpenNote (storage contract §5, sync §7).
 One instance runs per deployment: it holds a PostgreSQL advisory lock, so a second copy
 waits until the first is gone. Every `POLL_S` it starts a watcher for each new vault (the
 watcher's first full scan imports the notes already in the folder) and stops the watchers
-of deleted vaults. SIGTERM or SIGINT stops it.
+of deleted vaults. Once a day, starting at startup, it applies retention to every vault
+(P5-07). SIGTERM or SIGINT stops it.
 """
 
 import functools
@@ -12,6 +13,7 @@ import logging
 import signal
 import sys
 import threading
+import time
 import uuid
 from pathlib import Path
 from types import FrameType
@@ -21,6 +23,7 @@ from sqlalchemy import select, text
 from app.api.deps import Committers
 from app.core.config import SettingsError, get_settings
 from app.core.logging import configure_logging
+from app.sync.retention import prune
 from app.sync.service import ingest_fs_changes
 from app.vaults.models import Vault
 from app.vaults.watch import VaultWatcher
@@ -28,6 +31,7 @@ from app.vaults.watch import VaultWatcher
 log = logging.getLogger(__name__)
 
 POLL_S = 5.0
+RETENTION_EVERY_S = 24 * 3600
 _INSTANCE_LOCK = "opennote-vault-watcher"
 
 
@@ -57,6 +61,24 @@ def sync_watchers(committers: Committers, watchers: dict[uuid.UUID, VaultWatcher
         log.info("watching vault", extra={"vault_id": str(vault_id)})
 
 
+def apply_retention(committers: Committers) -> None:
+    """Prune every live vault; one vault's failure does not stop the others."""
+    settings = committers.settings
+    with committers.factory() as s:
+        rows = s.execute(select(Vault.id, Vault.root_path).where(Vault.deleted_at.is_(None)))
+        live = {vault_id: root for vault_id, root in rows}
+    for vault_id, root in live.items():
+        try:
+            prune(
+                committers.get(vault_id, root),
+                keep_all_days=settings.history_keep_all_days,
+                keep_daily_days=settings.history_keep_daily_days,
+                tombstone_days=settings.tombstone_retention_days,
+            )
+        except Exception:
+            log.exception("retention failed; next run retries", extra={"vault_id": str(vault_id)})
+
+
 def run(committers: Committers, stop: threading.Event) -> None:
     watchers: dict[uuid.UUID, VaultWatcher] = {}
     with committers.engine.connect() as conn:
@@ -68,12 +90,16 @@ def run(committers: Committers, stop: threading.Event) -> None:
                 return
         conn.commit()
         log.info("vault watcher active")
+        next_retention = time.monotonic()
         try:
             while not stop.is_set():
                 try:
                     sync_watchers(committers, watchers)
                 except Exception:
                     log.exception("cannot list vaults; retrying")
+                if time.monotonic() >= next_retention and not stop.is_set():
+                    next_retention = time.monotonic() + RETENTION_EVERY_S
+                    apply_retention(committers)
                 stop.wait(POLL_S)
         finally:
             for watcher in watchers.values():
