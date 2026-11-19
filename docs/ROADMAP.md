@@ -114,7 +114,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P6-03 | Calendar integration (CalDAV server-side, EventKit on Apple) | P6-01 | P1 | — | NOT_STARTED |
 | P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | NOT_STARTED |
 | P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (Obsidian-compatible rendering in `app/notes/templates.py`; creating a note from a template waits for P2-04) |
-| P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | IN_PROGRESS: server side done (worker job, Tesseract from EPEL 10, PDF text layers, search by scan text, migration `0009`); VisionKit scanning and Vision OCR on Apple devices remain |
+| P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | IN_PROGRESS: server side done (worker job, Tesseract built from source in the API image, PDF text layers, search by scan text, migration `0009`); VisionKit scanning and Vision OCR on Apple devices remain |
 | P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
 | P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (backlink and graph queries in `app/notes/graph.py`; the HTTP route and the client panels follow the Phase 2 API) |
 | P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | NOT_STARTED |

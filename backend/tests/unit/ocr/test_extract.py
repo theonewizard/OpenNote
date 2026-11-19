@@ -76,3 +76,13 @@ def test_run_isolated_gives_up_on_a_slow_file(monkeypatch):
 )
 def test_candidates_are_images_and_pdfs(path, expected):
     assert is_candidate(path) is expected
+
+
+def test_tesseract_gets_only_path_threads_and_its_data_directory(monkeypatch):
+    monkeypatch.setenv("TESSDATA_PREFIX", "/opt/tesseract/share/tessdata")
+    monkeypatch.setenv("OPENNOTE_DATABASE_URL", "postgresql://secret")
+    env = extract._env()
+    assert set(env) == {"PATH", "OMP_THREAD_LIMIT", "TESSDATA_PREFIX"}
+    assert env["TESSDATA_PREFIX"] == "/opt/tesseract/share/tessdata"
+    monkeypatch.delenv("TESSDATA_PREFIX")
+    assert "TESSDATA_PREFIX" not in extract._env()

@@ -3,7 +3,8 @@ memory and time limits (app.ocr.vault.run_isolated), never in the API or worker 
 
 A PDF page with a text layer gives that text; a page without one (a scan) is rendered to
 a greyscale bitmap and read by Tesseract, like an image attachment. Tesseract reads
-PNG, JPEG, TIFF, GIF, WebP and BMP itself (leptonica), so images go to it unchanged.
+PNG, JPEG, TIFF, WebP and BMP itself (Leptonica; the API image builds it without GIF,
+for which the UBI 10 repositories have no library), so images go to it unchanged.
 """
 
 import math
@@ -17,7 +18,7 @@ import filetype  # type: ignore[import-untyped]
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 
 IMAGE_MIMES = frozenset(
-    {"image/png", "image/jpeg", "image/tiff", "image/gif", "image/webp", "image/bmp"}
+    {"image/png", "image/jpeg", "image/tiff", "image/webp", "image/bmp"}
 )
 PDF_MIME = "application/pdf"
 MAX_PDF_PAGES = 50  # pages after this one are left out
@@ -29,6 +30,15 @@ _WORD = re.compile(r"\w")
 
 class OcrError(Exception):
     """The file could not be read."""
+
+
+def _env() -> dict[str, str]:
+    """A minimal environment for Tesseract: PATH, one thread, and where its language data
+    is when the build has no default for it (the API image sets TESSDATA_PREFIX)."""
+    env = {"PATH": os.environ.get("PATH", ""), "OMP_THREAD_LIMIT": "1"}
+    if "TESSDATA_PREFIX" in os.environ:
+        env["TESSDATA_PREFIX"] = os.environ["TESSDATA_PREFIX"]
+    return env
 
 
 def tesseract(image: bytes, languages: str) -> str:
@@ -43,7 +53,7 @@ def tesseract(image: bytes, languages: str) -> str:
             capture_output=True,
             timeout=TESSERACT_TIMEOUT,
             check=False,
-            env={"PATH": os.environ.get("PATH", ""), "OMP_THREAD_LIMIT": "1"},
+            env=_env(),
         )
     except subprocess.TimeoutExpired as exc:
         raise OcrError("tesseract timed out") from exc

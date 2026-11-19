@@ -53,7 +53,7 @@ jobs:
           docker run --rm --user 1000870000:0 --read-only --tmpfs /tmp --entrypoint tesseract \
             opennote-api:dev --version
           docker run --rm --user 1000870000:0 --read-only --tmpfs /tmp --entrypoint tesseract \
-            opennote-api:dev --list-langs
+            opennote-api:dev --list-langs | tee /dev/stderr | grep -qx eng
           docker run --rm --entrypoint rpm opennote-web:dev -q nginx-core
           docker run --rm --entrypoint rpm opennote-postgres:dev -q \
             postgresql18-server postgresql18-contrib pgvector_18

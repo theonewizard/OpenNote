@@ -6,8 +6,9 @@ link to them (P6-06). It runs in the worker, fully on your own server.
 ## How it works
 
 - Uploading or changing an attachment whose name ends in `.png`, `.jpg`, `.jpeg`, `.tif`,
-  `.tiff`, `.gif`, `.webp`, `.bmp` or `.pdf` through the API enqueues `ocr_vault_job`
-  for its vault.
+  `.tiff`, `.webp`, `.bmp` or `.pdf` through the API enqueues `ocr_vault_job` for its
+  vault. GIF images are not read: the UBI 10 repositories have no GIF library to build
+  Leptonica with.
 - A run reads every live attachment of that kind whose content has not been read before.
   A PDF page with a text layer gives that text; a page without one (a scan) is rendered
   at 300 dpi and read by Tesseract, like an image. At most 50 pages per PDF are read and
@@ -48,8 +49,12 @@ python -m app.ocr.vault <vault-id>
 
 ## Where Tesseract comes from
 
-Tesseract is not in the UBI or RHEL repositories. The `opennote-api` image (which also runs
-the worker) installs it from EPEL 10, signature-checked against the EPEL 10 key committed
-in `infrastructure/containers/api/` (ADR-0010, amendment of 2026-11-14). Without the
+Tesseract is not in the free UBI repositories (RHEL 10 has it in AppStream, so EPEL 10 does
+not ship it either). The `opennote-api` image (which also runs the worker) builds Leptonica
+and Tesseract from their upstream source releases in a builder stage, checks each archive and
+the `tessdata_fast` English model against a pinned SHA-256, and installs them under
+`/opt/tesseract` (ADR-0010, amendment of 2026-11-19). The image formats Tesseract reads are
+the image libraries it was built with (`tesseract --version` lists them); the image sets
+`TESSDATA_PREFIX`, which the worker passes on to Tesseract. Without the
 `tesseract` binary (for example in a development checkout without it) the job logs a
 warning and reads nothing.

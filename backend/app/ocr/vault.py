@@ -34,7 +34,7 @@ from app.workers.broker import broker_from_settings
 log = logging.getLogger(__name__)
 
 ACTOR = "ocr_vault_job"  # app.ocr.jobs.ocr_vault_job, on Dramatiq's default queue
-SUFFIXES = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".gif", ".webp", ".bmp", ".pdf")
+SUFFIXES = (".png", ".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".bmp", ".pdf")
 FILE_TIMEOUT = 600  # seconds for one attachment, all its pages included
 MEMORY_LIMIT = 2 * 1024**3  # address space of the child and the tesseract it runs
 MAX_TEXT = 1_000_000  # characters kept per attachment

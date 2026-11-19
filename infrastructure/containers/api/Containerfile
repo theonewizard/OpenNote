@@ -81,7 +81,10 @@ RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
     && microdnf clean all
 
 COPY --from=tesseract /opt/tesseract /opt/tesseract
-RUN ln -s /opt/tesseract/bin/tesseract /usr/local/bin/tesseract && tesseract --version
+# A CMake build of Tesseract has no compiled-in data directory, so it is named here.
+ENV TESSDATA_PREFIX=/opt/tesseract/share/tessdata
+RUN ln -s /opt/tesseract/bin/tesseract /usr/local/bin/tesseract \
+    && tesseract --list-langs | grep -qx eng
 
 COPY backend/requirements.txt backend/constraints.txt /tmp/
 # Wheels only: every pinned package has a cp314 manylinux wheel, so the build needs no
