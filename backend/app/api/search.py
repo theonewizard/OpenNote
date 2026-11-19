@@ -94,6 +94,8 @@ async def search(
     limit: Limit = 50,
 ) -> SearchPage:
     """Full-text search with filters, best match first."""
+    if "\x00" in q:  # PostgreSQL text cannot hold NUL
+        raise ProblemError(422, "Invalid query", "invalid-query", "The query contains NUL.")
     after = _after(cursor)
     scope: Select[uuid.UUID] | uuid.UUID
     if vault_id is not None:
