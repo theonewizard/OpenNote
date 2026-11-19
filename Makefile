@@ -55,6 +55,9 @@ test: ## Run backend and web tests
 sync-sim: ## Run the seeded sync simulation alone (SEEDS=10000 for the milestone run, SEED_START=N)
 	cd backend && SYNC_SIM_SEEDS=$(SEEDS) SYNC_SIM_SEED_START=$(SEED_START) ../.venv/bin/pytest -q -m sync_sim tests/integration/sync_sim
 
+benchmark: ## Run the slow benchmarks: 100k-note search and real-vault targets (NOTES=N, OUT=file.json)
+	cd backend && OPENNOTE_TEST_BENCH_NOTES=$(or $(NOTES),100000) OPENNOTE_TEST_BENCH_OUT=$(OUT) ../.venv/bin/pytest -q -s -m slow tests/integration/api/test_search_perf.py tests/integration/api/test_vault_perf.py
+
 build: ## Production build of the web app
 	cd web && npm run build
 

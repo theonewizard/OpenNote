@@ -6,9 +6,10 @@ import uuid
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from sqlalchemy import func, select
+from sqlalchemy import any_, func, select
 from sqlalchemy.orm import Session
 
+from app.core.db import uuid_array
 from app.notes.identity import FsChange
 from app.notes.models import File
 from app.sync.commit import SERVER_FS, Committer, Create, Delete, Move, Operation, OpResult, Update
@@ -112,7 +113,7 @@ def ingest_fs_changes(committer: Committer, fs_changes: list[FsChange]) -> list[
         with committer.session_factory() as s:
             unwritten = s.scalars(
                 select(File.file_id).where(
-                    File.file_id.in_(changed),
+                    File.file_id == any_(uuid_array(changed)),
                     func.coalesce(File.written_revision, 0) < File.revision,
                 )
             )
