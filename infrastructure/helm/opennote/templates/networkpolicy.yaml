@@ -1,0 +1,41 @@
+{{- if .Values.networkPolicy.enabled }}
+# Only the release's web pods reach the API (the web app proxies /api/, /healthz and
+# /readyz to it); nothing reaches the worker, which listens on no port. web itself stays open
+# to the router or ingress controller, whose namespace differs between clusters. Egress is
+# not restricted: PostgreSQL and Valkey are external and their addresses are the operator's.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "opennote.fullname" . }}-api
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "opennote.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "opennote.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: web
+      ports:
+        - port: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "opennote.fullname" . }}-worker
+  labels:
+    {{- include "opennote.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "opennote.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  policyTypes: [Ingress]
+{{- end }}
