@@ -24,7 +24,7 @@ let package = Package(
                 .product(name: "OpenNoteCore", package: "OpenNoteCore"),
             ]
         ),
-        .testTarget(name: "OpenNoteStorageTests", dependencies: ["OpenNoteStorage"]),
+        .testTarget(name: "OpenNoteStorageTests", dependencies: ["OpenNoteStorage", "CSQLite"]),
     ],
     swiftLanguageModes: [.v6]
 )

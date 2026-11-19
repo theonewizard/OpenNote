@@ -18,10 +18,10 @@ public struct Changes: Sendable, Equatable {
 
 /// The device's local state for one vault, in SQLite outside the vault (storage contract
 /// §1.3): what each file looked like at the last scan or OpenNote write. It is a cache: losing
-/// it costs one full re-hash of the vault, never data. Sync state (bases, outbox, cursor)
-/// joins it with the Swift sync engine (P5-03), as a new `user_version`.
+/// it costs one full re-hash of the vault, never data. Version 2 adds the sync engine's state
+/// (`StateStore+Sync.swift`); losing that costs a full reconcile, plus any unpushed outbox.
 public final class StateStore {
-    public static let schemaVersion: Int32 = 1
+    public static let schemaVersion: Int32 = 2
     private var db: OpaquePointer?
 
     public init(url: URL) throws(StateError) {
@@ -54,6 +54,9 @@ public final class StateStore {
                 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
                 PRAGMA user_version = 1;
                 """)
+        }
+        if version < 2 {
+            try exec(Self.syncSchema)
         }
     }
 
@@ -165,7 +168,8 @@ public final class StateStore {
                   .int(f.pathWarning ? 1 : 0)])
     }
 
-    private func transaction(_ body: () throws(StateError) -> Void) throws(StateError) {
+    /// Runs `body` in one SQLite transaction: all of its writes land, or none.
+    public func transaction(_ body: () throws(StateError) -> Void) throws(StateError) {
         try exec("BEGIN IMMEDIATE")
         do {
             try body()
@@ -190,11 +194,11 @@ public final class StateStore {
         return value
     }
 
-    private func run(_ sql: String, _ values: [Value]) throws(StateError) {
+    func run(_ sql: String, _ values: [Value]) throws(StateError) {
         try query(sql, values) { _ in }
     }
 
-    private func query(_ sql: String, _ values: [Value] = [], _ row: (Row) -> Void) throws(StateError) {
+    func query(_ sql: String, _ values: [Value] = [], _ row: (Row) -> Void) throws(StateError) {
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK, let statement else { throw error() }
         defer { sqlite3_finalize(statement) }
