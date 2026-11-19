@@ -70,7 +70,7 @@ actor FakeServer: SyncAPI {
     }
 
     func text(_ id: String) -> String? {
-        files[id]?.hash.flatMap { blobs[FakeServer.hex($0)] }.map { String(decoding: $0, as: UTF8.self) }
+        files[id]?.hash.flatMap { blobs[SyncEngine.hex($0)] }.map { String(decoding: $0, as: UTF8.self) }
     }
 
     func live() -> [String: String] {

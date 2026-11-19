@@ -156,13 +156,13 @@ Clients are not the only writers. The server vault volume can be edited directly
 
 ```
 on start / network up / event hint / timer (60 s) / local change (debounced 2 s):
-    push outbox (blobs first, then ops, in order)
-    pull until has_more = false
     for each local dirty file without an outbox op and not flagged rejected (external edit, e.g. Obsidian on macOS):
-        enqueue update/create/delete from local scan
+        enqueue update/create/move/delete from local scan
+    push outbox (blobs first, then ops, in order)
+    pull until has_more = false, then write pulled revisions into clean files
 ```
 
-Local editing never waits for any of this. Each step is resumable from the outbox and cursor; a crash between steps is safe because every server call is idempotent and every local write is atomic.
+The scan comes first so a change made since the last round goes out in the same round; the loop is otherwise the same as scanning last. The Apple engine (`OpenNoteSync.SyncEngine`, [design](../superpowers/specs/2026-11-19-apple-sync-engine-design.md)) implements this loop. Local editing never waits for any of this. Each step is resumable from the outbox and cursor; a crash between steps is safe because every server call is idempotent and every local write is atomic.
 
 ## 10. Web client
 
