@@ -7,7 +7,8 @@ name: apple
 on:
   pull_request:
   push:
-    branches: [main, "feature/**", "fix/**", "security/**", "docs/**"]
+    # Branches run on their pull request; a push run as well would only repeat it.
+    branches: [main]
   workflow_dispatch:
 
 permissions:
