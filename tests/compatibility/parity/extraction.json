@@ -1,0 +1,477 @@
+[
+ {
+  "body": "[[a]] [[b|B]] [[c#H]] [[d#^blk]] [[#Local]] [[e#H|E]] ![[img.png|300]]",
+  "links": [
+   {
+    "target": "a",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "b",
+    "heading": null,
+    "block": null,
+    "alias": "B",
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "c",
+    "heading": "H",
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "d",
+    "heading": null,
+    "block": "blk",
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "",
+    "heading": "Local",
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "e",
+    "heading": "H",
+    "block": null,
+    "alias": "E",
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "img.png",
+    "heading": null,
+    "block": null,
+    "alias": "300",
+    "embed": true,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "| x | [[t\\|alias]] |",
+  "links": [
+   {
+    "target": "t",
+    "heading": null,
+    "block": null,
+    "alias": "alias",
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "[[ spaced  ]] [[x # h ]] [[y#^ b ]]",
+  "links": [
+   {
+    "target": "spaced",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "x",
+    "heading": "h",
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "y",
+    "heading": null,
+    "block": "b",
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "[t](a%20b.md) [u](<c d.md>) [v](https://e.org/x) ![w](img/p%C3%A9.png) [](empty.md)",
+  "links": [
+   {
+    "target": "a b.md",
+    "heading": null,
+    "block": null,
+    "alias": "t",
+    "embed": false,
+    "markdown": true
+   },
+   {
+    "target": "c d.md",
+    "heading": null,
+    "block": null,
+    "alias": "u",
+    "embed": false,
+    "markdown": true
+   },
+   {
+    "target": "img/pé.png",
+    "heading": null,
+    "block": null,
+    "alias": "w",
+    "embed": true,
+    "markdown": true
+   },
+   {
+    "target": "empty.md",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": true
+   }
+  ],
+  "tags": [],
+  "external_urls": [
+   "https://e.org/x"
+  ]
+ },
+ {
+  "body": "[x](mailto:a@b.c) [y](file.md#Head) [z](%ZZ.md) [q](%e9.md)",
+  "links": [
+   {
+    "target": "file.md",
+    "heading": "Head",
+    "block": null,
+    "alias": "y",
+    "embed": false,
+    "markdown": true
+   },
+   {
+    "target": "%ZZ.md",
+    "heading": null,
+    "block": null,
+    "alias": "z",
+    "embed": false,
+    "markdown": true
+   },
+   {
+    "target": "�.md",
+    "heading": null,
+    "block": null,
+    "alias": "q",
+    "embed": false,
+    "markdown": true
+   }
+  ],
+  "tags": [],
+  "external_urls": [
+   "mailto:a@b.c"
+  ]
+ },
+ {
+  "body": "#tag #nested/tag #123 #1a #ünï #日本語 x#no #a-b_c #end. (#paren) #tag!",
+  "links": [],
+  "tags": [
+   "tag",
+   "nested/tag",
+   "1a",
+   "ünï",
+   "日本語",
+   "a-b_c",
+   "end",
+   "tag"
+  ],
+  "external_urls": []
+ },
+ {
+  "body": "# Heading #tag\n## #inheading",
+  "links": [],
+  "tags": [
+   "tag",
+   "inheading"
+  ],
+  "external_urls": []
+ },
+ {
+  "body": "`#code [[nolink]]` ``x ` [[still]] `` [[yes]]",
+  "links": [
+   {
+    "target": "yes",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "```\n[[fenced]] #fenced\n```\n[[after]]",
+  "links": [
+   {
+    "target": "after",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "~~~md\n[[tilde]]\n~~~",
+  "links": [],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "    [[indented]] #indented\n\npara [[p]]",
+  "links": [
+   {
+    "target": "p",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "para\n    [[continuation]]",
+  "links": [
+   {
+    "target": "continuation",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "- item\n\n      [[code-in-list]]\n- [[list-link]]",
+  "links": [
+   {
+    "target": "list-link",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "> quote\n> ```\n> [[in-quote-fence]]\n> ```\n> [[quote-link]]",
+  "links": [
+   {
+    "target": "quote-link",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "<div>\n[[in-html]]\n</div>\n\n[[out]]",
+  "links": [
+   {
+    "target": "out",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "<!-- [[comment]] -->[[x]] %%[[obs]] #obs%% #vis",
+  "links": [],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "%%\nmulti\n[[obs2]]\n%%\n#after",
+  "links": [],
+  "tags": [
+   "after"
+  ],
+  "external_urls": []
+ },
+ {
+  "body": "```\nunclosed [[fence]]",
+  "links": [],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "text\r\n```\r\n[[crlf-fence]]\r\n```\r\n[[crlf-out]] #crlf",
+  "links": [
+   {
+    "target": "crlf-out",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [
+   "crlf"
+  ],
+  "external_urls": []
+ },
+ {
+  "body": "😀 [[emoji-before]] `😀😀` [[after-code]] #😀tag",
+  "links": [
+   {
+    "target": "emoji-before",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "after-code",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [
+   "😀tag"
+  ],
+  "external_urls": []
+ },
+ {
+  "body": "https://x.org/#frag #real",
+  "links": [],
+  "tags": [
+   "real"
+  ],
+  "external_urls": []
+ },
+ {
+  "body": " #nbsp 　#ideo  #ls",
+  "links": [],
+  "tags": [
+   "nbsp",
+   "ideo",
+   "ls"
+  ],
+  "external_urls": []
+ },
+ {
+  "body": "[[a]][[b]]![[c]]",
+  "links": [
+   {
+    "target": "a",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "b",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "c",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": true,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "![[x.pdf#page=3]] [[a/b/c]] [[../up]]",
+  "links": [
+   {
+    "target": "x.pdf",
+    "heading": "page=3",
+    "block": null,
+    "alias": null,
+    "embed": true,
+    "markdown": false
+   },
+   {
+    "target": "a/b/c",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   },
+   {
+    "target": "../up",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ },
+ {
+  "body": "[[unclosed [[ok]]",
+  "links": [
+   {
+    "target": "ok",
+    "heading": null,
+    "block": null,
+    "alias": null,
+    "embed": false,
+    "markdown": false
+   }
+  ],
+  "tags": [],
+  "external_urls": []
+ }
+]

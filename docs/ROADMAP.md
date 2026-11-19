@@ -79,10 +79,10 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P4-01 | `OpenNoteCore` parsing parity with Python on the corpus | P1-10 | P0 | Same `expected.json` results | NOT_STARTED |
-| P4-02 | `OpenNoteStorage`: local vault, atomic coordinated writes, SQLite state | P4-01 | P0 | Local save < 100 ms; round-trip tests | NOT_STARTED |
+| P4-01 | `OpenNoteCore` parsing parity with Python on the corpus | P1-10 | P0 | Same `expected.json` results | COMPLETED: `OpenNoteCore` corpus tests (round trip, frontmatter, extraction for all 32 cases) and the Python-generated parity fixtures in `tests/compatibility/parity` pass on macOS and Linux ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511), branch `feature/apple-core`); Swift metadata editing is not included ([plan](superpowers/plans/2026-11-07-apple-core-packages-plan.md)) |
+| P4-02 | `OpenNoteStorage`: local vault, atomic coordinated writes, SQLite state | P4-01 | P0 | Local save < 100 ms; round-trip tests | COMPLETED: `OpenNoteStorage` round-trip, never-clobber, recovery and state tests pass on macOS and Linux; median local save of a 100 KB note under 100 ms on both CI runners ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511)) |
 | P4-03 | `OpenNoteAPI`: generated client, auth via ASWebAuthenticationSession, Keychain | P2-10 | P0 | Login on macOS and iOS | TESTING |
-| P4-04 | `OpenNoteEditor`: TextKit 2 Markdown editor with live styling | P4-02 | P0 | Corpus edits preserve bytes | NOT_STARTED |
+| P4-04 | `OpenNoteEditor`: TextKit 2 Markdown editor with live styling | P4-02 | P0 | Corpus edits preserve bytes | COMPLETED: `OpenNoteEditor` drives a real TextKit 2 `NSTextView` with every corpus note and a typed CRLF line break, bytes unchanged ([apple run](https://github.com/theonewizard/OpenNote/actions/runs/42387662511), macOS); not yet placed in the app windows (P4-05/P4-06) |
 | P4-05 | macOS app: windows, menus, shortcuts, drag and drop, user-chosen vault folder | P4-02, P4-04 | P0 | XCUITest smoke | NOT_STARTED |
 | P4-06 | iOS app: app-container vault exposed in Files, camera attachments | P4-02, P4-04 | P0 | XCUITest smoke | NOT_STARTED |
 | P4-07 | iPadOS: split view, keyboard, Pencil-friendly interactions | P4-06 | P0 | XCUITest on iPad | NOT_STARTED |
@@ -109,14 +109,14 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | IN_PROGRESS (parser and one-character toggle in `app/tasks/parse.py`; task index, view and the write wait for P2-04) |
-| P6-02 | Recurring tasks and reminders | P6-01 | P1 | — | NOT_STARTED |
+| P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | IN_PROGRESS (task index, `GET /api/v1/tasks` and the toggle route on the commit path; the client task views remain) |
+| P6-02 | Recurring tasks and reminders | P6-01 | P1 | — | IN_PROGRESS (Tasks plugin dates, priority and `🔁` recurrence indexed; completing a recurring task adds the next occurrence; Reminder plugin reminders indexed and listed with `remind_before`; device notifications and the calendar feed remain) |
 | P6-03 | Calendar integration (CalDAV server-side, EventKit on Apple) | P6-01 | P1 | — | NOT_STARTED |
 | P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | IN_PROGRESS (`clipper/` MV3 extension and `POST /api/v1/clips`; the Apple share sheet remains) |
-| P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (Obsidian-compatible rendering in `app/notes/templates.py`; creating a note from a template waits for P2-04) |
+| P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (`POST /api/v1/notes` with `template_id`; the client template pickers remain) |
 | P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | NOT_STARTED |
 | P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
-| P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (backlink and graph queries in `app/notes/graph.py`; the HTTP route and the client panels follow the Phase 2 API) |
+| P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (`/notes/{id}/links` and `GET /api/v1/graph`; the client panels remain) |
 | P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | NOT_STARTED |
 | P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | IN_PROGRESS (`POST /api/v1/imports/enex`; email-to-note remains) |
 
@@ -127,7 +127,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P7-01 | AI provider abstraction (Ollama, OpenAI-compatible, faster-whisper), off by default | M5 | P2 | Core works with AI disabled/absent | IN_PROGRESS: `backend/app/ai` has the `AIProvider` protocol (`embed`, `generate`) with Ollama and OpenAI-compatible providers, off by default, external providers only for vaults that opt in ([AI guide](deployment/ai.md)); the full suite passes with AI unset. faster-whisper (`transcribe`) is left to P7-07, the first feature that needs it |
 | P7-02 | Embedding pipeline (chunking, pgvector, incremental on change) | P7-01 | P2 | Index updates after edits | TESTING: migration `0008`; every API commit enqueues `embed_vault_job` when a provider is set, and a run re-embeds only changed chunks (integration tests); `python -m app.ai embed` for changes made outside the API. Not verified against a real model |
 | P7-03 | Hybrid semantic search | P7-02, P2-08 | P2 | Results cite notes; vault-scoped | NOT_STARTED |
-| P7-04 | AI assistant with citations and injection defenses | P7-03 | P2 | Red-team cases pass | NOT_STARTED |
+| P7-04 | AI assistant with citations and injection defenses | P7-03 | P2 | Red-team cases pass | IN_PROGRESS: the Claude assistant (`app.ai.agent`, `python -m app.ai ask`): search and read tools scoped to one vault, cited answers with uncited ones flagged, edits as suggestions only, note text marked as data; tested against a scripted transport, not a live model. Open: semantic search (P7-03), local models, an API route and screen, red-team cases |
 | P7-05 | Auto-tagging and classification suggestions | P7-01 | P2 | Suggestions only; no unapproved writes | NOT_STARTED |
 | P7-06 | Summarization | P7-01 | P2 | — | NOT_STARTED |
 | P7-07 | Transcription and meeting notes | P7-01 | P2 | — | NOT_STARTED |
@@ -137,7 +137,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | NOT_STARTED |
+| P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | IN_PROGRESS (server: nightly 100k-note benchmark `make benchmark`, results in [benchmarks.md](development/benchmarks.md); reference hardware and the Apple and web client numbers still open) |
 | P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | IN_PROGRESS (DAST: ZAP API scan in the containers workflow, `scripts/dast.sh`; the external review is still to be arranged) |
 | P8-03 | Accessibility review (VoiceOver, keyboard, WCAG 2.2 AA web) | M5 | P0 | — | IN_PROGRESS (web: axe WCAG 2.2 AA and keyboard-only Playwright checks on every push, `web/tests/e2e/accessibility.spec.ts`; VoiceOver on the Apple apps and a manual web review still open) |
 | P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | NOT_STARTED |

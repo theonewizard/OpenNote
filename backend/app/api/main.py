@@ -28,6 +28,7 @@ from app.api import (
     meta,
     notes,
     search,
+    tasks,
     users,
     vaults,
 )
@@ -55,6 +56,7 @@ ROUTERS: list[APIRouter] = [
     folders.router,
     attachments.router,
     search.router,
+    tasks.router,
     imports.router,
     clips.router,
 ]
