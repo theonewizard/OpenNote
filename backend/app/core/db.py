@@ -4,10 +4,11 @@ The engine lives on app.state.engine, created and disposed by the app's lifespan
 engine and workers use a synchronous engine on the same URL (`make_sync_engine`).
 """
 
-from collections.abc import AsyncIterator
+import uuid
+from collections.abc import AsyncIterator, Iterable
 
 from fastapi import Request
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import ARRAY, BindParameter, Engine, Uuid, create_engine, literal
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -43,3 +44,9 @@ async def session_scope(request: Request) -> AsyncIterator[AsyncSession]:
     """A session on the app's engine, closed afterwards; meant as a FastAPI dependency."""
     async with AsyncSession(request.app.state.engine, expire_on_commit=False) as session:
         yield session
+
+
+def uuid_array(ids: Iterable[uuid.UUID]) -> BindParameter[list[uuid.UUID]]:
+    """`ids` as one array parameter, for `col == any_(...)`: an `IN` list sends one
+    parameter per id and PostgreSQL refuses more than 65,535 (a 100k-note vault import)."""
+    return literal(list(ids), ARRAY(Uuid))
