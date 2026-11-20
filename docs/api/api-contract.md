@@ -158,7 +158,7 @@ word       = char, { char } ;                            (* no whitespace, no un
 | `before:` / `after:` | Modified before/after date | `after:2026-09-01` |
 | `is:x` | `favorite`, `archived`, `conflict` | `is:favorite` |
 
-Free words and phrases match title, body, aliases, tags and (Phase 6) OCR text using PostgreSQL full-text search (`websearch`-style parsing done by our parser, `simple` + language configuration per vault) with trigram fallback for partial words. Unknown keys are treated as plain words, never as errors. Every query is scoped to the caller's authorized vaults before any matching.
+Free words and phrases match title, body, aliases, tags and the OCR text of the attachments a note links to (P6-06: images and PDFs, read by the worker after upload; a note is returned, never the attachment itself, and its snippet comes from the note's body) using PostgreSQL full-text search (`websearch`-style parsing done by our parser, `simple` + language configuration per vault) with trigram fallback for partial words. Unknown keys are treated as plain words, never as errors. Every query is scoped to the caller's authorized vaults before any matching.
 
 ## 6. Versioning and deprecation
 

@@ -11,6 +11,7 @@ psycopg[binary]==3.3.9
 pydantic==2.14.3
 pydantic-settings==2.16.3
 pyjwt[crypto]==2.15.1
+pypdfium2==5.15.2
 python-multipart==0.0.33
 redis==8.1.0
 ruamel.yaml==0.19.1
