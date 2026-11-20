@@ -4,6 +4,7 @@
 import { http, HttpResponse } from "msw";
 
 import type { Folder, NoteMeta, Vault } from "@/api/types";
+import { FakeSyncServer } from "@/mocks/sync-server";
 
 const VAULT_ID = "0192a0c4-6a1e-7c3e-9a0b-5d0e1f2a3b4c";
 
@@ -64,48 +65,46 @@ export function initialNotes(): MockNote[] {
   ];
 }
 
-const problem = (status: number, title: string) =>
-  HttpResponse.json(
-    { type: "about:blank", title, status },
-    { status, headers: { "Content-Type": "application/problem+json" } },
-  );
-
-const etag = (n: MockNote) => `"${n.meta.revision}"`;
+const USER = { id: "0192a0c4-0000-7000-8000-00000000a11c", display_name: "Dana", email: null, created_at: "2026-11-07T10:00:00.000Z" };
 
 function inFolder(path: string, folder: string | null) {
   if (folder === null) return true;
   return path.slice(0, path.lastIndexOf("/")) === folder;
 }
 
-export function createHandlers(notes: MockNote[] = initialNotes()) {
-  const find = (id: unknown) => notes.find((n) => n.meta.id === id);
+// Notes live in the fake sync server: the note list shows its files, and the editor reads
+// and writes them through the sync endpoints, as the app does against the real API.
+export function createHandlers(notes: MockNote[] = initialNotes(), sync = new FakeSyncServer()) {
+  for (const n of notes) sync.seed(n.meta.id, n.meta.path, n.bytes as Uint8Array<ArrayBuffer>);
+  const metas = new Map(notes.map((n) => [n.meta.id, n.meta]));
   return [
+    http.all("/api/v1/*", async ({ request }) => {
+      try {
+        return await sync.handle(request);
+      } catch {
+        return HttpResponse.error();
+      }
+    }),
+    http.get("/api/v1/me", () => HttpResponse.json(USER)),
     http.get("/api/v1/vaults", () => HttpResponse.json({ items: vaults, next_cursor: null })),
     http.get("/api/v1/folders", () => HttpResponse.json({ items: folders })),
-    http.get("/api/v1/notes", ({ request }) => {
+    http.get("/api/v1/notes", async ({ request }) => {
       const params = new URL(request.url).searchParams;
-      const all = notes.filter((n) => inFolder(n.meta.path, params.get("folder"))).map((n) => n.meta);
+      const all = (await sync.liveFiles())
+        .filter(([, f]) => f.kind === "note" && inFolder(f.path, params.get("folder")))
+        .map(([id, f]) => ({
+          ...(metas.get(id) ?? note(0, f.path, new Uint8Array()).meta),
+          id,
+          path: f.path,
+          title: f.path.split("/").at(-1)!.replace(/\.md$/, ""),
+          revision: f.revision,
+          content_hash: f.hash!,
+          size: f.size,
+        }));
       const start = Number(params.get("cursor") ?? 0);
       const end = start + Number(params.get("limit") ?? 50);
       const next_cursor = end < all.length ? String(end) : null;
       return HttpResponse.json({ items: all.slice(start, end), next_cursor });
-    }),
-    http.get("/api/v1/notes/:id/content", ({ params }) => {
-      const n = find(params.id);
-      if (!n) return problem(404, "Not Found");
-      return new HttpResponse(n.bytes.slice(), {
-        headers: { "Content-Type": "text/markdown; charset=utf-8", ETag: etag(n) },
-      });
-    }),
-    http.put("/api/v1/notes/:id/content", async ({ params, request }) => {
-      const n = find(params.id);
-      if (!n) return problem(404, "Not Found");
-      const ifMatch = request.headers.get("if-match");
-      if (!ifMatch) return problem(428, "Precondition Required");
-      if (ifMatch !== etag(n)) return problem(412, "Precondition Failed");
-      n.bytes = new Uint8Array(await request.arrayBuffer());
-      n.meta = { ...n.meta, revision: n.meta.revision + 1 };
-      return HttpResponse.json(n.meta, { headers: { ETag: etag(n) } });
     }),
   ];
 }

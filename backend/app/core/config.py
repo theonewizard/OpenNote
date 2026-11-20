@@ -94,6 +94,11 @@ class Settings(BaseSettings):
         ge=8,  # clients drop outbox operations 7 days before this window ends
         description="Deletes and operation results are kept this long",
     )
+    ocr_languages: str = Field(
+        default="eng",
+        pattern=r"^[a-z_]{3,16}(\+[a-z_]{3,16}){0,7}$",
+        description="Tesseract languages for OCR, joined with +, e.g. eng+dan",
+    )
     log_level: str = "INFO"
     environment: Literal["development", "test", "production"] = "production"
     # Requests per minute under /api/ (app.api.ratelimit); 0 turns that limit off.

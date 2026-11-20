@@ -41,6 +41,7 @@ pydantic==2.14.3
 pydantic-settings==2.16.3
 pydantic_core==2.50.4
 PyJWT==2.15.1
+pypdfium2==5.15.2
 python-dotenv==1.2.4
 python-multipart==0.0.33
 PyYAML==6.0.3

@@ -41,5 +41,5 @@ Status: Proposed (2026-10-17). STRIDE-style baseline for Phase 0; updated whenev
 
 ## 4. Explicit non-claims
 
-- OpenNote does **not** provide end-to-end encryption. The server can read note content (needed for search, OCR and AI). Encryption at rest is the operator's volume/database encryption; backups are encrypted with a key the operator holds (Phase 8).
+- OpenNote does **not** provide end-to-end encryption. The server can read note content (needed for search, OCR and AI). Encryption at rest is the operator's volume/database encryption; backups are encrypted to an OpenPGP public key whose private key the operator keeps outside the server ([backup and restore](../deployment/backup.md)).
 - Security of the local vault on a device is the device's security (FileVault, iOS data protection with `NSFileProtectionComplete` for the app container).

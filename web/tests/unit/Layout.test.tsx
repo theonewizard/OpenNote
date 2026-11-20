@@ -6,6 +6,7 @@ import { expect, it, vi } from "vitest";
 
 import { Layout } from "@/app/Layout";
 import { createHandlers, initialNotes } from "@/mocks/handlers";
+import { FakeSyncServer } from "@/mocks/sync-server";
 import { server } from "./setup";
 
 function renderApp() {
@@ -63,15 +64,16 @@ it("pages through long note lists", async () => {
   expect(within(list).queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
 });
 
-it("saves edits with If-Match, the CSRF token and the file's own bytes", async () => {
+it("saves edits on the device and syncs them with the CSRF token and the file's own bytes", async () => {
   const notes = initialNotes();
+  const sync = new FakeSyncServer();
   const sent: (string | null)[] = [];
   document.cookie = "opennote_csrf=token-1";
   server.use(
-    http.put("/api/v1/notes/:id/content", ({ request }) => {
+    http.post("/api/v1/sync/:vault/push", ({ request }) => {
       sent.push(request.headers.get("x-csrf-token"));
     }),
-    ...createHandlers(notes),
+    ...createHandlers(notes, sync),
   );
   renderApp();
   fireEvent.click(await screen.findByRole("button", { name: /^Plan/ }));
@@ -83,48 +85,75 @@ it("saves edits with If-Match, the CSRF token and the file's own bytes", async (
   });
   expect(screen.getByRole("contentinfo")).toHaveTextContent("Unsaved changes");
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  await waitFor(() => expect(screen.getByRole("contentinfo")).toHaveTextContent("Saved"));
+  await waitFor(() => expect(screen.getByRole("contentinfo")).toHaveTextContent("1 change not synced yet"));
+  await waitFor(() => expect(screen.getByRole("contentinfo")).toHaveTextContent("Saved"), { timeout: 4000 });
 
-  const saved = new TextDecoder("utf-8", { ignoreBOM: true }).decode(notes[1].bytes);
-  expect(saved).toBe("﻿---\r\ntags: [alpha]\r\n---\r\n# Plan\r\n\r\n- [ ] First step\r\n\r\n- [ ] Second");
-  expect(notes[1].meta.revision).toBe(2);
+  const id = notes[1].meta.id;
+  const saved = new TextDecoder("utf-8", { ignoreBOM: true }).decode(await sync.bytes(id));
+  expect(saved).toBe("\ufeff---\r\ntags: [alpha]\r\n---\r\n# Plan\r\n\r\n- [ ] First step\r\n\r\n- [ ] Second");
+  expect(sync.files.get(id)!.revision).toBe(2);
   expect(sent).toEqual(["token-1"]);
   document.cookie = "opennote_csrf=; max-age=0";
 });
 
 it("autosaves after typing stops", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  // IndexedDB (fake-indexeddb) schedules with setImmediate, which stays real.
+  vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
   try {
     const notes = initialNotes();
-    server.use(...createHandlers(notes));
+    const sync = new FakeSyncServer();
+    server.use(...createHandlers(notes, sync));
     renderApp();
     fireEvent.click(await screen.findByRole("button", { name: /^Welcome/ }));
     await waitFor(() => expect(editorDom()).toBeTruthy());
     const view = editorView();
     act(() => view.dispatch({ changes: { from: 0, insert: "x" } }));
-    await act(() => vi.advanceTimersByTimeAsync(2000));
-    await waitFor(() => expect(notes[0].meta.revision).toBe(2));
-    expect(new TextDecoder().decode(notes[0].bytes).startsWith("x# Welcome")).toBe(true);
+    await act(() => vi.advanceTimersByTimeAsync(600)); // autosave stores it on the device
+    await waitFor(() => expect(screen.getByRole("contentinfo")).toHaveTextContent("1 change not synced yet"));
+    await act(() => vi.advanceTimersByTimeAsync(2500)); // then the sync after an edit runs
+    await waitFor(() => expect(sync.files.get(notes[0].meta.id)!.revision).toBe(2));
+    expect(new TextDecoder().decode(await sync.bytes(notes[0].meta.id)).startsWith("x# Welcome")).toBe(true);
   } finally {
     vi.useRealTimers();
   }
 });
 
-it("keeps edits and does not overwrite when the note changed elsewhere", async () => {
+it("keeps both versions when the note changed elsewhere", async () => {
   const notes = initialNotes();
-  server.use(...createHandlers(notes));
+  const sync = new FakeSyncServer();
+  server.use(...createHandlers(notes, sync));
   renderApp();
   fireEvent.click(await screen.findByRole("button", { name: /^Welcome/ }));
   await waitFor(() => expect(editorDom()).toBeTruthy());
-  notes[0].meta.revision = 5; // another client saved
-  const before = notes[0].bytes;
+  await sync.edit(notes[0].meta.id, new TextEncoder().encode("theirs\n")); // another client saved
 
   const view = editorView();
   act(() => view.dispatch({ changes: { from: 0, insert: "mine " } }));
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("changed elsewhere");
-  expect(notes[0].bytes).toBe(before);
-  expect(view.state.sliceDoc().startsWith("mine ")).toBe(true);
+  // The fake server does not merge: the edit is kept as a conflict copy and the editor
+  // shows the server's version with a note saying where the edit went.
+  expect(await screen.findByRole("status", {}, { timeout: 4000 })).toHaveTextContent("Welcome (conflict web");
+  await waitFor(() => expect(editorView().state.sliceDoc()).toBe("theirs\n"));
+  const copy = (await sync.liveFiles()).find(([, f]) => f.path.startsWith("Welcome (conflict"))!;
+  expect(new TextDecoder().decode(await sync.bytes(copy[0])).startsWith("mine # Welcome")).toBe(true);
+});
+
+it("keeps editing offline and says the changes are not synced", async () => {
+  const notes = initialNotes();
+  const sync = new FakeSyncServer();
+  server.use(...createHandlers(notes, sync));
+  renderApp();
+  fireEvent.click(await screen.findByRole("button", { name: /^Welcome/ }));
+  await waitFor(() => expect(editorDom()).toBeTruthy());
+  sync.offline = true;
+  const view = editorView();
+  act(() => view.dispatch({ changes: { from: 0, insert: "offline " } }));
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(screen.getByRole("contentinfo")).toHaveTextContent("1 change not synced yet (offline)"), { timeout: 4000 });
+  sync.offline = false;
+  act(() => void dispatchEvent(new Event("online")));
+  await waitFor(() => expect(screen.getByRole("contentinfo")).toHaveTextContent("Saved"));
+  expect(new TextDecoder().decode(await sync.bytes(notes[0].meta.id)).startsWith("offline # Welcome")).toBe(true);
 });
 
 it("opens a non-UTF-8 note read-only", async () => {

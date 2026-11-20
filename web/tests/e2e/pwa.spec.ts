@@ -47,5 +47,7 @@ test("installable: manifest with icons, and a service worker that serves the she
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByText("OpenNote", { exact: true })).toBeVisible();
-  await expect(page.getByRole("contentinfo")).toHaveText("Not connected");
+  // The vault and its notes come from the device's cache (P5-04); sync waits for the network.
+  await expect(page.getByRole("contentinfo")).toHaveText("Offline");
+  await expect(page.getByRole("button", { name: /^Welcome/ })).toBeVisible();
 });
