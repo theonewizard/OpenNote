@@ -5,15 +5,16 @@
 #   1. Helm chart, Kubernetes variant, with the network policy on, in a namespace that
 #      enforces Pod Security "restricted": no template may draw a PodSecurity warning; the
 #      migration hook runs, every pod becomes ready, the smoke test passes through web, the
-#      API is unreachable from any other pod, an upgrade re-runs the migration, and
-#      `helm uninstall` keeps both volumes.
+#      API is unreachable from any other pod, a backup Job made from the backup CronJob writes
+#      an encrypted backup, an upgrade re-runs the migration, and `helm uninstall` keeps both
+#      volumes.
 #   2. The OpenShift kustomize overlay with what the restricted-v2 SCC does to a pod
 #      simulated: an arbitrary UID and fsGroup from a namespace range, no Route (kind has no
 #      router). Every pod becomes ready and the smoke test passes.
 #
 #   scripts/kind-deploy-test.sh
 #
-# Needs kubectl, helm, curl and a cluster whose nodes already hold the images
+# Needs kubectl, helm, curl, gpg and a cluster whose nodes already hold the images
 # opennote-api:dev, opennote-web:dev, opennote-postgres:dev and opennote-valkey:dev
 # (`kind load docker-image`), and a default StorageClass. PostgreSQL and Valkey run as test
 # fixtures with throwaway passwords and emptyDir storage. Creates and deletes the namespaces
@@ -50,6 +51,7 @@ cleanup() {
   local status=$?
   [[ -n $port_forward ]] && kill "$port_forward" 2>/dev/null
   ((status == 0)) || dump
+  [[ -d $work/gnupg ]] && gpgconf --kill gpg-agent 2>/dev/null
   rm -rf "$work"
   exit "$status"
 }
@@ -185,7 +187,28 @@ helm_args=(
   --set image.tag=dev --set image.pullPolicy=Never
   --set persistence.accessMode=ReadWriteOnce # kind's local-path provisioner has no RWX
   --set networkPolicy.enabled=true
+  --set backup.enabled=true --set image.postgresRepository=opennote-postgres
+  --set backup.persistence.existingClaim=backups
 )
+
+# kind's StorageClass binds a claim when its first pod starts (WaitForFirstConsumer), and
+# nothing mounts the backups claim before the first backup, so the chart's own claim would
+# keep `helm install --wait` waiting; the claim is made here instead (docs/deployment/backup.md).
+kubectl -n "$helm_ns" apply -f - <<'YAML'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: backups}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+YAML
+
+# The backup CronJob's public key: a throwaway key pair; the private key stays in $work.
+export GNUPGHOME=$work/gnupg
+mkdir -m 700 "$GNUPGHOME"
+gpg --batch --quiet --passphrase '' --quick-gen-key 'OpenNote kind test' default default never
+gpg --batch --armor --export > "$work/public.asc"
+kubectl -n "$helm_ns" create configmap opennote-backup-key --from-file=public.asc="$work/public.asc"
 
 # The rendered templates, migration hook included, against the API server's admission:
 # any "would violate PodSecurity" warning fails.
@@ -217,6 +240,13 @@ probe() {
 probe probe-web web || fail "a pod labelled as web cannot reach the API"
 ! probe probe-other other 2>/dev/null || fail "the network policy lets any pod reach the API"
 echo "network policy: web reaches the API, another pod does not"
+
+# A backup now, from the CronJob's own template, with the stack running.
+kubectl -n "$helm_ns" create job backup-now --from=cronjob/opennote-backup
+kubectl -n "$helm_ns" wait --for=condition=complete job/backup-now --timeout=300s ||
+  fail "the backup Job did not complete"
+kubectl -n "$helm_ns" logs job/backup-now | tee "$work/backup.log"
+grep -q 'wrote /backups/opennote-.*\.tar\.gz\.gpg' "$work/backup.log" || fail "the backup Job wrote no backup"
 
 migrated_before=$(kubectl -n "$helm_ns" get job opennote-migrate -o jsonpath='{.metadata.uid}')
 helm upgrade opennote "$chart" "${helm_args[@]}" --set logLevel=DEBUG --wait --timeout 10m
