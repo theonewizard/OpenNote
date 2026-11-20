@@ -3,7 +3,9 @@
 User text reaches `to_tsquery` only as `\\w+` runs, each quoted and given `:*`, so no
 user input is ever read as tsquery syntax; phrases go through `phraseto_tsquery`, which
 takes plain text. Words of three characters or more also match as a substring of the
-title or the body (trigram indexes), for partial words. The caller passes the vault
+title or the body (trigram indexes), for partial words. Words and phrases also match the
+OCR text of the attachments a note links to (`ocr_texts`), so a note is found by the
+text in its scans. The caller passes the vault
 scope; it is applied in the same WHERE as the matching, so nothing outside it is ranked.
 """
 
@@ -36,6 +38,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.notes.models import File, Note, NoteLink, NoteTag, SearchDocument
+from app.ocr.models import OcrText
 from app.search.grammar import And, Filter, Node, Not, Or, Phrase, Word, parse_date, parse_range
 from app.sync.models import Conflict, Revision
 from app.vaults.paths import casefold_key
@@ -112,6 +115,29 @@ def _attachment_link(pattern: str | None) -> ColumnElement[bool]:
     )
 
 
+def _attachment_text(query: ColumnElement[object]) -> ColumnElement[bool]:
+    """The note links to a live attachment whose OCR text matches `query` (P6-06)."""
+    target = aliased(File)
+    return exists(
+        select(1)
+        .select_from(NoteLink)
+        .join(target, target.file_id == NoteLink.resolved_file_id)
+        .join(
+            OcrText,
+            and_(
+                OcrText.vault_id == target.vault_id,
+                OcrText.content_hash == target.content_hash,
+            ),
+        )
+        .where(
+            NoteLink.file_id == D.file_id,
+            target.kind == "attachment",
+            ~target.deleted,
+            OcrText.tsv.op("@@")(query),
+        )
+    )
+
+
 def _property(name: str) -> ColumnElement[bool]:
     flag = cast({"opennote": {name: True}}, JSONB)
     return func.coalesce(Note.properties.op("@>", return_type=Boolean)(flag), False)
@@ -171,9 +197,10 @@ def compile_tree(tree: Node) -> Compiled:
         match node:
             case Word(text):
                 query = _tsquery(text)
-                parts = []
+                parts: list[ColumnElement[bool]] = []
                 if query is not None:
                     parts.append(D.tsv.op("@@")(query))
+                    parts.append(_attachment_text(query))
                 if len(text) >= 3:
                     parts.append(D.title.ilike(_like(text), escape="\\"))
                     parts.append(D.body.ilike(_like(text), escape="\\"))
@@ -189,7 +216,7 @@ def compile_tree(tree: Node) -> Compiled:
                 if positive:
                     rank.append(query)
                     titles.append(_like(text))
-                return D.tsv.op("@@")(query)
+                return or_(D.tsv.op("@@")(query), _attachment_text(query))
             case Filter():
                 return _filter(node)
             case Not(child):

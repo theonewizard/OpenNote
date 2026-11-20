@@ -46,6 +46,7 @@ def test_keyless_routes_are_exactly_the_documented_set():
         "/api/v1/auth/login",
         "/api/v1/auth/token",
         "/api/v1/auth/oidc/{provider}/callback",
+        "/api/v1/calendar/tasks.ics",
     }
 
 
