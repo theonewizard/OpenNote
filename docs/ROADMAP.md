@@ -114,7 +114,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P6-03 | Calendar integration (CalDAV server-side, EventKit on Apple) | P6-01 | P1 | — | IN_PROGRESS (read-only iCalendar feed of dated tasks, `/api/v1/calendar-feeds`; two-way CalDAV and EventKit remain) |
 | P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | NOT_STARTED |
 | P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (`POST /api/v1/notes` with `template_id`; the client template pickers remain) |
-| P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | IN_PROGRESS: server side done (worker job, Tesseract built from source in the API image, PDF text layers, search by scan text, migration `0013`); VisionKit scanning and Vision OCR on Apple devices remain |
+| P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | IN_PROGRESS: server side done (worker job, Tesseract built from source in the API image, PDF text layers, search by scan text, migration `0014`); VisionKit scanning and Vision OCR on Apple devices remain |
 | P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
 | P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (`/notes/{id}/links` and `GET /api/v1/graph`; the client panels remain) |
 | P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | NOT_STARTED |
