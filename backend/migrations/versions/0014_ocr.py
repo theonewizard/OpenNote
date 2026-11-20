@@ -2,8 +2,8 @@
 layer where it has one. Filled by the worker's OCR job; searched with the notes that
 link to the attachment.
 
-Revision ID: 0013
-Revises: 0012
+Revision ID: 0014
+Revises: 0013
 Create Date: 2026-11-14
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects.postgresql import TSVECTOR
 
-revision: str = "0013"
-down_revision: str | None = "0012"
+revision: str = "0014"
+down_revision: str | None = "0013"
 branch_labels: str | None = None
 depends_on: str | None = None
 
