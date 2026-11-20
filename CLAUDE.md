@@ -574,6 +574,16 @@ Do not perform broad dependency upgrades as part of unrelated feature work.
 
 Security upgrades may be handled separately when discovered.
 
+### Blocked upgrades
+
+When an upgrade cannot be taken yet because upstream support is missing (for example a dependency's peer range does not accept the new version):
+
+- never add a Dependabot `ignore` rule or any other permanent skip for it
+- revert or decline the upgrade for now
+- add a check that runs with every build, passes quietly while support is missing, and reports clearly as soon as the upgrade becomes possible
+
+The upgrade is then taken as soon as it is available, not forgotten behind an ignore rule. Example: `scripts/check-typescript-next.sh` (job `TypeScript upgrade check` in `.github/workflows/web.yml`).
+
 ---
 
 ## 21. Repository Hygiene
