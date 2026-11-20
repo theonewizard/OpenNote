@@ -22,8 +22,10 @@ from app.api import (
     attachments,
     auth,
     calendar,
+    clips,
     folders,
     health,
+    imports,
     meta,
     notes,
     search,
@@ -33,6 +35,7 @@ from app.api import (
     vaults,
 )
 from app.api.deps import Committers
+from app.api.openapi import nullable_as_type_arrays
 from app.api.ratelimit import rate_limit_middleware
 from app.auth.dependencies import get_api_key, get_caller, get_current_principal
 from app.core.config import Settings, SettingsError, get_settings
@@ -59,6 +62,8 @@ ROUTERS: list[APIRouter] = [
     search.router,
     sync.router,
     tasks.router,
+    imports.router,
+    clips.router,
     calendar.router,
 ]
 
@@ -90,8 +95,10 @@ _PROBLEM_RESPONSE = {
 
 class _OpenNoteAPI(FastAPI):
     def openapi(self) -> dict[str, Any]:
-        """The OpenAPI document, plus the ProblemDetails schema the default responses use."""
+        """The OpenAPI document, plus the ProblemDetails schema the default responses use,
+        with nullable values spelled the way the Swift client generator reads them."""
         document = super().openapi()
+        nullable_as_type_arrays(document)
         document.setdefault("components", {}).setdefault("schemas", {})["ProblemDetails"] = (
             PROBLEM_DETAILS_SCHEMA
         )

@@ -274,6 +274,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/clips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Clip
+         * @description Save a clipped page as a note in `folder` (default `Clippings`). A personal access
+         *     token with write scope for the vault works, which is what the extension uses.
+         */
+        post: operations["create_clip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conflicts": {
         parameters: {
             query?: never;
@@ -432,6 +453,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/imports/enex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Enex
+         * @description Import every note of an ENEX export into `folder` (R-P6-011). A note that cannot be
+         *     written is listed in `skipped`; the others are imported.
+         */
+        post: operations["import_enex"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -579,6 +621,28 @@ export interface paths {
         get: operations["get_note_links"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notes/{note_id}/rename": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rename Note
+         * @description Move or rename the note and, with `update_links`, rewrite the links to it in other
+         *     notes (R-P6-009). Each linking note is its own revision, listed with the one before it
+         *     so a client can undo; one that changed meanwhile is skipped, never merged.
+         */
+        post: operations["rename_note"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1085,6 +1149,24 @@ export interface components {
              */
             next_cursor: string | null;
         };
+        /** Body_import_enex */
+        Body_import_enex: {
+            /**
+             * File
+             * @description An Evernote export (.enex)
+             */
+            file: string;
+            /**
+             * Folder
+             * @default Evernote
+             */
+            folder: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
         /** Body_token */
         Body_token: {
             /** Client Id */
@@ -1134,7 +1216,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Last Used At */
+            /**
+             * Last Used At
+             * Format: date-time
+             */
             last_used_at: string | null;
             /** Name */
             name: string;
@@ -1171,6 +1256,36 @@ export interface components {
             /** Items */
             items: components["schemas"]["CalendarFeed"][];
         };
+        /** ClipCreate */
+        ClipCreate: {
+            /**
+             * Folder
+             * @default Clippings
+             */
+            folder: string;
+            /**
+             * Html
+             * @description The selection or the page's main content, as HTML; converted to Markdown
+             */
+            html: string;
+            /** Tags */
+            tags?: string[];
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Url
+             * @description The clipped page's http(s) URL
+             */
+            url: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
         /** Conflict */
         Conflict: {
             /**
@@ -1200,7 +1315,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Resolved At */
+            /**
+             * Resolved At
+             * Format: date-time
+             */
             resolved_at: string | null;
             /** Revision */
             revision: number;
@@ -1298,7 +1416,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Last Seen At */
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
             last_seen_at: string | null;
             /** Name */
             name: string;
@@ -1415,6 +1536,45 @@ export interface components {
             /** Path */
             path: string | null;
         };
+        /** ImportResult */
+        ImportResult: {
+            /**
+             * Attachments
+             * @description Attachments created for them
+             */
+            attachments: number;
+            /**
+             * Notes
+             * @description The notes created, in export order
+             */
+            notes: components["schemas"]["NoteRef"][];
+            /** Skipped */
+            skipped: components["schemas"]["ImportSkip"][];
+        };
+        /** ImportSkip */
+        ImportSkip: {
+            /** Reason */
+            reason: string;
+            /**
+             * Title
+             * @description The note's title in the export; empty for the file itself
+             */
+            title: string;
+        };
+        /** LinkUpdate */
+        LinkUpdate: {
+            note: components["schemas"]["NoteRef"];
+            /**
+             * Previous Revision
+             * @description Its revision before; restore it to undo
+             */
+            previous_revision: number;
+            /**
+             * Revision
+             * @description The linking note's revision after the rewrite
+             */
+            revision: number;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -1513,6 +1673,7 @@ export interface components {
             content?: string | null;
             /**
              * Local Time
+             * Format: date-time
              * @description The creator's local time with its UTC offset, for the template's dates; omitted, the server's time in UTC
              */
             local_time?: string | null;
@@ -1523,6 +1684,7 @@ export interface components {
             path: string;
             /**
              * Template Id
+             * Format: uuid
              * @description A note in the same vault to start from instead of `content`: its `{{title}}`, `{{date}}`, `{{time}}`, `{{date:FORMAT}}` and `{{time:FORMAT}}` are filled in (Obsidian Templates syntax) and its `id` is replaced by the new note's
              */
             template_id?: string | null;
@@ -1587,6 +1749,20 @@ export interface components {
             path: string;
             /** Title */
             title: string;
+        };
+        /** NoteRename */
+        NoteRename: {
+            /**
+             * Path
+             * @description The new vault-relative path
+             */
+            path: string;
+            /**
+             * Update Links
+             * @description Rewrite links in other notes that point at this note
+             * @default true
+             */
+            update_links: boolean;
         };
         /** NoteRestore */
         NoteRestore: {
@@ -1667,14 +1843,20 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Expires At */
+            /**
+             * Expires At
+             * Format: date-time
+             */
             expires_at: string | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Last Used At */
+            /**
+             * Last Used At
+             * Format: date-time
+             */
             last_used_at: string | null;
             /** Name */
             name: string;
@@ -1691,7 +1873,10 @@ export interface components {
         };
         /** PersonalAccessTokenCreate */
         PersonalAccessTokenCreate: {
-            /** Expires At */
+            /**
+             * Expires At
+             * Format: date-time
+             */
             expires_at?: string | null;
             /** Name */
             name: string;
@@ -1892,6 +2077,20 @@ export interface components {
              */
             op: "update";
         };
+        /** RenameResult */
+        RenameResult: {
+            note: components["schemas"]["Note"];
+            /**
+             * Skipped
+             * @description Linking notes left alone: changed meanwhile, read-only, or too large
+             */
+            skipped: components["schemas"]["NoteRef"][];
+            /**
+             * Updated
+             * @description Notes whose links were rewritten
+             */
+            updated: components["schemas"]["LinkUpdate"][];
+        };
         /** SearchHit */
         SearchHit: {
             note: components["schemas"]["Note"];
@@ -2031,11 +2230,13 @@ export interface components {
             done: boolean;
             /**
              * Done On
+             * Format: date
              * @description Done date (Tasks plugin)
              */
             done_on: string | null;
             /**
              * Due
+             * Format: date
              * @description Due date (Tasks plugin)
              */
             due: string | null;
@@ -2055,8 +2256,11 @@ export interface components {
              * @description `ordinal` of the enclosing task, for subtasks
              */
             parent: number | null;
-            /** Priority */
-            priority: ("highest" | "high" | "medium" | "low" | "lowest") | null;
+            /**
+             * Priority
+             * @enum {string|null}
+             */
+            priority: "highest" | "high" | "medium" | "low" | "lowest" | null;
             /**
              * Recurrence
              * @description Recurrence rule as written (Tasks plugin)
@@ -2064,6 +2268,7 @@ export interface components {
             recurrence: string | null;
             /**
              * Remind At
+             * Format: date-time
              * @description Reminder plugin `(@date time)`: local wall-clock time, no UTC offset
              */
             remind_at: string | null;
@@ -2074,11 +2279,13 @@ export interface components {
             revision: number;
             /**
              * Scheduled
+             * Format: date
              * @description Scheduled date (Tasks plugin)
              */
             scheduled: string | null;
             /**
              * Start
+             * Format: date
              * @description Start date (Tasks plugin)
              */
             start: string | null;
@@ -2109,6 +2316,7 @@ export interface components {
             done: boolean;
             /**
              * Today
+             * Format: date
              * @description The caller's local date, for the done date and the next occurrence of a recurring task; omitted, the server's date in UTC
              */
             today?: string | null;
@@ -2894,6 +3102,39 @@ export interface operations {
             };
         };
     };
+    create_clip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_conflicts: {
         parameters: {
             query: {
@@ -2901,7 +3142,7 @@ export interface operations {
                 /** @description Page size */
                 limit?: number;
                 /** @description Only this status; open by default */
-                status?: ("open" | "resolved") | null;
+                status?: "open" | "resolved" | null;
                 /** @description The vault to list */
                 vault_id: string;
             };
@@ -3261,6 +3502,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Graph"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    import_enex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_enex"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
                 };
             };
             /** @description Problem details (RFC 9457) */
@@ -3638,6 +3912,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NoteLinks"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    rename_note: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The `ETag` last read, `"<revision>"`. Required: missing is 428, stale is 412 */
+                "If-Match"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteRename"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description The revision, `"<revision>"` */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RenameResult"];
                 };
             };
             /** @description Problem details (RFC 9457) */

@@ -85,6 +85,23 @@ it("coalesces edits made before a push into one update", async () => {
   expect(dec(await sync.bytes(A))).toBe("three\n");
 });
 
+it("runs again when a sync is requested as a run reports idle", async () => {
+  await engine.sync(VAULT);
+  const getChanges = vi.spyOn(api, "getChanges");
+  let asked = false;
+  const off = engine.subscribe(() => {
+    // The run says idle before it lets go of the vault: an explicit save in that gap
+    // must still be pushed, not wait for the 60 s timer.
+    if (asked || engine.status(VAULT).state !== "idle") return;
+    asked = true;
+    void engine.sync(VAULT);
+  });
+  await engine.sync(VAULT);
+  off();
+  await vi.waitFor(() => expect(getChanges).toHaveBeenCalledTimes(2));
+  getChanges.mockRestore();
+});
+
 it("never touches an unpushed edit when a pull brings a newer revision", async () => {
   await engine.sync(VAULT);
   await sync.edit(A, enc("theirs\n"));

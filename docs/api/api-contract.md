@@ -100,6 +100,7 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/notes/{id}` | Metadata [2] |
 | GET / PUT | `/api/v1/notes/{id}/content` | Read / replace bytes [2] |
 | PATCH | `/api/v1/notes/{id}` | Move/rename `{ path }`, or metadata edit `{ tags?, aliases?, opennote? }` applied with the round-trip YAML editor [2] |
+| POST | `/api/v1/notes/{id}/rename` | Move/rename `{ path, update_links }` (`If-Match`); rewrites links to the note in other notes, each a revision listed with the one before it for undo, skipping any that changed meanwhile [6] |
 | DELETE | `/api/v1/notes/{id}` | Delete (tombstone + history) [2] |
 | GET | `/api/v1/notes/{id}/links` | Outgoing, incoming (backlinks), unresolved [2 basic, 6 full] |
 | GET | `/api/v1/graph?vault_id=&attachments=&unresolved=&center=&depth=` | Link graph: every note plus counted edges, optional attachments and unresolved targets, or the local graph around `center` [6] |
@@ -114,6 +115,8 @@ Phase in brackets. All except `KEYLESS_ROUTES` require authentication. Every rou
 | GET | `/api/v1/attachments?vault_id=&folder=&cursor=&limit=` | List attachments [2] |
 | GET / DELETE | `/api/v1/attachments/{id}`, `/content` | [2] |
 | GET | `/api/v1/tags?vault_id=` | Tag list with counts [2] |
+| POST | `/api/v1/clips` | Web clip `{ vault_id, url, title, html, folder = "Clippings", tags }` (editor, or a write-scope personal access token): the HTML becomes a Markdown note with `title`, `source`, `created` and `tags` frontmatter [6] |
+| POST | `/api/v1/imports/enex` | Multipart `{ vault_id, folder = "Evernote", file }`: one note per Evernote note (ENML converted to Markdown, tags, created, updated and source in frontmatter), attachments in `folder/_resources/<note>.resources/` [6] |
 | GET | `/api/v1/search?vault_id=&q=&cursor=&limit=` | Search, grammar in §5 [2] |
 | GET / POST / DELETE | `/api/v1/saved-searches` | [6] |
 | GET / POST / DELETE | `/api/v1/calendar-feeds`, `/calendar-feeds/{id}` | Read-only iCalendar feeds of a vault's open tasks with a due date or reminder; `POST { vault_id, name }` returns the feed URL with its token once (not for personal access tokens) [6] |
@@ -158,7 +161,7 @@ word       = char, { char } ;                            (* no whitespace, no un
 | `before:` / `after:` | Modified before/after date | `after:2026-09-01` |
 | `is:x` | `favorite`, `archived`, `conflict` | `is:favorite` |
 
-Free words and phrases match title, body, aliases, tags and (Phase 6) OCR text using PostgreSQL full-text search (`websearch`-style parsing done by our parser, `simple` + language configuration per vault) with trigram fallback for partial words. Unknown keys are treated as plain words, never as errors. Every query is scoped to the caller's authorized vaults before any matching.
+Free words and phrases match title, body, aliases, tags and the OCR text of the attachments a note links to (P6-06: images and PDFs, read by the worker after upload; a note is returned, never the attachment itself, and its snippet comes from the note's body) using PostgreSQL full-text search (`websearch`-style parsing done by our parser, `simple` + language configuration per vault) with trigram fallback for partial words. Unknown keys are treated as plain words, never as errors. Every query is scoped to the caller's authorized vaults before any matching.
 
 ## 6. Versioning and deprecation
 
