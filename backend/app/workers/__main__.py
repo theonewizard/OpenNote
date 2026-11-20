@@ -19,6 +19,7 @@ DRAMATIQ_ARGS = [
     "app.workers.__main__:setup_worker_process",
     "app.workers.jobs",
     "app.ai.jobs",  # inert unless AI is configured and enabled for a vault
+    "app.ocr.jobs",  # reads image and PDF attachments when tesseract is installed
     "--processes",
     "1",
     "--threads",

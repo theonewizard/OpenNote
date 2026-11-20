@@ -116,6 +116,9 @@ jobs:
       - name: mypy
         working-directory: backend
         run: ../.venv/bin/mypy app
+      # The OCR tests run the real Tesseract (the image builds it from source).
+      - name: Install Tesseract
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends tesseract-ocr
       - name: pytest (unit and integration)
         working-directory: backend
         run: ../.venv/bin/pytest -q

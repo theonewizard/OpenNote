@@ -21,6 +21,7 @@ from app import __version__
 from app.api import (
     attachments,
     auth,
+    calendar,
     clips,
     folders,
     health,
@@ -62,6 +63,7 @@ ROUTERS: list[APIRouter] = [
     tasks.router,
     imports.router,
     clips.router,
+    calendar.router,
 ]
 
 # The only routes callable without credentials; adding one needs review (API contract §2).
@@ -75,6 +77,7 @@ KEYLESS_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/token"),
         ("GET", "/api/v1/auth/oidc/{provider}/callback"),
+        ("GET", "/api/v1/calendar/tasks.ics"),  # the feed token in the query is the credential
     }
 )
 

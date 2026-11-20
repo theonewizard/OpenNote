@@ -4,9 +4,11 @@
 
 export class ApiError extends Error {
   readonly status: number;
-  constructor(status: number, title: string) {
+  readonly headers: Headers;
+  constructor(status: number, title: string, headers: Headers = new Headers()) {
     super(title);
     this.status = status;
+    this.headers = headers;
   }
 }
 
@@ -15,7 +17,7 @@ function csrfToken(): string | undefined {
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
-async function request(path: string, init: RequestInit = {}): Promise<Response> {
+export async function request(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   const token = csrfToken();
   if (init.method && init.method !== "GET" && token) headers.set("X-CSRF-Token", token);
@@ -27,9 +29,11 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
   if (!response.ok) {
     let title = response.statusText;
     if (response.headers.get("content-type")?.startsWith("application/problem+json")) {
-      title = ((await response.json()) as { title?: string }).title ?? title;
+      // A HEAD answer has no body to read.
+      const body = (await response.json().catch(() => ({}))) as { title?: string };
+      title = body.title ?? title;
     }
-    throw new ApiError(response.status, title);
+    throw new ApiError(response.status, title, response.headers);
   }
   return response;
 }

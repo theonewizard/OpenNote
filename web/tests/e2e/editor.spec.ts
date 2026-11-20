@@ -1,4 +1,5 @@
-// Roadmap P3-04 acceptance: corpus notes open and save byte-identically through the UI.
+// Roadmap P3-04 acceptance: corpus notes open and save byte-identically through the UI
+// (through the sync engine since P5-04).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -14,14 +15,15 @@ test("every corpus note saves with its original bytes plus the typed text", asyn
   test.setTimeout(120_000);
   const errors: string[] = [];
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text()); // CSP violations land here
+    // CSP violations land here. A blob HEAD answers 404 before every upload (sync protocol §3).
+    if (message.type() === "error" && !message.location().url.includes("/api/v1/blobs/")) errors.push(message.text() + " @ " + message.location().url);
   });
   const api = await mockApi(page, files);
   await page.goto("/");
   const list = page.getByRole("region", { name: "Note list" });
   const main = page.getByRole("main");
 
-  for (const file of files) {
+  for (const [i, file] of files.entries()) {
     const name = file.path.replace(/\.md$/, "");
     await list.getByRole("button", { name: new RegExp(`^${name}`) }).click();
     await expect(main.getByRole("heading", { name })).toBeVisible();
@@ -29,19 +31,19 @@ test("every corpus note saves with its original bytes plus the typed text", asyn
       await expect(main.getByRole("note")).toContainText("not UTF-8");
       continue;
     }
-    const before = api.puts.length;
+    const before = api.ops().length;
     await main.getByRole("textbox", { name: "Note text" }).click();
     await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.type("Z");
     await page.keyboard.press("ControlOrMeta+s");
-    await expect.poll(() => api.puts.length, { message: name }).toBe(before + 1);
-    const put = api.puts.at(-1)!;
-    expect(put.ifMatch, name).toBe('"1"');
-    expect(put.body.toString("hex"), name).toBe(Buffer.concat([file.bytes, Buffer.from("Z")]).toString("hex"));
+    await expect.poll(() => api.ops().length, { message: name, timeout: 10_000 }).toBe(before + 1);
+    expect(api.ops().at(-1), name).toMatchObject({ op: "update", file_id: api.ids[i], base_revision: 1 });
+    const saved = Buffer.from((await api.sync.bytes(api.ids[i]))!);
+    expect(saved.toString("hex"), name).toBe(Buffer.concat([file.bytes, Buffer.from("Z")]).toString("hex"));
     await expect(page.getByRole("contentinfo")).toHaveText("Saved");
   }
-  // Nothing else was sent: no PUT for the read-only note, one per editable note.
-  expect(api.puts).toHaveLength(files.filter((f) => !f.path.startsWith("enc-")).length);
+  // Nothing else was sent: no push for the read-only note, one update per editable note.
+  expect(api.ops()).toHaveLength(files.filter((f) => !f.path.startsWith("enc-")).length);
   expect(errors).toEqual([]);
 });
 
