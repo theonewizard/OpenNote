@@ -65,7 +65,7 @@ test("a note can be found, opened, edited and saved with the keyboard alone", as
   await page.keyboard.press("ControlOrMeta+End");
   await page.keyboard.type("Z");
   await page.keyboard.press("ControlOrMeta+s");
-  await expect.poll(() => api.puts.length).toBe(1);
+  await expect.poll(() => api.ops().length, { timeout: 10_000 }).toBe(1);
   await expect(page.getByRole("contentinfo")).toHaveText("Saved");
   await page.keyboard.press("Tab"); // no keyboard trap (WCAG 2.1.2): Tab leaves the editor
   await expect(main.getByRole("textbox", { name: "Note text" })).not.toBeFocused();

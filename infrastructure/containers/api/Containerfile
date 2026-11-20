@@ -5,10 +5,64 @@
 #   docker build -f infrastructure/containers/api/Containerfile -t opennote-api:dev .
 #
 # Python 3.14 from the UBI 10 repositories on ubi-minimal (docs/development/versions.md,
-# "Python decision"). One stage: installing wheels into the virtual environment needs only
-# the python3.14 the image runs anyway, so a builder stage would leave nothing behind. Runs
+# "Python decision"). A builder stage compiles Tesseract for OCR; the wheels are installed
+# in the runtime stage, which needs only the python3.14 it runs anyway. Runs
 # as UID 1001 group 0 or any other UID in group 0, on a read-only root filesystem with a
 # writable /tmp.
+
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741 AS tesseract
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Tesseract for OCR (P6-06), built from upstream source: RHEL 10 ships it in AppStream,
+# which the free UBI repositories do not carry, and EPEL does not duplicate RHEL packages
+# (Flemming's ruling, 2026-11-19). Leptonica reads the images; the formats it is built
+# with are the image libraries the UBI 10 repositories carry. The checksums of the source
+# archives and of the English model are the ones Homebrew pins (docs/development/versions.md).
+# Build tools from the UBI 10 repositories, not version-pinned (builder stage only).
+# hadolint ignore=DL3041
+RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
+        gcc gcc-c++ make cmake pkgconf-pkg-config tar gzip findutils \
+        zlib-devel libpng-devel libjpeg-turbo-devel libtiff-devel libwebp-devel \
+    && microdnf clean all
+
+ARG LEPTONICA=1.87.0
+ARG TESSERACT=5.5.4
+RUN curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
+        --retry 3 --output /tmp/leptonica.tar.gz \
+        "https://github.com/DanBloomberg/leptonica/releases/download/${LEPTONICA}/leptonica-${LEPTONICA}.tar.gz" \
+    && curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
+        --retry 3 --output /tmp/tesseract.tar.gz \
+        "https://github.com/tesseract-ocr/tesseract/archive/refs/tags/${TESSERACT}.tar.gz" \
+    && curl --fail --silent --show-error --location --connect-timeout 20 --max-time 300 \
+        --retry 3 --output /tmp/eng.traineddata \
+        https://github.com/tesseract-ocr/tessdata_fast/raw/4.1.0/eng.traineddata \
+    && printf '%s  %s\n' \
+        c73363397f96eb1295602bf44d708a994ad42046c791bf03ea0505d829bdb6a7 /tmp/leptonica.tar.gz \
+        a8dbf8b8c8ee427ff6ad1d99116502feaf59440af1adb893caf60a6576826cf4 /tmp/tesseract.tar.gz \
+        7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2 /tmp/eng.traineddata \
+        | sha256sum -c -
+
+# Everything under /opt/tesseract, found through its RPATH, so the runtime image needs no
+# ldconfig entry. No training tools, no network (curl) or archive support, no OpenMP.
+RUN mkdir -p /src/leptonica /src/tesseract \
+    && tar -xzf /tmp/leptonica.tar.gz -C /src/leptonica --strip-components=1 \
+    && tar -xzf /tmp/tesseract.tar.gz -C /src/tesseract --strip-components=1 \
+    && cmake -S /src/leptonica -B /build/leptonica -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/opt/tesseract -DCMAKE_INSTALL_RPATH=/opt/tesseract/lib64 \
+        -DBUILD_SHARED_LIBS=ON -DBUILD_PROG=OFF -DENABLE_OPENJPEG=OFF -DENABLE_GIF=OFF \
+    && cmake --build /build/leptonica -j"$(nproc)" \
+    && cmake --install /build/leptonica \
+    && cmake -S /src/tesseract -B /build/tesseract -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/opt/tesseract -DCMAKE_INSTALL_RPATH=/opt/tesseract/lib64 \
+        -DCMAKE_PREFIX_PATH=/opt/tesseract -DBUILD_SHARED_LIBS=ON \
+        -DBUILD_TRAINING_TOOLS=OFF -DBUILD_TESTS=OFF -DGRAPHICS_DISABLED=ON \
+        -DDISABLE_CURL=ON -DDISABLE_ARCHIVE=ON -DOPENMP_BUILD=OFF -DENABLE_NATIVE=OFF \
+    && cmake --build /build/tesseract -j"$(nproc)" \
+    && cmake --install /build/tesseract \
+    && install -D -m 0644 /tmp/eng.traineddata /opt/tesseract/share/tessdata/eng.traineddata \
+    && rm -rf /opt/tesseract/include /opt/tesseract/lib64/cmake /opt/tesseract/lib64/pkgconfig \
+    && /opt/tesseract/bin/tesseract --version
 
 FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741
 
@@ -18,10 +72,19 @@ LABEL org.opencontainers.image.title="opennote-api" \
       org.opencontainers.image.licenses="AGPL-3.0-only"
 
 # Packages from the UBI 10 repositories are not version-pinned: they take the 10.3 stream's
-# security updates on top of the base image, which is pinned by digest.
+# security updates on top of the base image, which is pinned by digest. The image
+# libraries are the ones Tesseract (built above) links against; the worker uses it and the
+# API runs from the same image.
 # hadolint ignore=DL3041
-RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 python3.14 \
+RUN microdnf install -y --nodocs --setopt=install_weak_deps=0 \
+        python3.14 libstdc++ zlib libpng libjpeg-turbo libtiff libwebp \
     && microdnf clean all
+
+COPY --from=tesseract /opt/tesseract /opt/tesseract
+# A CMake build of Tesseract has no compiled-in data directory, so it is named here.
+ENV TESSDATA_PREFIX=/opt/tesseract/share/tessdata
+RUN ln -s /opt/tesseract/bin/tesseract /usr/local/bin/tesseract \
+    && tesseract --list-langs | grep -qx eng
 
 COPY backend/requirements.txt backend/constraints.txt /tmp/
 # Wheels only: every pinned package has a cp314 manylinux wheel, so the build needs no

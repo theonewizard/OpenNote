@@ -48,6 +48,13 @@ jobs:
       - name: Versions installed in the images
         run: |
           docker run --rm --entrypoint rpm opennote-api:dev -q python3.14
+          # OCR (P6-06): Tesseract (built from source, with the image formats it reads) and
+          # its English data run as an arbitrary UID on a read-only root filesystem, as the
+          # worker does.
+          docker run --rm --user 1000870000:0 --read-only --tmpfs /tmp --entrypoint tesseract \
+            opennote-api:dev --version
+          docker run --rm --user 1000870000:0 --read-only --tmpfs /tmp --entrypoint tesseract \
+            opennote-api:dev --list-langs | tee /dev/stderr | grep -qx eng
           docker run --rm --entrypoint rpm opennote-web:dev -q nginx-core
           docker run --rm --entrypoint rpm opennote-postgres:dev -q \
             postgresql18-server postgresql18-contrib pgvector_18
@@ -123,6 +130,11 @@ jobs:
           echo "worker running, restart count: $state"
           [[ $state == "true 0" ]]
           docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" down -v
+
+      # Backups taken with the stack running, restored onto empty volumes and checked
+      # (docs/deployment/backup.md, "Restore drill").
+      - name: Backup and restore drill
+        run: scripts/backup-drill.sh
 
       # P8-02: OWASP ZAP API scan of the full stack through the web proxy, signed in; any
       # High risk alert fails the job (scripts/dast.sh). Rate limits are off for the scan,
@@ -232,7 +244,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
         with:
           version: v4.3.1
 
@@ -274,7 +286,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
         with:
           version: v4.3.1
 
@@ -293,6 +305,7 @@ jobs:
           helm lint --strict "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
             --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
             --set networkPolicy.enabled=true
+          helm lint --strict "$CHART" --kube-version 1.29.0 --set backup.enabled=true
           ! helm template opennote "$CHART" --kube-version 1.28.9 >/dev/null 2>&1 || { echo "kubeVersion floor not enforced"; exit 1; }
 
       - name: Render the chart and the kustomizations
@@ -305,6 +318,9 @@ jobs:
           helm template opennote "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
             --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
             --set networkPolicy.enabled=true > "$out/helm-ingress.yaml"
+          # The backup CronJob, for kubeconform only (the counts below cover the five above).
+          helm template opennote "$CHART" --kube-version 1.29.0 --set backup.enabled=true \
+            > "$out/helm-backup.yaml"
           kubectl kustomize infrastructure/kubernetes/base > "$out/kustomize-base.yaml"
           kubectl kustomize infrastructure/openshift > "$out/kustomize-openshift.yaml"
 
