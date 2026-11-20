@@ -245,6 +245,8 @@ export class SyncEngine {
         throw error;
       } finally {
         this.running.delete(vaultId);
+        // A request that came after the last pass (while the status was set) runs now.
+        if (this.again.delete(vaultId)) this.requestSync(vaultId);
       }
     })();
     this.running.set(vaultId, run);
