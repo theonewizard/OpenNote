@@ -6,8 +6,8 @@
 #      enforces Pod Security "restricted": no template may draw a PodSecurity warning; the
 #      migration hook runs, every pod becomes ready, the smoke test passes through web, the
 #      API is unreachable from any other pod, a backup Job made from the backup CronJob writes
-#      an encrypted backup, an upgrade re-runs the migration, and `helm uninstall` keeps the
-#      three volumes.
+#      an encrypted backup, an upgrade re-runs the migration, and `helm uninstall` keeps both
+#      volumes.
 #   2. The OpenShift kustomize overlay with what the restricted-v2 SCC does to a pod
 #      simulated: an arbitrary UID and fsGroup from a namespace range, no Route (kind has no
 #      router). Every pod becomes ready and the smoke test passes.
@@ -188,7 +188,20 @@ helm_args=(
   --set persistence.accessMode=ReadWriteOnce # kind's local-path provisioner has no RWX
   --set networkPolicy.enabled=true
   --set backup.enabled=true --set image.postgresRepository=opennote-postgres
+  --set backup.persistence.existingClaim=backups
 )
+
+# kind's StorageClass binds a claim when its first pod starts (WaitForFirstConsumer), and
+# nothing mounts the backups claim before the first backup, so the chart's own claim would
+# keep `helm install --wait` waiting; the claim is made here instead (docs/deployment/backup.md).
+kubectl -n "$helm_ns" apply -f - <<'YAML'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: backups}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+YAML
 
 # The backup CronJob's public key: a throwaway key pair; the private key stays in $work.
 export GNUPGHOME=$work/gnupg
@@ -243,8 +256,7 @@ smoke "$helm_ns" opennote-web
 worker_steady "$helm_ns" app.kubernetes.io/component=worker
 
 helm uninstall opennote --namespace "$helm_ns" --wait
-kubectl -n "$helm_ns" get pvc opennote-vaults opennote-history opennote-backups ||
-  fail "helm uninstall removed a volume"
+kubectl -n "$helm_ns" get pvc opennote-vaults opennote-history || fail "helm uninstall removed a volume"
 kubectl delete namespace "$helm_ns" --wait=false
 
 echo "== 2. OpenShift overlay in namespace $oc_ns, restricted-v2 SCC simulated"
