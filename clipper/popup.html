@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Clip to OpenNote</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 12px; width: 300px; }
+      label { display: block; margin: 6px 0 2px; }
+      input { width: 100%; box-sizing: border-box; }
+      .row { display: flex; gap: 8px; margin-top: 10px; }
+      #status { margin-top: 10px; word-break: break-word; }
+    </style>
+  </head>
+  <body>
+    <label for="title">Title</label>
+    <input id="title" />
+    <label for="tags">Tags (comma-separated)</label>
+    <input id="tags" />
+    <div class="row">
+      <button id="selection" type="button">Clip selection</button>
+      <button id="page" type="button">Clip page</button>
+    </div>
+    <p id="status" role="status"></p>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

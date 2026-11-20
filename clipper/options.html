@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenNote Web Clipper options</title>
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 16px; min-width: 320px; }
+      label { display: block; margin: 8px 0 2px; }
+      input, select { width: 100%; box-sizing: border-box; }
+      #status { margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <label for="server">Server URL</label>
+    <input id="server" type="url" placeholder="https://notes.example.com" required />
+    <label for="token">Personal access token (write scope, one vault)</label>
+    <input id="token" type="password" autocomplete="off" required />
+    <button id="connect" type="button">Connect</button>
+    <label for="vault">Vault</label>
+    <select id="vault"></select>
+    <label for="folder">Folder</label>
+    <input id="folder" value="Clippings" />
+    <button id="save" type="button">Save</button>
+    <p id="status" role="status"></p>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
