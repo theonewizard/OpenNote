@@ -16,3 +16,7 @@ Thread: Fix failing checks and conflicts on open PRs. Requested by Flemming.
 - `web/src/sync/engine.ts`: when a run ends, a request that came after its last pass starts a new run.
 - Regression test in `web/tests/unit/sync-engine.test.ts` (fails without the fix).
 - Verified: vitest 60/60, tsc, eslint, Playwright suite repeated 260 times locally with no failures.
+
+## Follow-up: OpenAPI drift after #82 and #53 (2026-11-20)
+
+- Flemming merged #82 (Swift nullable fix in the OpenAPI export) and #53 (rename endpoint) within seconds of each other. Each was green alone, but #82's export rewrites the nullable `If-Match` header that #53 added, so main's committed contract drifted. Branch `fix/openapi-drift-after-53` is the output of `make openapi` on main (be71a26); no backend change.
