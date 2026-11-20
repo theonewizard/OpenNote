@@ -1194,7 +1194,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Last Used At */
+            /**
+             * Last Used At
+             * Format: date-time
+             */
             last_used_at: string | null;
             /** Name */
             name: string;
@@ -1290,7 +1293,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Resolved At */
+            /**
+             * Resolved At
+             * Format: date-time
+             */
             resolved_at: string | null;
             /** Revision */
             revision: number;
@@ -1388,7 +1394,10 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Last Seen At */
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
             last_seen_at: string | null;
             /** Name */
             name: string;
@@ -1628,6 +1637,7 @@ export interface components {
             content?: string | null;
             /**
              * Local Time
+             * Format: date-time
              * @description The creator's local time with its UTC offset, for the template's dates; omitted, the server's time in UTC
              */
             local_time?: string | null;
@@ -1638,6 +1648,7 @@ export interface components {
             path: string;
             /**
              * Template Id
+             * Format: uuid
              * @description A note in the same vault to start from instead of `content`: its `{{title}}`, `{{date}}`, `{{time}}`, `{{date:FORMAT}}` and `{{time:FORMAT}}` are filled in (Obsidian Templates syntax) and its `id` is replaced by the new note's
              */
             template_id?: string | null;
@@ -1782,14 +1793,20 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Expires At */
+            /**
+             * Expires At
+             * Format: date-time
+             */
             expires_at: string | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Last Used At */
+            /**
+             * Last Used At
+             * Format: date-time
+             */
             last_used_at: string | null;
             /** Name */
             name: string;
@@ -1806,7 +1823,10 @@ export interface components {
         };
         /** PersonalAccessTokenCreate */
         PersonalAccessTokenCreate: {
-            /** Expires At */
+            /**
+             * Expires At
+             * Format: date-time
+             */
             expires_at?: string | null;
             /** Name */
             name: string;
@@ -2146,11 +2166,13 @@ export interface components {
             done: boolean;
             /**
              * Done On
+             * Format: date
              * @description Done date (Tasks plugin)
              */
             done_on: string | null;
             /**
              * Due
+             * Format: date
              * @description Due date (Tasks plugin)
              */
             due: string | null;
@@ -2170,8 +2192,11 @@ export interface components {
              * @description `ordinal` of the enclosing task, for subtasks
              */
             parent: number | null;
-            /** Priority */
-            priority: ("highest" | "high" | "medium" | "low" | "lowest") | null;
+            /**
+             * Priority
+             * @enum {string|null}
+             */
+            priority: "highest" | "high" | "medium" | "low" | "lowest" | null;
             /**
              * Recurrence
              * @description Recurrence rule as written (Tasks plugin)
@@ -2179,6 +2204,7 @@ export interface components {
             recurrence: string | null;
             /**
              * Remind At
+             * Format: date-time
              * @description Reminder plugin `(@date time)`: local wall-clock time, no UTC offset
              */
             remind_at: string | null;
@@ -2189,11 +2215,13 @@ export interface components {
             revision: number;
             /**
              * Scheduled
+             * Format: date
              * @description Scheduled date (Tasks plugin)
              */
             scheduled: string | null;
             /**
              * Start
+             * Format: date
              * @description Start date (Tasks plugin)
              */
             start: string | null;
@@ -2224,6 +2252,7 @@ export interface components {
             done: boolean;
             /**
              * Today
+             * Format: date
              * @description The caller's local date, for the done date and the next occurrence of a recurring task; omitted, the server's date in UTC
              */
             today?: string | null;
@@ -3049,7 +3078,7 @@ export interface operations {
                 /** @description Page size */
                 limit?: number;
                 /** @description Only this status; open by default */
-                status?: ("open" | "resolved") | null;
+                status?: "open" | "resolved" | null;
                 /** @description The vault to list */
                 vault_id: string;
             };
