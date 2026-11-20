@@ -5548,16 +5548,12 @@
             "name": "If-Match",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
               "description": "The `ETag` last read, `\"<revision>\"`. Required: missing is 428, stale is 412",
-              "title": "If-Match"
+              "title": "If-Match",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
