@@ -145,13 +145,13 @@ What the chart expects, and what to set, for a namespace that holds real vaults 
    ```
 
    The Route uses the router's default certificate. A host name outside the cluster's apps domain needs a certificate for it: on the router (the cluster's ingress controller) or, if your cluster's policy prefers it, a Route you create yourself instead of the chart's (`openshift.enabled` keeps `fsGroup` out either way; the Route is the only object it adds).
-5. **Backups** of the database, the history volume and the vault volume together (roadmap item P8-04).
+5. **Backups** of the database, the history volume and the vault volume together: the chart's backup CronJob (`backup.enabled`), see [backup and restore](backup.md).
 
 ## Deployment test
 
 `scripts/kind-deploy-test.sh` deploys to the cluster of the current `kubectl` context and checks the result; the `deploy` job runs it on kind at Kubernetes 1.29.14 (the chart's floor, OpenShift 4.16) and 1.37.0. It creates the namespaces `opennote-test` and `opennote`, refuses a cluster that already has either, and deletes them afterwards. In each namespace Pod Security `restricted` is enforced and a pod without a security context is first checked to be refused. PostgreSQL and Valkey run there as test fixtures from the repository's images.
 
-1. **Helm chart**, Kubernetes variant, network policy on, RWO volumes (kind's local-path provisioner has no RWX): a server-side dry run of every template, migration hook included, must draw no PodSecurity warning; `helm install --wait` must bring every pod up after the migration Job succeeded; the smoke test passes through web; the worker never restarts; a pod labelled as web reaches the API and any other pod does not; `helm upgrade` runs a new migration Job and rolls the pods; `helm uninstall` leaves both volumes.
+1. **Helm chart**, Kubernetes variant, network policy on, RWO volumes (kind's local-path provisioner has no RWX): a server-side dry run of every template, migration hook included, must draw no PodSecurity warning; `helm install --wait` must bring every pod up after the migration Job succeeded; the smoke test passes through web; the worker never restarts; a pod labelled as web reaches the API and any other pod does not; with the backup CronJob on (a throwaway key pair's public key in the `opennote-backup-key` ConfigMap), a Job created from it with `kubectl create job --from=cronjob/opennote-backup` completes and logs the encrypted backup it wrote; `helm upgrade` runs a new migration Job and rolls the pods; `helm uninstall` leaves all three volumes.
 2. **OpenShift overlay**, with what `restricted-v2` adds to every pod (`runAsUser` and `fsGroup` 1000870000 from a typical namespace range) and without the Route: no PodSecurity warning, the migration Job completes, all three Deployments roll out, the api runs as UID 1000870000, the smoke test passes.
 
 Locally, with Docker, kind 0.33.0 and Helm 4.3.1:
