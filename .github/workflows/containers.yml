@@ -124,6 +124,11 @@ jobs:
           [[ $state == "true 0" ]]
           docker compose -f "$FULL" -f "$RUNNER_TEMP/compose.uid.yaml" down -v
 
+      # Backups taken with the stack running, restored onto empty volumes and checked
+      # (docs/deployment/backup.md, "Restore drill").
+      - name: Backup and restore drill
+        run: scripts/backup-drill.sh
+
       # P8-02: OWASP ZAP API scan of the full stack through the web proxy, signed in; any
       # High risk alert fails the job (scripts/dast.sh). Rate limits are off for the scan,
       # or most of its requests would only see 429.
@@ -293,6 +298,7 @@ jobs:
           helm lint --strict "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
             --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
             --set networkPolicy.enabled=true
+          helm lint --strict "$CHART" --kube-version 1.29.0 --set backup.enabled=true
           ! helm template opennote "$CHART" --kube-version 1.28.9 >/dev/null 2>&1 || { echo "kubeVersion floor not enforced"; exit 1; }
 
       - name: Render the chart and the kustomizations
@@ -305,6 +311,9 @@ jobs:
           helm template opennote "$CHART" --kube-version 1.29.0 --set ingress.enabled=true \
             --set ingress.host=opennote.example.com --set ingress.tlsSecretName=opennote-tls \
             --set networkPolicy.enabled=true > "$out/helm-ingress.yaml"
+          # The backup CronJob, for kubeconform only (the counts below cover the five above).
+          helm template opennote "$CHART" --kube-version 1.29.0 --set backup.enabled=true \
+            > "$out/helm-backup.yaml"
           kubectl kustomize infrastructure/kubernetes/base > "$out/kustomize-base.yaml"
           kubectl kustomize infrastructure/openshift > "$out/kustomize-openshift.yaml"
 
