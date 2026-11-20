@@ -274,6 +274,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/clips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Clip
+         * @description Save a clipped page as a note in `folder` (default `Clippings`). A personal access
+         *     token with write scope for the vault works, which is what the extension uses.
+         */
+        post: operations["create_clip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conflicts": {
         parameters: {
             query?: never;
@@ -426,6 +447,27 @@ export interface paths {
         get: operations["get_graph"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/enex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Enex
+         * @description Import every note of an ENEX export into `folder` (R-P6-011). A note that cannot be
+         *     written is listed in `skipped`; the others are imported.
+         */
+        post: operations["import_enex"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1107,6 +1149,24 @@ export interface components {
              */
             next_cursor: string | null;
         };
+        /** Body_import_enex */
+        Body_import_enex: {
+            /**
+             * File
+             * @description An Evernote export (.enex)
+             */
+            file: string;
+            /**
+             * Folder
+             * @default Evernote
+             */
+            folder: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
+        };
         /** Body_token */
         Body_token: {
             /** Client Id */
@@ -1192,6 +1252,36 @@ export interface components {
         CalendarFeedList: {
             /** Items */
             items: components["schemas"]["CalendarFeed"][];
+        };
+        /** ClipCreate */
+        ClipCreate: {
+            /**
+             * Folder
+             * @default Clippings
+             */
+            folder: string;
+            /**
+             * Html
+             * @description The selection or the page's main content, as HTML; converted to Markdown
+             */
+            html: string;
+            /** Tags */
+            tags?: string[];
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /**
+             * Url
+             * @description The clipped page's http(s) URL
+             */
+            url: string;
+            /**
+             * Vault Id
+             * Format: uuid
+             */
+            vault_id: string;
         };
         /** Conflict */
         Conflict: {
@@ -1436,6 +1526,31 @@ export interface components {
             label: string;
             /** Path */
             path: string | null;
+        };
+        /** ImportResult */
+        ImportResult: {
+            /**
+             * Attachments
+             * @description Attachments created for them
+             */
+            attachments: number;
+            /**
+             * Notes
+             * @description The notes created, in export order
+             */
+            notes: components["schemas"]["NoteRef"][];
+            /** Skipped */
+            skipped: components["schemas"]["ImportSkip"][];
+        };
+        /** ImportSkip */
+        ImportSkip: {
+            /** Reason */
+            reason: string;
+            /**
+             * Title
+             * @description The note's title in the export; empty for the file itself
+             */
+            title: string;
         };
         /** LinkUpdate */
         LinkUpdate: {
@@ -2958,6 +3073,39 @@ export interface operations {
             };
         };
     };
+    create_clip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClipCreate"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     list_conflicts: {
         parameters: {
             query: {
@@ -3325,6 +3473,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Graph"];
+                };
+            };
+            /** @description Problem details (RFC 9457) */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    import_enex: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_enex"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
                 };
             };
             /** @description Problem details (RFC 9457) */
