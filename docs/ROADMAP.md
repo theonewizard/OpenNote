@@ -117,7 +117,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | IN_PROGRESS: server side done (worker job, Tesseract built from source in the API image, PDF text layers, search by scan text, migration `0014`); VisionKit scanning and Vision OCR on Apple devices remain |
 | P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
 | P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (`/notes/{id}/links` and `GET /api/v1/graph`; the client panels remain) |
-| P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | NOT_STARTED |
+| P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | IN_PROGRESS (`POST /api/v1/notes/{id}/rename` with `update_links`; folder moves, the moved note's own relative links and the client undo action remain) |
 | P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | IN_PROGRESS (`POST /api/v1/imports/enex`; email-to-note remains) |
 
 ## Phase 7 — AI (M7)
