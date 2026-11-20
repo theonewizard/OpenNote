@@ -20,6 +20,7 @@ from app.core.config import Settings
 from app.core.db import make_sync_engine
 from app.core.problems import ProblemError
 from app.notes.models import File
+from app.ocr.vault import is_candidate, request_ocr
 from app.sync.commit import Committer, Operation, OpResult
 from app.sync.events import Publisher
 from app.sync.history import HistoryStore
@@ -150,6 +151,8 @@ async def commit(
             result = committer.commit(op, device_id, blob)
         if result.status not in ("rejected", "duplicate"):
             request_embedding(committers.settings, vault.id)
+            if is_candidate(result.path):
+                request_ocr(committers.settings, vault.id)
         return result
 
     return await anyio.to_thread.run_sync(run)
