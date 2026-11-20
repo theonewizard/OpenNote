@@ -22,8 +22,10 @@ from app.api import (
     attachments,
     auth,
     calendar,
+    clips,
     folders,
     health,
+    imports,
     meta,
     notes,
     search,
@@ -60,6 +62,8 @@ ROUTERS: list[APIRouter] = [
     search.router,
     sync.router,
     tasks.router,
+    imports.router,
+    clips.router,
     calendar.router,
 ]
 
