@@ -215,6 +215,7 @@ export function Layout({ user }: { user?: User }) {
             <Button
               variant="outline"
               size="sm"
+              className="transition-colors" // no opacity fade when the vault loads and the button turns on
               disabled={!canEdit}
               onClick={() => {
                 setName("");
@@ -226,6 +227,7 @@ export function Layout({ user }: { user?: User }) {
             <Button
               variant="outline"
               size="sm"
+              className="transition-colors" // no opacity fade when the vault loads and the button turns on
               disabled={!canEdit}
               onClick={() => {
                 setName("");
