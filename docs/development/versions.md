@@ -77,25 +77,25 @@ The pins in the requirement files and the constraints are name and version only,
 | Package | Version | Released | Source | Checked |
 |---|---|---|---|---|
 | react, react-dom | 19.3.1 | 2026-10-14 | https://registry.npmjs.org/react | 2026-10-17 |
-| vite | 8.3.4 | 2026-10-08 | https://registry.npmjs.org/vite | 2026-10-17 |
-| @vitejs/plugin-react | 6.1.2 | 2026-10-05 | https://registry.npmjs.org/@vitejs%2fplugin-react | 2026-10-17 |
+| vite | 8.3.8 | 2026-11-11 | https://registry.npmjs.org/vite | 2026-11-21 |
+| @vitejs/plugin-react | 6.3.0 | 2026-11-09 | https://registry.npmjs.org/@vitejs%2fplugin-react | 2026-11-21 |
 | typescript | 6.0.3 | 2026-04-16 | https://registry.npmjs.org/typescript. The bridge release before 7, chosen by Flemming on 2026-10-18 (decision card; `.conversations/2026-10-18-node-26-typescript.md`, R109) over 5.9.3, the newest release every peer range accepts, and 7.0.2 (latest, 2026-07-08; the native compiler, which ships no `lib/typescript.js`), with which `tsc -b`, vitest and `vite build` pass but `npm run lint` stops with "typescript-eslint does not support TS 7.0" and openapi-typescript crashes on `ts.factory`. 6.0.3 is inside typescript-eslint 8.71.2's peer `<6.1.0` and outside openapi-typescript 7.13.0's `^5.x`, so `web/package.json` overrides that one peer edge (`"overrides": {"openapi-typescript": {"typescript": "$typescript"}}`; `npm explain typescript` reports it as "peer overridden"). Checked 2026-10-18 on Node.js 26.12.0: `npm ci` without a warning, lint, typecheck, vitest, `vite build`, Playwright and `scripts/gen-clients.sh` pass, and the generated `schema.d.ts` is byte-identical. Neither tool has a newer line (typescript-eslint `canary` 8.71.3-alpha.14, openapi-typescript `next` 7.0.0-rc.1) | 2026-10-18 |
-| typescript-eslint | 8.72.1 | 2026-10-26 | https://registry.npmjs.org/typescript-eslint | 2026-11-02 |
-| eslint | 10.14.0 | 2026-10-30 | https://registry.npmjs.org/eslint | 2026-11-02 |
-| tailwindcss | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/tailwindcss | 2026-10-17 |
-| @tailwindcss/vite | 4.3.3 | 2026-07-16 | https://registry.npmjs.org/@tailwindcss%2fvite | 2026-10-17 |
+| typescript-eslint | 8.73.0 | 2026-11-16 | https://registry.npmjs.org/typescript-eslint | 2026-11-21 |
+| eslint | 10.15.0 | 2026-11-13 | https://registry.npmjs.org/eslint | 2026-11-21 |
+| tailwindcss | 4.3.5 | 2026-11-06 | https://registry.npmjs.org/tailwindcss | 2026-11-21 |
+| @tailwindcss/vite | 4.3.5 | 2026-11-06 | https://registry.npmjs.org/@tailwindcss%2fvite | 2026-11-21 |
 | shadcn (shadcn/ui CLI) | 4.22.0 | 2026-10-16 | https://registry.npmjs.org/shadcn. Run with `npx shadcn@4.22.0` only; not a dependency of `web/`. As a dependency it brought seven high `npm audit --audit-level=high` advisories (braces <= 3.0.3, GHSA-vfj7-8cjw-p6xm, no fixed release; via micromatch, fast-glob, @shadcn/registry and ts-morph), so a `shadcn add` that re-adds the package must be checked against them | 2026-10-17 |
-| vitest | 5.0.5 | 2026-10-15 | https://registry.npmjs.org/vitest | 2026-10-17 |
+| vitest | 5.1.0 | 2026-11-02 | https://registry.npmjs.org/vitest | 2026-11-21 |
 | @axe-core/playwright | 4.14.0 (axe-core ~4.14.0, resolves 4.14.0) | 2026-10-15 | https://registry.npmjs.org/@axe-core%2fplaywright | 2026-11-14 |
-| @playwright/test | 1.64.1 | 2026-10-14 | https://registry.npmjs.org/@playwright%2ftest | 2026-10-17 |
+| @playwright/test | 1.65.1 | 2026-11-13 | https://registry.npmjs.org/@playwright%2ftest | 2026-11-21 |
 | openapi-typescript | 7.13.0 | 2026-02-11 | https://registry.npmjs.org/openapi-typescript | 2026-10-17 |
 | @eslint/js | 10.0.1 | 2026-02-06 | https://registry.npmjs.org/@eslint%2fjs | 2026-10-18 |
 | eslint-plugin-react-hooks | 7.1.1 | 2026-04-17 | https://registry.npmjs.org/eslint-plugin-react-hooks | 2026-10-18 |
-| eslint-plugin-react-refresh | 0.5.7 | 2026-09-14 | https://registry.npmjs.org/eslint-plugin-react-refresh | 2026-10-18 |
-| globals | 17.13.0 | 2026-10-01 | https://registry.npmjs.org/globals | 2026-10-18 |
+| eslint-plugin-react-refresh | 0.5.8 | 2026-11-15 | https://registry.npmjs.org/eslint-plugin-react-refresh | 2026-11-21 |
+| globals | 17.14.0 | 2026-11-01 | https://registry.npmjs.org/globals | 2026-11-21 |
 | @types/react, @types/react-dom | 19.3.0 | 2026-09-09 | https://registry.npmjs.org/@types%2freact | 2026-10-18 |
 | @types/node | 26.6.6 | 2026-10-28 | https://registry.npmjs.org/@types%2fnode. `latest`, matching the Node.js 26 runtime | 2026-11-02 |
-| jsdom | 30.1.3 | 2026-10-15 | https://registry.npmjs.org/jsdom. Vitest's DOM environment (chosen over happy-dom); engines `^22.22.2 \|\| ^24.15.0 \|\| >=26.0.0` | 2026-10-18 |
+| jsdom | 31.0.1 | 2026-11-13 | https://registry.npmjs.org/jsdom. Vitest's DOM environment (chosen over happy-dom); engines `^22.22.2 \|\| ^24.15.0 \|\| >=26.0.0` | 2026-11-21 |
 | @testing-library/react | 16.3.3 | 2026-08-27 | https://registry.npmjs.org/@testing-library%2freact | 2026-10-18 |
 | @testing-library/dom | 10.4.2 | 2026-09-13 | https://registry.npmjs.org/@testing-library%2fdom. Peer of @testing-library/react and @testing-library/jest-dom, so pinned explicitly | 2026-10-18 |
 | @testing-library/jest-dom | 7.0.1 | 2026-08-09 | https://registry.npmjs.org/@testing-library%2fjest-dom | 2026-10-18 |
@@ -106,8 +106,8 @@ The pins in the requirement files and the constraints are name and version only,
 | @codemirror/state, @codemirror/view, @codemirror/commands, @codemirror/language, @codemirror/lang-markdown | 6.7.6, 6.43.15, 6.11.1, 6.13.1, 6.5.2 | 2026-09-22, 2026-10-19, 2026-09-15, 2026-10-07, 2026-08-04 | https://registry.npmjs.org/@codemirror%2fview (and the other four). The note editor (P3-04, ADR web editor choice); the separate packages instead of the `codemirror` bundle, which adds autocompletion, search and lint that the editor does not use | 2026-11-07 |
 | @codemirror/lang-yaml | 6.1.3 | 2026-03-24 | https://registry.npmjs.org/@codemirror%2flang-yaml. Its `yamlFrontmatter` parses a note's frontmatter as YAML; without it, `key: value` above the closing `---` is a Markdown setext heading | 2026-11-07 |
 | @lezer/highlight | 1.2.5 | 2026-09-28 | https://registry.npmjs.org/@lezer%2fhighlight. Already a dependency of the CodeMirror packages; declared because `src/editor/MarkdownEditor.tsx` imports its `tags` | 2026-11-07 |
-| @tanstack/react-query | 5.107.1 | 2026-11-06 | https://registry.npmjs.org/@tanstack%2freact-query. Server state (spec §5.5); peers `react ^18 \|\| ^19` | 2026-11-07 |
-| msw | 3.0.4 | 2026-11-06 | https://registry.npmjs.org/msw. devDependency: API mocks for the unit tests and `npm run dev:mock`; peers `typescript >=5.9.x`, `vite >=6` (optional); engines `node >=22.12.0`. The dev server serves its worker script from `node_modules` (`vite.config.ts`), so nothing of it is copied into `public/` or a build | 2026-11-07 |
+| @tanstack/react-query | 5.108.0 | 2026-11-17 | https://registry.npmjs.org/@tanstack%2freact-query. Server state (spec §5.5); peers `react ^18 \|\| ^19` | 2026-11-21 |
+| msw | 3.0.6 | 2026-11-15 | https://registry.npmjs.org/msw. devDependency: API mocks for the unit tests and `npm run dev:mock`; peers `typescript >=5.9.x`, `vite >=6` (optional); engines `node >=22.12.0`. The dev server serves its worker script from `node_modules` (`vite.config.ts`), so nothing of it is copied into `public/` or a build | 2026-11-21 |
 
 All rows except typescript are the `latest` dist-tag.
 
