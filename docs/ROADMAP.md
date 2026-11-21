@@ -71,7 +71,7 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 | P3-05 | Tags UI | P2-07 | P0 | — | TESTING |
 | P3-06 | Search UI with grammar hints | P2-08 | P0 | — | TESTING |
 | P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | TESTING |
-| P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | TESTING: built with P5-04 on branch `feature/web-sync-engine`; Playwright `offline.spec.ts` covers the acceptance |
+| P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | TESTING: built with P5-04, merged in #84 (2026-11-20); Playwright `offline.spec.ts` covers the acceptance |
 | P3-09 | Settings, vault management | P2-03 | P0 | — | TESTING |
 | P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | TESTING |
 
@@ -94,12 +94,12 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P5-01 | Production sync endpoints (changes, snapshot, push, blobs, events) from the P1-12 prototype | P1-12, P2-04 | P0 | Simulation + contract tests | TESTING: endpoints on branch `feature/sync-server` with API tests and the Schemathesis contract run; client engines not yet built |
+| P5-01 | Production sync endpoints (changes, snapshot, push, blobs, events) from the P1-12 prototype | P1-12, P2-04 | P0 | Simulation + contract tests | TESTING: endpoints merged in #55 (2026-11-19) with API tests and the Schemathesis contract run; client engines not yet built |
 | P5-02 | Resumable chunked blob upload | P5-01 | P0 | Interrupted 500 MB upload resumes | TESTING: `Content-Range` chunks with `Upload-Offset` resume on branch `feature/resumable-blobs`; an interrupted 500 MiB upload resumed and committed locally (`-m slow` test); streaming commit path |
-| P5-03 | Swift sync engine (outbox, loop, watcher integration) | P5-01, P4-02 | P0 | Cross-client e2e | TESTING: `OpenNoteSync.SyncEngine` on branch `feature/apple-sync` ([design](superpowers/specs/2026-11-19-apple-sync-engine-design.md)), tested against an in-memory server on macOS CI; app wiring (P4-03) and the cross-client suite (P5-09) still to come |
-| P5-04 | Web sync engine | P5-01, P3-08 | P0 | Cross-client e2e | TESTING: branch `feature/web-sync-engine` ([plan](superpowers/plans/2026-11-19-web-sync-engine-plan.md)); verified by hand against a local API; the cross-client suite is P5-09 |
+| P5-03 | Swift sync engine (outbox, loop, watcher integration) | P5-01, P4-02 | P0 | Cross-client e2e | TESTING: `OpenNoteSync.SyncEngine` merged in #83 (2026-11-19) ([design](superpowers/specs/2026-11-19-apple-sync-engine-design.md)), tested against an in-memory server on macOS CI; app wiring (P4-03) and the cross-client suite (P5-09) still to come |
+| P5-04 | Web sync engine | P5-01, P3-08 | P0 | Cross-client e2e | TESTING: merged in #84 (2026-11-20), save-timing fix #88 ([plan](superpowers/plans/2026-11-19-web-sync-engine-plan.md)); verified by hand against a local API; the cross-client suite is P5-09 |
 | P5-05 | Conflict list and resolution UI (all clients) | P5-03, P5-04 | P0 | Conflicts visible and resolvable | NOT_STARTED |
-| P5-06 | Version history browse, diff, restore, deleted-note recovery | P1-13, P5-01 | P0 | Restore any revision | IN_PROGRESS: server side (revisions, content, restore, deleted-note list) on `feature/sync-server`; browse/diff UI comes with the clients |
+| P5-06 | Version history browse, diff, restore, deleted-note recovery | P1-13, P5-01 | P0 | Restore any revision | IN_PROGRESS: server side (revisions, content, restore, deleted-note list) merged in #55 (2026-11-19); browse/diff UI comes with the clients |
 | P5-07 | Tombstone retention and history GC per D6 | P5-01 | P0 | GC never removes newest or conflict-referenced revisions | TESTING |
 | P5-08 | Detection of competing sync tools (iCloud/Dropbox/Obsidian Sync) | P5-03 | P1 | Warning shown | NOT_STARTED |
 | P5-09 | Cross-client end-to-end sync suite | P5-03, P5-04 | P0 | Nightly green | NOT_STARTED |
@@ -112,13 +112,13 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 | P6-01 | Task extraction and central task view, edits round-trip to the note | M5 | P1 | Toggling a task changes one character in the note | IN_PROGRESS (task index, `GET /api/v1/tasks` and the toggle route on the commit path; the client task views remain) |
 | P6-02 | Recurring tasks and reminders | P6-01 | P1 | — | IN_PROGRESS (Tasks plugin dates, priority and `🔁` recurrence indexed; completing a recurring task adds the next occurrence; Reminder plugin reminders indexed and listed with `remind_before`, and in the calendar feed as alarms; device notifications remain) |
 | P6-03 | Calendar integration (CalDAV server-side, EventKit on Apple) | P6-01 | P1 | — | IN_PROGRESS (read-only iCalendar feed of dated tasks, `/api/v1/calendar-feeds`; two-way CalDAV and EventKit remain) |
-| P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | IN_PROGRESS (`clipper/` MV3 extension and `POST /api/v1/clips`; the Apple share sheet remains) |
+| P6-04 | Web clipper (browser extension + share sheet) | M5 | P1 | — | IN_PROGRESS (`clipper/` MV3 extension and `POST /api/v1/clips`, merged in #61 2026-11-20; the Apple share sheet remains) |
 | P6-05 | Templates | M5 | P1 | — | IN_PROGRESS (`POST /api/v1/notes` with `template_id`; the client template pickers remain) |
 | P6-06 | Document scanning (VisionKit) and OCR (Vision on device, Tesseract server-side) into search | M5 | P1 | Scanned text searchable | IN_PROGRESS: server side done (worker job, Tesseract built from source in the API image, PDF text layers, search by scan text, migration `0014`); VisionKit scanning and Vision OCR on Apple devices remain |
 | P6-07 | Saved searches | P2-08 | P1 | — | TESTING |
 | P6-08 | Backlinks panel and knowledge graph | P1-06 | P1/P2 | — | IN_PROGRESS (`/notes/{id}/links` and `GET /api/v1/graph`; the client panels remain) |
-| P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | IN_PROGRESS (`POST /api/v1/notes/{id}/rename` with `update_links`; folder moves, the moved note's own relative links and the client undo action remain) |
-| P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | IN_PROGRESS (`POST /api/v1/imports/enex`; email-to-note remains) |
+| P6-09 | Optional link update on rename (batch, undoable) | P1-06 | P1 | — | IN_PROGRESS (`POST /api/v1/notes/{id}/rename` with `update_links`, merged in #53 2026-11-20; folder moves, the moved note's own relative links and the client undo action remain) |
+| P6-10 | Email-to-note; Evernote ENEX import | M5 | P2 | — | IN_PROGRESS (`POST /api/v1/imports/enex`, merged in #54 2026-11-20; email-to-note remains) |
 
 ## Phase 7 — AI (M7)
 
@@ -137,7 +137,7 @@ Milestone M5: design §15.17 criteria 1–9 hold; offline iPhone edit syncs; con
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | IN_PROGRESS (server: nightly 100k-note benchmark `make benchmark`, results in [benchmarks.md](development/benchmarks.md); reference hardware and the Apple and web client numbers still open) |
+| P8-01 | Performance validation at 100k notes against §15.14 targets | M5 | P0 | Benchmarks recorded on reference hardware | IN_PROGRESS (server: nightly 100k-note benchmark `make benchmark`, results in [benchmarks.md](development/benchmarks.md); search regression from OCR fixed in #92 on 2026-11-21; reference hardware and the Apple and web client numbers still open) |
 | P8-02 | Security testing (external review, DAST) | M5 | P0 | No known critical findings | IN_PROGRESS (DAST: ZAP API scan in the containers workflow, `scripts/dast.sh`; the external review is still to be arranged) |
 | P8-03 | Accessibility review (VoiceOver, keyboard, WCAG 2.2 AA web) | M5 | P0 | — | IN_PROGRESS (web: axe WCAG 2.2 AA and keyboard-only Playwright checks on every push, `web/tests/e2e/accessibility.spec.ts`; VoiceOver on the Apple apps and a manual web review still open) |
 | P8-04 | Backup and restore (vault, history, DB; encrypted) | M5 | P0 | Restore drill succeeds | TESTING: `opennote-backup` and `opennote-restore` in the opennote-postgres image, online and OpenPGP-encrypted, for Compose and as a Helm CronJob ([backup.md](deployment/backup.md)); the restore drill (`scripts/backup-drill.sh`) runs in the `containers` workflow: an exact restore, and a restore of a backup taken during commits, both verified after recovery. The Kubernetes CronJob is rendered and validated, not yet run on a cluster; the server does not run recovery on start until Phase 2 |
