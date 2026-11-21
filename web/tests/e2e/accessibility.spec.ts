@@ -42,7 +42,7 @@ test("a note can be found, opened, edited and saved with the keyboard alone", as
   await page.goto("/");
   await expect(page.getByRole("button", { name: /^Plan/ })).toBeVisible();
   const focused: string[] = [];
-  for (let i = 0; i < 10 && !focused.at(-1)?.startsWith("Plan"); i++) {
+  for (let i = 0; i < 20 && !focused.at(-1)?.startsWith("Plan"); i++) {
     await page.keyboard.press("Tab");
     const outline = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement;

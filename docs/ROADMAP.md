@@ -66,16 +66,16 @@ Task-level plan: [Phase 2 plan](superpowers/plans/2026-11-07-phase-2-backend-api
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P3-01 | Login/logout UI | P2-02 | P0 | Playwright login flow | NOT_STARTED on `main` (2026-11-21): no login screen on `main`; a Phase 3 thread is building it |
-| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | TESTING: three-pane layout and folder navigation merged in #36 (2026-11-14); checked by hand against the real API |
-| P3-03 | Note list (sort, favorites, archive) | P2-04 | P0 | Playwright | NOT_STARTED on `main` (2026-11-21): no sorting, favorites or archive on `main`; a Phase 3 thread is building it |
-| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | TESTING: CodeMirror 6 editor merged in #36; all 31 UTF-8 corpus notes saved byte-identically through the UI by hand against the real API; live preview is styled source, wiki-link navigation not yet |
-| P3-05 | Tags UI | P2-07 | P0 | — | NOT_STARTED on `main` (2026-11-21): no tags UI on `main`; a Phase 3 thread is building it |
-| P3-06 | Search UI with grammar hints | P2-08 | P0 | — | NOT_STARTED on `main` (2026-11-21): no search UI on `main`; a Phase 3 thread is building it |
-| P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | NOT_STARTED on `main` (2026-11-21): no attachment UI on `main`; a Phase 3 thread is building it |
-| P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | TESTING: built with P5-04, merged in #84 (2026-11-20); Playwright `offline.spec.ts` covers the acceptance |
-| P3-09 | Settings, vault management | P2-03 | P0 | — | NOT_STARTED on `main` (2026-11-21): no settings or vault management on `main`; a Phase 3 thread is building it |
-| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | TESTING: responsive layout and PWA shell merged in #36; axe checks at 375 px since #57 |
+| P3-01 | Login/logout UI | P2-02 | P0 | Playwright login flow | COMPLETED: login screen (password and one button per OIDC provider), `/login?auth_request=` for native apps, sign out, back to login on any 401; Playwright `phase3.spec.ts` login flow; pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | COMPLETED: three panes and folder navigation since #36; new, rename and delete folder added on pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-03 | Note list (sort, favorites, archive) | P2-04 | P0 | Playwright | COMPLETED: sort, Favorites and Archive views and toggles (`opennote.favorite`, `opennote.archived`), new, rename (with link update), delete and Trash with restore; Playwright `phase3.spec.ts`; pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | COMPLETED: corpus notes byte-identical through the UI (`editor.spec.ts`, #36); image embeds shown under their line and Ctrl/Cmd-click on wiki-links and embeds on pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-05 | Tags UI | P2-07 | P0 | — | COMPLETED: tags with counts in the navigation, tag filter, tag editing on a note; pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-06 | Search UI with grammar hints | P2-08 | P0 | — | COMPLETED: header search with the grammar's filters as hints, snippets with matches marked; pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | COMPLETED: upload next to the note with `![[name]]` inserted, a folder's attachments listed, image preview, PDF opens in a new tab (CSP forbids framing); pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | COMPLETED: built with P5-04 (pull request #84); Playwright `offline.spec.ts` covers the acceptance |
+| P3-09 | Settings, vault management | P2-03 | P0 | — | COMPLETED: Settings with account, vault create, rename, AI and `.obsidian` switches, delete, members (role, remove, add for admins) and devices; pull request #95 ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md), CI green on 9bbf3b3) |
+| P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | COMPLETED: one pane at a time at 375 px and the installable manifest and service worker, Playwright `pwa.spec.ts` (#36), still green with #95 |
 
 ## Phase 4 — Apple applications (M4)
 

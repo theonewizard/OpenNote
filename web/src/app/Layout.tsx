@@ -1,21 +1,27 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, getJson } from "@/api/client";
-import type { FolderList, NotePage, VaultPage } from "@/api/types";
+import type { Attachment, FolderList, TagPage, User, VaultPage } from "@/api/types";
+import { SESSION_KEY } from "@/app/session";
 import { Button } from "@/components/ui/button";
+import { FormDialog, TextField } from "@/components/ui/form-dialog";
+import { SORTS, createFolder, createNote, deleteFolder, folderOf, join, moveFolder, query, type Sort } from "@/features/actions";
+import { AttachmentView } from "@/features/AttachmentView";
 import { NoteEditor, type NoteRef } from "@/features/NoteEditor";
+import { NoteList, type ListView } from "@/features/NoteList";
 import { saveStateText, type SaveState } from "@/features/saveState";
+import { SearchBox } from "@/features/SearchBox";
+import { Settings } from "@/features/Settings";
 import { cn } from "@/lib/utils";
 import type { SyncEngine, SyncStatus } from "@/sync/engine";
-import { useSyncEngine, useSyncStatus } from "@/sync/useSync";
+import { signOut, useSyncEngine, useSyncStatus } from "@/sync/useSync";
 
 // Below the md breakpoint one pane shows at a time; selecting moves to the next pane and
 // the header's Back button returns (roadmap P3-10: usable at 375 px).
 type Pane = "nav" | "list" | "note";
-
-const query = (params: Record<string, string | undefined>) =>
-  new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => e[1] !== undefined));
+type Main = { kind: "note"; note: NoteRef } | { kind: "attachment"; attachment: Attachment } | { kind: "settings" };
+type Dialog = "new-note" | "new-folder" | "rename-folder" | "delete-folder";
 
 function paneClass(pane: Pane, shown: Pane) {
   return cn("min-h-0 flex-col md:flex", pane === shown ? "flex" : "hidden");
@@ -34,22 +40,6 @@ async function loadVaults(engine: SyncEngine | undefined): Promise<VaultPage> {
   }
 }
 
-/** Notes cached on this device, for when the note list cannot be loaded (offline). */
-async function cachedNotes(engine: SyncEngine, vaultId: string, folder: string | undefined): Promise<NoteRef[]> {
-  return (await engine.files(vaultId))
-    .filter((f) => f.kind === "note" && !f.deleted && f.local_hash)
-    .filter((f) => folder === undefined || f.path.slice(0, Math.max(f.path.lastIndexOf("/"), 0)) === folder)
-    .sort((a, b) => a.path.localeCompare(b.path))
-    .map((f) => ({
-      id: f.file_id,
-      path: f.path,
-      title: f.path.split("/").at(-1)!.replace(/\.md$/, ""),
-      revision: f.base_revision,
-      content_hash: f.local_hash!,
-      read_only: false,
-    }));
-}
-
 function syncText(sync: SyncStatus): string | undefined {
   if (sync.rejected) return `${sync.rejected} not synced: rejected by the server`;
   const offline = sync.state === "offline" ? " (offline)" : "";
@@ -59,12 +49,36 @@ function syncText(sync: SyncStatus): string | undefined {
   return undefined;
 }
 
-export function Layout() {
+function viewTitle(view: ListView): string {
+  switch (view.kind) {
+    case "folder":
+      return view.folder?.split("/").at(-1) ?? "All notes";
+    case "tag":
+      return `#${view.tag}`;
+    case "favorites":
+      return "Favorites";
+    case "archive":
+      return "Archive";
+    case "trash":
+      return "Trash";
+    case "search":
+      return `Search: ${view.q}`;
+  }
+}
+
+const sameView = (a: ListView, b: ListView) => JSON.stringify(a) === JSON.stringify(b);
+
+/** `user` is undefined when the app started offline with a remembered user's cache. */
+export function Layout({ user }: { user?: User }) {
+  const client = useQueryClient();
   const [pane, setPane] = useState<Pane>("nav");
   const [vaultId, setVaultId] = useState<string>();
-  const [folder, setFolder] = useState<string>();
-  const [note, setNote] = useState<NoteRef>();
+  const [view, setView] = useState<ListView>({ kind: "folder" });
+  const [sort, setSort] = useState<Sort>("path");
+  const [main, setMain] = useState<Main>();
   const [saveState, setSaveState] = useState<SaveState>();
+  const [dialog, setDialog] = useState<Dialog>();
+  const [name, setName] = useState("");
 
   const engine = useSyncEngine();
   const vaults = useQuery({
@@ -73,6 +87,7 @@ export function Layout() {
     enabled: !engine.isPending,
   });
   const vault = vaults.data?.items.find((v) => v.id === vaultId) ?? vaults.data?.items[0];
+  const canEdit = !!vault && vault.role !== "viewer";
   const sync = useSyncStatus(engine.data, vault?.id);
   useEffect(() => {
     if (!engine.data || !vault) return;
@@ -85,25 +100,43 @@ export function Layout() {
     queryFn: () => getJson<FolderList>(`/api/v1/folders?${query({ vault_id: vault!.id })}`),
     enabled: !!vault,
   });
-  const notes = useInfiniteQuery({
-    queryKey: ["notes", vault?.id, folder],
-    queryFn: ({ pageParam }) =>
-      getJson<NotePage>(`/api/v1/notes?${query({ vault_id: vault!.id, folder, cursor: pageParam })}`),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (page) => page.next_cursor ?? undefined,
+  const tags = useQuery({
+    queryKey: ["tags", vault?.id],
+    queryFn: () => getJson<TagPage>(`/api/v1/tags?${query({ vault_id: vault!.id, limit: "200" })}`),
     enabled: !!vault,
   });
-  const offlineNotes = useQuery({
-    queryKey: ["offline-notes", vault?.id, folder],
-    queryFn: () => cachedNotes(engine.data!, vault!.id, folder),
-    enabled: notes.isError && !!engine.data && !!vault,
-  });
-  const noteItems: NoteRef[] | undefined = notes.data?.pages.flatMap((page) => page.items) ?? offlineNotes.data;
 
-  function openFolder(path: string | undefined) {
-    setFolder(path);
+  // REST changes (plan R-P3-001): edits not synced yet go first, so the change applies to
+  // the newest text; afterwards the lists are read again and the device cache pulls.
+  const change = useCallback(
+    async <T,>(run: () => Promise<T>): Promise<T> => {
+      if (engine.data && vault) await engine.data.sync(vault.id).catch(() => undefined);
+      try {
+        return await run();
+      } finally {
+        const keep = new Set(["session", "sync-engine", "note-content", "meta"]);
+        await client.invalidateQueries({ predicate: (q) => !keep.has(String(q.queryKey[0])) });
+        if (engine.data && vault) void engine.data.sync(vault.id).catch(() => undefined);
+      }
+    },
+    [client, engine.data, vault],
+  );
+
+  function show(next: ListView) {
+    setView(next);
     setPane("list");
   }
+  const openNote = useCallback((note: NoteRef) => {
+    setMain({ kind: "note", note });
+    setPane("note");
+  }, []);
+  const openAttachment = useCallback((attachment: Attachment) => {
+    setMain({ kind: "attachment", attachment });
+    setPane("note");
+  }, []);
+
+  const folder = view.kind === "folder" ? view.folder : undefined;
+  const note = main?.kind === "note" ? main.note : undefined;
 
   let status = "Connecting…";
   if (vaults.isError) status = "Not connected";
@@ -111,6 +144,10 @@ export function Layout() {
   else if (syncText(sync)) status = syncText(sync)!;
   else if (note && saveState) status = saveStateText[saveState];
   else if (vaults.isSuccess) status = "Connected";
+
+  const navItem = (label: string, target: ListView, depth = 0) => (
+    <FolderButton label={label} depth={depth} active={sameView(view, target)} onClick={() => show(target)} />
+  );
 
   return (
     <div className="flex h-svh flex-col">
@@ -126,6 +163,29 @@ export function Layout() {
           </Button>
         )}
         <span className="font-semibold">OpenNote</span>
+        {vault ? <SearchBox onSearch={(q) => show({ kind: "search", q })} /> : <span className="flex-1" />}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setMain({ kind: "settings" });
+            setPane("note");
+          }}
+        >
+          Settings
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            void signOut(engine.data).then(() => {
+              client.setQueryData(SESSION_KEY, null);
+              client.removeQueries({ predicate: (q) => q.queryKey[0] !== SESSION_KEY[0] });
+            })
+          }
+        >
+          Sign out
+        </Button>
       </header>
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <nav
@@ -139,7 +199,8 @@ export function Layout() {
               value={vault?.id}
               onChange={(e) => {
                 setVaultId(e.target.value);
-                setFolder(undefined);
+                setView({ kind: "folder" });
+                setMain(undefined);
               }}
             >
               {vaults.data.items.map((v) => (
@@ -150,69 +211,137 @@ export function Layout() {
             </select>
           )}
           {vault && <h2 className="font-semibold">{vault.name}</h2>}
-          <Button variant="outline" size="sm" disabled className="self-start">
-            New note
-          </Button>
-          <ul className="flex flex-col">
-            {vault && (
-              <li>
-                <FolderButton label="All notes" depth={0} active={folder === undefined} onClick={() => openFolder(undefined)} />
-              </li>
-            )}
-            {folders.data?.items.map((f) => (
-              <li key={f.path}>
-                <FolderButton
-                  label={f.name}
-                  depth={f.path.split("/").length}
-                  active={folder === f.path}
-                  onClick={() => openFolder(f.path)}
-                />
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="transition-colors" // no opacity fade when the vault loads and the button turns on
+              disabled={!canEdit}
+              onClick={() => {
+                setName("");
+                setDialog("new-note");
+              }}
+            >
+              New note
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="transition-colors" // no opacity fade when the vault loads and the button turns on
+              disabled={!canEdit}
+              onClick={() => {
+                setName("");
+                setDialog("new-folder");
+              }}
+            >
+              New folder
+            </Button>
+          </div>
+          {vault && (
+            <ul className="flex flex-col">
+              <li>{navItem("All notes", { kind: "folder" })}</li>
+              <li>{navItem("Favorites", { kind: "favorites" })}</li>
+              <li>{navItem("Archive", { kind: "archive" })}</li>
+              <li>{navItem("Trash", { kind: "trash" })}</li>
+            </ul>
+          )}
+          {!!folders.data?.items.length && (
+            <>
+              <h3 className="pt-2 text-xs font-semibold text-muted-foreground uppercase">Folders</h3>
+              <ul className="flex flex-col">
+                {folders.data.items.map((f) => (
+                  <li key={f.path}>{navItem(f.name, { kind: "folder", folder: f.path }, f.path.split("/").length)}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {!!tags.data?.items.length && (
+            <>
+              <h3 className="pt-2 text-xs font-semibold text-muted-foreground uppercase">Tags</h3>
+              <ul aria-label="Tags" className="flex flex-col">
+                {tags.data.items.map((t) => (
+                  <li key={t.name}>
+                    <FolderButton
+                      label={`#${t.name}`}
+                      count={t.count}
+                      depth={0}
+                      active={sameView(view, { kind: "tag", tag: t.name })}
+                      onClick={() => show({ kind: "tag", tag: t.name })}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </nav>
         <section
           aria-label="Note list"
           className={cn(paneClass("list", pane), "overflow-auto md:w-80 md:shrink-0 md:border-r")}
         >
-          {notes.isError && !offlineNotes.data?.length && <p className="p-4">Could not load notes.</p>}
-          {noteItems?.length === 0 && <p className="p-4 text-muted-foreground">No notes here</p>}
-          <ul>
-            {noteItems?.map((n) => (
-              <li key={n.id}>
-                <button
-                  type="button"
-                  aria-current={n.id === note?.id ? "true" : undefined}
-                  className={cn(
-                    "flex w-full flex-col items-start border-b px-4 py-2 text-left hover:bg-muted",
-                    n.id === note?.id && "bg-muted",
-                  )}
-                  onClick={() => {
-                    setNote(n);
-                    setPane("note");
-                  }}
+          {vault && (
+            <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
+              <h2 className="min-w-0 basis-full truncate font-semibold">{viewTitle(view)}</h2>
+              {(view.kind === "folder" || view.kind === "tag") && (
+                <select
+                  aria-label="Sort"
+                  className="rounded border bg-background px-1 text-sm"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as Sort)}
                 >
-                  <span className="w-full truncate font-medium">{n.title}</span>
-                  <span className="w-full truncate text-xs text-muted-foreground">{n.path}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {notes.hasNextPage && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="m-2 self-center"
-              disabled={notes.isFetchingNextPage}
-              onClick={() => void notes.fetchNextPage()}
-            >
-              Load more
-            </Button>
+                  {Object.entries(SORTS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {folder !== undefined && canEdit && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setName(folder);
+                      setDialog("rename-folder");
+                    }}
+                  >
+                    Rename
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDialog("delete-folder")}>
+                    Delete
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          {vault && (
+            <NoteList
+              vault={vault}
+              view={view}
+              sort={sort}
+              engine={engine.data}
+              selectedId={note?.id}
+              onOpen={openNote}
+              onOpenAttachment={openAttachment}
+              change={change}
+            />
           )}
         </section>
         <main className={cn(paneClass("note", pane), "min-w-0 flex-1")}>
-          {engine.isError && <p className="p-4">This browser cannot keep notes on this device, so they cannot be edited.</p>}
-          {note && vault && engine.data ? (
+          {engine.isError && main?.kind !== "settings" && (
+            <p className="p-4">This browser cannot keep notes on this device, so they cannot be edited.</p>
+          )}
+          {main?.kind === "settings" ? (
+            <Settings user={user} vault={vault} onVaultCreated={(v) => setVaultId(v.id)} />
+          ) : main?.kind === "attachment" && vault ? (
+            <AttachmentView
+              key={main.attachment.id}
+              attachment={main.attachment}
+              canEdit={canEdit}
+              change={change}
+              onDeleted={() => setMain(undefined)}
+            />
+          ) : note && vault && engine.data ? (
             <NoteEditor
               key={note.id}
               note={note}
@@ -220,6 +349,10 @@ export function Layout() {
               engine={engine.data}
               readOnly={note.read_only || vault.role === "viewer"}
               onSaveState={setSaveState}
+              change={change}
+              onOpenNote={openNote}
+              onOpenAttachment={openAttachment}
+              onMoved={(moved) => setMain(moved ? { kind: "note", note: moved } : undefined)}
             />
           ) : (
             <p className="p-4">No note selected</p>
@@ -227,20 +360,73 @@ export function Layout() {
         </main>
       </div>
       <footer className="border-t px-4 py-1 text-sm">{status}</footer>
+      {vault && (
+        <>
+          <FormDialog
+            title={folder ? `New note in ${folder}` : "New note"}
+            open={dialog === "new-note"}
+            onOpenChange={(open) => setDialog(open ? "new-note" : undefined)}
+            submitLabel="Create"
+            onSubmit={async () => openNote(await change(() => createNote(vault.id, join(folder, name))))}
+          >
+            <TextField label="Name" value={name} onChange={setName} placeholder="Meeting notes" />
+          </FormDialog>
+          <FormDialog
+            title={folder ? `New folder in ${folder}` : "New folder"}
+            open={dialog === "new-folder"}
+            onOpenChange={(open) => setDialog(open ? "new-folder" : undefined)}
+            submitLabel="Create"
+            onSubmit={async () => {
+              const path = join(folder, name);
+              await change(() => createFolder(vault.id, path));
+              show({ kind: "folder", folder: path });
+            }}
+          >
+            <TextField label="Name" value={name} onChange={setName} />
+          </FormDialog>
+          <FormDialog
+            title="Rename or move folder"
+            open={dialog === "rename-folder"}
+            onOpenChange={(open) => setDialog(open ? "rename-folder" : undefined)}
+            submitLabel="Rename"
+            onSubmit={async () => {
+              await change(() => moveFolder(vault.id, folder!, name));
+              setView({ kind: "folder", folder: name });
+              if (note && `${folderOf(note.path)}/`.startsWith(`${folder}/`)) setMain(undefined);
+            }}
+          >
+            <TextField label="Path in the vault" value={name} onChange={setName} />
+          </FormDialog>
+          <FormDialog
+            title={`Delete folder ${folder}?`}
+            open={dialog === "delete-folder"}
+            onOpenChange={(open) => setDialog(open ? "delete-folder" : undefined)}
+            submitLabel="Delete"
+            destructive
+            onSubmit={async () => {
+              await change(() => deleteFolder(vault.id, folder!));
+              setView({ kind: "folder" });
+            }}
+          >
+            <p className="text-sm">Only an empty folder can be deleted.</p>
+          </FormDialog>
+        </>
+      )}
     </div>
   );
 }
 
-function FolderButton(props: { label: string; depth: number; active: boolean; onClick: () => void }) {
+function FolderButton(props: { label: string; depth: number; active: boolean; count?: number; onClick: () => void }) {
   return (
     <button
       type="button"
       aria-current={props.active ? "true" : undefined}
-      className={cn("w-full truncate rounded px-2 py-1 text-left hover:bg-muted", props.active && "bg-muted")}
+      className={cn("flex w-full gap-2 truncate rounded px-2 py-1 text-left hover:bg-muted", props.active && "bg-muted")}
       style={{ paddingLeft: `${0.5 + props.depth * 0.75}rem` }}
       onClick={props.onClick}
     >
-      {props.label}
+      <span className="min-w-0 flex-1 truncate">{props.label}</span>
+      {props.count !== undefined && <span className="text-xs text-muted-foreground">{props.count}</span>}
     </button>
   );
 }

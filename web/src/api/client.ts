@@ -65,3 +65,26 @@ export async function putNoteContent(id: string, bytes: Uint8Array<ArrayBuffer>,
   });
   return response.headers.get("etag") ?? "";
 }
+
+/** A JSON request that changes something; returns the parsed answer, or undefined for 204. */
+export async function sendJson<T = unknown>(
+  path: string,
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
+  body?: unknown,
+  headers: Record<string, string> = {},
+): Promise<T> {
+  const init: RequestInit = { method, headers: { ...headers } };
+  if (body !== undefined) {
+    init.body = JSON.stringify(body);
+    (init.headers as Record<string, string>)["Content-Type"] = "application/json";
+  }
+  const response = await request(path, init);
+  return (response.status === 204 ? undefined : await response.json()) as T;
+}
+
+/** A short sentence for an error shown to the user. */
+export function errorText(error: unknown): string {
+  if (error instanceof ApiError) return error.message || `Request failed (${error.status})`;
+  if (error instanceof TypeError || !(error instanceof Error)) return "The server cannot be reached.";
+  return error.message;
+}
