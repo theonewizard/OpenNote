@@ -55,6 +55,13 @@ export class FakeSyncServer {
     this.commit(fileId, { ...f, revision: f.revision + 1, hash, size: bytes.length, deleted: false }, "update");
   }
 
+  /** Moves a file as if another client had pushed the move. */
+  async move(fileId: string, path: string): Promise<void> {
+    await this.ready;
+    const f = this.files.get(fileId)!;
+    this.commit(fileId, { ...f, path, revision: f.revision + 1 }, "move");
+  }
+
   async remove(fileId: string): Promise<void> {
     await this.ready;
     const f = this.files.get(fileId)!;

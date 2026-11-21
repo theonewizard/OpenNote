@@ -90,7 +90,7 @@ make lint typecheck test
 
 Apple packages are tested with `swift test --package-path apple/Packages/<Package>`.
 
-`npm run dev` in `web/` forwards `/api/` to a backend on this machine (section 5; `OPENNOTE_API_URL`, default `http://127.0.0.1:8000`), as nginx does in the web container; until the login screen exists (P3-01), log in by calling `POST /api/v1/auth/login` from the page. `npm run dev:mock` in `web/` runs the Vite dev server against the MSW mocks in `web/src/mocks/` (a small vault with a CRLF note with a BOM and a Windows-1252 note), so the web app can be tried without the backend.
+`npm run dev` in `web/` forwards `/api/` to a backend on this machine (section 5; `OPENNOTE_API_URL`, default `http://127.0.0.1:8000`), as nginx does in the web container; the app opens on its login screen. `npm run dev:mock` in `web/` runs the Vite dev server against the MSW mocks in `web/src/mocks/` (a small vault with a CRLF note with a BOM and a Windows-1252 note), so the web app can be tried without the backend (signed in as `dana`; after signing out, the password is `correct horse battery`).
 
 The web app's Playwright tests (`npm run test:e2e` in `web/`, section 9) build the app and serve it on port 4173 with `--strictPort`, never reusing a server already there, so only one e2e run per host at a time. `OPENNOTE_PW_EXECUTABLE`, read by `web/playwright.config.ts`, points Playwright at a Chromium already installed instead of the build `npx playwright install chromium` downloads.
 

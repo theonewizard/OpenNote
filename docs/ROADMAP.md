@@ -64,15 +64,15 @@ Task-level plan: [Phase 1 plan](superpowers/plans/2026-11-01-phase-1-storage-syn
 
 | ID | Description | Depends on | Prio | Acceptance criteria | Status |
 |---|---|---|---|---|---|
-| P3-01 | Login/logout UI | P2-02 | P0 | Playwright login flow | TESTING |
-| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | TESTING |
-| P3-03 | Note list (sort, favorites, archive) | P2-04 | P0 | Playwright | TESTING |
-| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | TESTING |
-| P3-05 | Tags UI | P2-07 | P0 | — | TESTING |
-| P3-06 | Search UI with grammar hints | P2-08 | P0 | — | TESTING |
-| P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | TESTING |
+| P3-01 | Login/logout UI | P2-02 | P0 | Playwright login flow | TESTING: login screen (password and one button per OIDC provider), `/login?auth_request=` for native apps, sign out, back to login on any 401; Playwright `phase3.spec.ts` login flow; branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
+| P3-02 | Three-pane layout, notebook (folder) navigation | P2-05 | P0 | Matches design §13 Phase 3 layout | TESTING: three panes and folder navigation since #36; new, rename and delete folder added on branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
+| P3-03 | Note list (sort, favorites, archive) | P2-04 | P0 | Playwright | TESTING: sort, Favorites and Archive views and toggles (`opennote.favorite`, `opennote.archived`), new, rename (with link update), delete and Trash with restore; Playwright `phase3.spec.ts`; branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
+| P3-04 | CodeMirror 6 editor with live preview and wiki-links | P2-04 | P0 | Corpus notes open and save byte-identically through UI | TESTING: corpus notes byte-identical through the UI (`editor.spec.ts`, #36); image embeds shown under their line and Ctrl/Cmd-click on wiki-links and embeds on branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
+| P3-05 | Tags UI | P2-07 | P0 | — | TESTING: tags with counts in the navigation, tag filter, tag editing on a note; branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
+| P3-06 | Search UI with grammar hints | P2-08 | P0 | — | TESTING: header search with the grammar's filters as hints, snippets with matches marked; branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
+| P3-07 | Attachments: upload, image/PDF preview, embeds | P2-06 | P0 | — | TESTING: upload next to the note with `![[name]]` inserted, a folder's attachments listed, image preview, PDF opens in a new tab (CSP forbids framing); branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
 | P3-08 | IndexedDB cache and outbox (offline read/edit) | P3-04 | P0 | Offline edit survives reload and syncs when online | TESTING: built with P5-04 on branch `feature/web-sync-engine`; Playwright `offline.spec.ts` covers the acceptance |
-| P3-09 | Settings, vault management | P2-03 | P0 | — | TESTING |
+| P3-09 | Settings, vault management | P2-03 | P0 | — | TESTING: Settings with account, vault create, rename, AI and `.obsidian` switches, delete, members (role, remove, add for admins) and devices; branch `feature/web-phase-3` ([plan](superpowers/plans/2026-11-21-web-phase-3-completion-plan.md)) |
 | P3-10 | Responsive layout and PWA shell | P3-02 | P0 | Usable at 375 px width; installable | TESTING |
 
 ## Phase 4 — Apple applications (M4)

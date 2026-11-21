@@ -57,8 +57,9 @@ it("pages through long note lists", async () => {
   server.use(...createHandlers([...notes, ...extra]));
   renderApp();
   const list = screen.getByRole("region", { name: "Note list" });
-  expect(await within(list).findByText("Note 46")).toBeInTheDocument();
-  expect(within(list).queryByText("Note 47")).not.toBeInTheDocument();
+  // Sorted by path like the server: Meetings/Legacy, then Note 00 to Note 48 on page one.
+  expect(await within(list).findByText("Note 48")).toBeInTheDocument();
+  expect(within(list).queryByText("Note 49")).not.toBeInTheDocument();
   fireEvent.click(within(list).getByRole("button", { name: "Load more" }));
   expect(await within(list).findByText("Note 59")).toBeInTheDocument();
   expect(within(list).queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
