@@ -22,6 +22,7 @@ from sqlalchemy import (
     Select,
     SQLColumnExpression,
     and_,
+    any_,
     case,
     cast,
     exists,
@@ -116,11 +117,14 @@ def _attachment_link(pattern: str | None) -> ColumnElement[bool]:
 
 
 def _attachment_text(query: ColumnElement[object]) -> ColumnElement[bool]:
-    """The note links to a live attachment whose OCR text matches `query` (P6-06)."""
+    """The note links to a live attachment whose OCR text matches `query` (P6-06).
+
+    The matching notes are collected once, uncorrelated, into an array: `= ANY(ARRAY(...))`
+    keeps the OR with the full-text and trigram matches index-driven, where a correlated
+    EXISTS was evaluated for every document and made 100k-note search 5x slower."""
     target = aliased(File)
-    return exists(
-        select(1)
-        .select_from(NoteLink)
+    notes = (
+        select(NoteLink.file_id)
         .join(target, target.file_id == NoteLink.resolved_file_id)
         .join(
             OcrText,
@@ -129,13 +133,10 @@ def _attachment_text(query: ColumnElement[object]) -> ColumnElement[bool]:
                 OcrText.content_hash == target.content_hash,
             ),
         )
-        .where(
-            NoteLink.file_id == D.file_id,
-            target.kind == "attachment",
-            ~target.deleted,
-            OcrText.tsv.op("@@")(query),
-        )
+        .where(target.kind == "attachment", ~target.deleted, OcrText.tsv.op("@@")(query))
+        .scalar_subquery()
     )
+    return D.file_id == any_(func.array(notes))
 
 
 def _property(name: str) -> ColumnElement[bool]:
