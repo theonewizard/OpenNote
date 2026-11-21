@@ -20,3 +20,7 @@ Thread: Fix failing checks and conflicts on open PRs. Requested by Flemming.
 ## Follow-up: OpenAPI drift after #82 and #53 (2026-11-20)
 
 - Flemming merged #82 (Swift nullable fix in the OpenAPI export) and #53 (rename endpoint) within seconds of each other. Each was green alone, but #82's export rewrites the nullable `If-Match` header that #53 added, so main's committed contract drifted. Branch `fix/openapi-drift-after-53` is the output of `make openapi` on main (be71a26); no backend change.
+
+## Follow-up: versions.md after #86 (2026-11-21)
+
+- Flemming merged Dependabot's #86 (npm minor and patch group) at 03:26 UTC after this thread resolved its conflicts. Per the Dependabot policy (docs/development/setup.md), the versions.md rows land in a follow-up PR. Branch `docs/versions-after-86` updates every Web (npm) row that disagreed with `web/package.json` (the 7 from #86 plus 6 from earlier Dependabot merges that never got their rows: vite's plugin, tailwindcss pair, vitest, globals, jsdom). Release dates from registry.npmjs.org. The multi-package CodeMirror row is unchanged.
