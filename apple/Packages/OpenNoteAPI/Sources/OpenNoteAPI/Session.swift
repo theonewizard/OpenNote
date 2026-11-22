@@ -1,8 +1,13 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import HTTPTypes
 import OpenAPIRuntime
 import OpenAPIURLSession
+#if canImport(Security)
 import Security
+#endif
 
 /// Where the credentials are kept between launches. `save(nil)` deletes them.
 public protocol CredentialStore: Sendable {
@@ -10,6 +15,9 @@ public protocol CredentialStore: Sendable {
     func save(_ credentials: Credentials?) throws
 }
 
+// The Keychain is Apple only; on Linux (the cross-client suite builds this package there)
+// the store is left out.
+#if canImport(Security)
 public struct KeychainError: Error, Equatable {
     public let status: OSStatus
 }
@@ -55,6 +63,7 @@ public struct KeychainStore: CredentialStore {
         guard status == errSecSuccess else { throw KeychainError(status: status) }
     }
 }
+#endif
 
 /// The signed-in state for one server: hands out a valid access token and keeps the stored
 /// credentials current. Refresh tokens are single use and a reused one revokes the device, so
