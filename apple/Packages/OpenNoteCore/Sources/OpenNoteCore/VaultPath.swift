@@ -70,6 +70,51 @@ public enum VaultPath {
         return found
     }
 
+    /// A valid file name made from any text (a dropped file's name, a note's first line):
+    /// characters the rules forbid become `-`, leading dots and trailing spaces and dots go,
+    /// the stem is cut to fit 255 bytes, and an empty name becomes `Untitled`.
+    public static func sanitizedName(_ name: String, note: Bool = false) -> String {
+        var scalars = Array(normalize(name).unicodeScalars).map { scalar -> Unicode.Scalar in
+            let bad = scalar.value < 0x20 || scalar.value == 0x7F || forbiddenChars.contains(scalar)
+                || (note && linkChars.contains(scalar))
+            return bad ? "-" : scalar
+        }
+        scalars = Array(scalars.drop { $0 == "." })
+        let dot = scalars.lastIndex(of: ".") ?? scalars.count
+        var stem = Array(scalars[..<dot])
+        let ext = Array(scalars[dot...])
+        func bytes(_ s: [Unicode.Scalar]) -> Int { String(String.UnicodeScalarView(s)).utf8.count }
+        while bytes(stem) + bytes(ext) > maxSegmentBytes, !stem.isEmpty { stem.removeLast() }
+        var out = stem + ext
+        while let last = out.last, last == " " || last == "." { out.removeLast() }
+        var result = String(String.UnicodeScalarView(out))
+        if result.isEmpty { return "Untitled" }
+        let base = String(String.UnicodeScalarView(result.unicodeScalars.prefix { $0 != "." }))
+        if reservedNames.contains(base.uppercased()) { result = "_" + result }
+        return result
+    }
+
+    /// The file name for a note holding `text` (a quick capture, a shared page): its first
+    /// non-empty line without heading marks, at most 60 characters, or `fallback`.
+    public static func noteName(forText text: String, fallback: String) -> String {
+        let line = text.split(whereSeparator: \.isNewline).lazy
+            .map { $0.drop { $0 == "#" || $0 == " " || $0 == "\t" } }.first { !$0.isEmpty } ?? ""
+        let title = line.prefix(60).trimmingCharacters(in: .whitespaces)
+        return sanitizedName((title.isEmpty ? fallback : title) + ".md", note: true)
+    }
+
+    /// `path` if no entry of `taken` collides with it (case-folded, contract §3), else the
+    /// first of `name 1.ext`, `name 2.ext`… that is free.
+    public static func freePath(_ path: String, taken: some Sequence<String>) -> String {
+        let keys = Set(taken.map(casefoldKey))
+        guard keys.contains(casefoldKey(path)) else { return path }
+        let slash = path.lastIndex(of: "/").map { path.index(after: $0) } ?? path.startIndex
+        let dot = path[slash...].lastIndex(of: ".") ?? path.endIndex
+        var n = 1
+        while keys.contains(casefoldKey("\(path[..<dot]) \(n)\(path[dot...])")) { n += 1 }
+        return "\(path[..<dot]) \(n)\(path[dot...])"
+    }
+
     private static func segmentViolations(_ segment: String, note: Bool) -> [PathViolation] {
         func bad(_ code: String) -> PathViolation { PathViolation(code, segment: segment) }
         if segment.isEmpty { return [bad("empty_segment")] }

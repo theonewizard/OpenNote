@@ -278,6 +278,23 @@ final class Counter: Sendable {
         #expect(wakes.count == 2)
     }
 
+    @Test func runReportsEveryRoundWithItsError() async throws {
+        let box = try Box(), server = FakeServer()
+        try box.put("a.md", "one")
+        let engine = try box.engine(server)
+        let rounds = Mutex<[Bool]>([])
+        await engine.setOnRound { error in rounds.withLock { $0.append(error == nil) } }
+        await server.set(failPushes: true)
+        let loop = Task { await engine.run() }
+        defer { loop.cancel() }
+        try await until { rounds.withLock { $0.count } == 1 }
+        await server.set(failPushes: false)
+        await engine.wake()
+        try await until { rounds.withLock { $0.count } == 2 }
+        #expect(rounds.withLock { $0 } == [false, true])
+        #expect(await server.live() == ["a.md": "one"])
+    }
+
     @Test func uuidsAreVersion7() {
         let id = UUIDv7.make(at: Date(timeIntervalSince1970: 1_700_000_000))
         #expect(id.count == 36)

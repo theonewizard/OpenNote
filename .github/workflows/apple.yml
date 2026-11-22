@@ -1,5 +1,6 @@
-# Apple: `swift test` for each package and unsigned builds of both app schemes with Xcode
-# 27.1 on macOS, and `swift test` for OpenNoteCore and OpenNoteStorage on Linux. Both jobs
+# Apple: `swift test` for each package, then both app schemes built and UI-tested (the Mac,
+# an iPhone and an iPad simulator) with Xcode 27.1 on macOS, signed ad hoc; and `swift test`
+# for OpenNoteCore and OpenNoteStorage on Linux. Both jobs
 # fail when SwiftPM's resolution differs from the committed Package.resolved files
 # (docs/development/setup.md, "Continuous integration").
 name: apple
@@ -53,15 +54,26 @@ jobs:
           xcodegen --version
       - name: Generate the Xcode project (make apple-project)
         run: xcodegen generate --spec apple/project.yml
-      - name: Build OpenNote-macOS
+      - name: Build and UI-test OpenNote-macOS
         run: >-
           xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-macOS
-          -destination 'platform=macOS' -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build
-      - name: Build OpenNote-iOS
-        run: >-
-          xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS
-          -destination 'generic/platform=iOS Simulator' -skipPackagePluginValidation
-          CODE_SIGNING_ALLOWED=NO build
+          -destination 'platform=macOS' -skipPackagePluginValidation test
+      # The first available iPhone and iPad of the image's simulator runtime, whatever
+      # their names are. Each is booted and settled before its tests and shut down after:
+      # a test runner started on a simulator that is still booting can stall before the
+      # first test ("never finished bootstrapping", run 44972129934).
+      - name: Build and UI-test OpenNote-iOS (iPhone, iPad)
+        run: |
+          for kind in iPhone iPad; do
+            id=$(xcrun simctl list devices available --json |
+              jq -r --arg kind "$kind" '[.devices[][] | select(.name | startswith($kind))][0].udid')
+            echo "::group::xcodebuild test on $kind ($id)"
+            xcrun simctl bootstatus "$id" -b
+            xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS \
+              -destination "platform=iOS Simulator,id=$id" -skipPackagePluginValidation test
+            xcrun simctl shutdown "$id"
+            echo "::endgroup::"
+          done
       - name: Package.resolved matches the committed files
         # Changed and new (untracked) Package.resolved files both fail the job.
         run: &resolved-check |

@@ -41,6 +41,7 @@ public actor SyncEngine {
     private var waiter: CheckedContinuation<Void, Never>?
     private var signalled = false
     private var debounce: Task<Void, Never>?
+    private var onRound: (@Sendable ((any Error)?) -> Void)?
 
     /// `supportDirectory` is the vault's folder outside the vault (Application Support): the
     /// state database, the recovery area and download temp files live there.
@@ -59,6 +60,10 @@ public actor SyncEngine {
 
     // MARK: - Loop
 
+    /// Called after every round of `run()` with what stopped it, nil when it completed: the
+    /// vault folder may have changed, and the status to show is known.
+    public func setOnRound(_ handler: (@Sendable ((any Error)?) -> Void)?) { onRound = handler }
+
     /// Runs rounds until the task is cancelled. Call it once per engine.
     public func run() async {
         let hints = Task { [api, vaultID] in
@@ -75,6 +80,7 @@ public actor SyncEngine {
                 failures += 1
                 lastError = error
             }
+            onRound?(lastError)
             // Bounded backoff after failures: 5 s, 10 s, ... up to 5 minutes.
             await wait(seconds: failures == 0 ? 60 : min(300, 5 * pow(2, Double(failures - 1))))
         }
