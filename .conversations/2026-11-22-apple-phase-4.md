@@ -4,7 +4,8 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 
 ## Prompts
 
-- Flemming, 2026-11-22: "Build what is need to complete Phase 4." Read as every Phase 4 row not COMPLETED (P4-03, P4-05 to P4-08), as "finish up phase 3" was read (R-P4-001). No further prompts: the design choices in the plan are Claude's, made without asking under `CLAUDE.md` §2, and are Flemming's to overrule.
+- Flemming, 2026-11-22: "Build what is need to complete Phase 4." Read as every Phase 4 row not COMPLETED (P4-03, P4-05 to P4-08), as "finish up phase 3" was read (R-P4-001). The design choices in the plan are Claude's, made without asking under `CLAUDE.md` §2, and are Flemming's to overrule.
+- Flemming, 2026-11-22, to "say yes and I will push `feature/apple-phase-4` to `origin` and open a draft pull request": "yes". Pushed; pull request #99 (draft). The two fix commits that CI's first run called for were pushed to the same branch under that answer.
 
 ## Rulings made while building (beyond the plan)
 
@@ -28,11 +29,16 @@ Local server: the API with uvicorn on Python 3.14.10, PostgreSQL 18 with pgvecto
 - Sixteen minutes after the sign-in the app was started again: the server's `refresh_tokens` went from two live and none spent to two live and one spent, and a note created on the server still arrived in about a second. The refresh works against the real server.
 - A file named `bad:name.md` put into the device's vault was refused by the server; the app then asked for permission to send notifications. The permission sheet could not be answered from outside a UI test, so no delivered notification was seen.
 
+## CI (pull request #99)
+
+- First run (`cdee52c`): backend, web, containers and security green; `apple` failed in the Mac job, in `testCreateEditFindAndReopenANote` only: no editor appeared after "Tap New Note". On macOS `XCUIElement.tap()` is a touch event, which an AppKit toolbar button ignores; the Mac needs `click()`. The Mac build, the signed runner, UI automation on the runner and the Mac quick-capture test all worked in that run.
+- Reading that log also showed a race in the app: the search ran once per typed text, so a note saved a moment later (the editor saves 1.5 s after the last key) stayed out of the results. The search now runs again when the vault changes.
+- Second run (`b863c52`): all five workflows green (https://github.com/theonewizard/OpenNote/actions/runs/44969840250): the package tests, the Mac UI tests, and the UI tests on the image's first iPhone and iPad simulators (Xcode 27.1, iOS 27.0). P4-05, P4-06 and P4-07 are COMPLETED from that; P4-03 and P4-08 stay TESTING.
+
 ## Not verified
 
-- On the Mac: the UI test and the sign-in sheet. `automationmodetool` reports "This device requires user authentication to enable Automation Mode", and driving the pointer on Flemming's desktop was not started without him. The Mac app was launched on a folder and `open opennote://capture?…` made its note there.
+- On the Mac: the sign-in sheet. Locally `automationmodetool` reports "This device requires user authentication to enable Automation Mode", and driving the pointer on Flemming's desktop was not started without him; CI runs the Mac UI test but has no server to sign in to.
 - The camera, the share sheet itself (the extension is registered; the inbox import was checked with a file placed by hand), Scribble with a Pencil, a hardware keyboard, the App Intent, any real device (no signing team).
-- CI: nothing is pushed. The `apple` workflow selects Xcode 27.1 with iOS 27.0 simulators; this session ran Xcode 27.2 with iOS 26.5.
 
 ## Noticed, not changed
 
