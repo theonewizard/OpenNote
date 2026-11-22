@@ -26,7 +26,10 @@ Review Phase 5 on `main` (1baa1ea) against ROADMAP.md and IMPLEMENTATION_STATUS.
 - R-P5F-008: the web app is served by the Vite dev server with its API proxy, the way `npm run dev` runs it, not by nginx; the suite tests sync, and the nginx image is covered by the `containers` workflow.
 - R-P5F-009: the scenario steps were checked locally with a throwaway Python stand-in for `opennote-sync` (not committed, as it is not the engine under test); the first run of the real Swift command is in CI.
 
+- R-P5F-010: competing sync tools are an Apple-side concern: only the Apple apps keep the vault in a folder of the user's choosing; the web app keeps an IndexedDB cache and the server's vault folder is the operator's. Detection is a pure function of the vault's path and files (`CompetingSync.detect(root:)`), so the apps call it when they open a vault and show the warning; OpenNote keeps syncing, as only the user can say which tool should go. Covered: iCloud Drive, File Provider cloud folders (Dropbox, OneDrive, Google Drive), the older Dropbox app, Obsidian Sync. Syncthing, Git and other tools are left out until someone asks.
+
 ## Output
 
 - Phase 5 web UI pull request: `web/src/features/ConflictView.tsx`, `HistoryView.tsx`, `DiffView.tsx`, `web/src/lib/diff.ts`, navigation and note toolbar wiring, mock conflict/revision/content routes, tests (`diff.test.ts`, `sync-ui.test.tsx`, e2e `sync-ui.spec.ts`). Verified: vitest 8 files / 91 tests, Playwright 19 tests, lint, typecheck, build; one scripted run against a local API where an offline browser edit and a direct `PUT` from "another device" on the same line produced a real conflict copy, which was resolved with Use copy in note, then revision 1 restored from History.
 - Cross-client pull request: `opennote-sync` (`apple/Packages/OpenNoteSync/Sources/opennote-sync`), `scripts/sync-e2e.sh`, `web/tests/sync-e2e/cross-client.spec.ts`, `web/playwright.sync-e2e.config.ts`, `.github/workflows/sync-e2e.yml`; setup.md §9.
+- Competing-sync pull request: `apple/Packages/OpenNoteSync/Sources/OpenNoteSync/CompetingSync.swift` and its tests.
