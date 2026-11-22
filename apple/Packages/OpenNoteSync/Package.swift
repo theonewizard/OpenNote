@@ -26,6 +26,15 @@ let package = Package(
                 .product(name: "HTTPTypes", package: "swift-http-types"),
             ]
         ),
+        // One sync round from the command line, for the cross-client suite (scripts/sync-e2e.sh).
+        .executableTarget(
+            name: "opennote-sync",
+            dependencies: [
+                "OpenNoteSync",
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+                .product(name: "HTTPTypes", package: "swift-http-types"),
+            ]
+        ),
         .testTarget(
             name: "OpenNoteSyncTests",
             dependencies: [
