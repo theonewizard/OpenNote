@@ -1,4 +1,6 @@
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 import Foundation
 import OpenAPIRuntime
 
@@ -36,6 +38,8 @@ public func logDescription(_ error: any Error) -> String {
     return "\(error.operationID): \(error.underlyingError)"
 }
 
+// CryptoKit is Apple only; on Linux (the cross-client suite) there is no login to start.
+#if canImport(CryptoKit)
 /// RFC 7636 proof key: a random verifier and its S256 challenge.
 public struct PKCE: Sendable {
     public let verifier: String
@@ -55,6 +59,7 @@ public struct PKCE: Sendable {
             .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
     }
 }
+#endif
 
 /// What a login yields (`TokenResponse`); the Keychain holds exactly this.
 public struct Credentials: Codable, Sendable, Equatable {
