@@ -21,6 +21,12 @@ Review Phase 5 on `main` (1baa1ea) against ROADMAP.md and IMPLEMENTATION_STATUS.
 
 - R-P5F-005: the note list, folders, tags, search, attachments, Trash and Conflicts are read again whenever the sync engine reports changed files. Before, a note another device added appeared only after a page reload or a REST change of one's own; found while writing the cross-client suite. Status-only notifications (no file ids) do not refetch.
 
+- R-P5F-006: the cross-client suite's Apple device is `opennote-sync`, an executable target in `OpenNoteSync` that runs one `SyncEngine.sync()` round, because the Apple apps (Phase 4) do not exist yet. It uses the same engine and `OpenAPISyncAPI` as the apps will, over a hand-written URLSession transport (no swift-openapi-urlsession, so no new dependency and no `Package.resolved` change), and signs in as the Apple app does (code + PKCE, client `opennote-apple`, device token).
+- R-P5F-007: the suite runs on Linux in the `swift:6.4.1` image, with the backend services as service containers, rather than on the macOS runners: PostgreSQL and Valkey come ready-made there, and the macOS runners are the scarce ones. It runs nightly, on demand, and on pull requests that touch sync code, not on every pull request.
+- R-P5F-008: the web app is served by the Vite dev server with its API proxy, the way `npm run dev` runs it, not by nginx; the suite tests sync, and the nginx image is covered by the `containers` workflow.
+- R-P5F-009: the scenario steps were checked locally with a throwaway Python stand-in for `opennote-sync` (not committed, as it is not the engine under test); the first run of the real Swift command is in CI.
+
 ## Output
 
 - Phase 5 web UI pull request: `web/src/features/ConflictView.tsx`, `HistoryView.tsx`, `DiffView.tsx`, `web/src/lib/diff.ts`, navigation and note toolbar wiring, mock conflict/revision/content routes, tests (`diff.test.ts`, `sync-ui.test.tsx`, e2e `sync-ui.spec.ts`). Verified: vitest 8 files / 91 tests, Playwright 19 tests, lint, typecheck, build; one scripted run against a local API where an offline browser edit and a direct `PUT` from "another device" on the same line produced a real conflict copy, which was resolved with Use copy in note, then revision 1 restored from History.
+- Cross-client pull request: `opennote-sync` (`apple/Packages/OpenNoteSync/Sources/opennote-sync`), `scripts/sync-e2e.sh`, `web/tests/sync-e2e/cross-client.spec.ts`, `web/playwright.sync-e2e.config.ts`, `.github/workflows/sync-e2e.yml`; setup.md §9.

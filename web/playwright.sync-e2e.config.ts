@@ -15,7 +15,6 @@ export default defineConfig({
   use: {
     browserName: "chromium",
     baseURL: process.env.OPENNOTE_E2E_WEB ?? "http://127.0.0.1:5173",
-    trace: "retain-on-failure",
     ...(executablePath ? { launchOptions: { executablePath } } : {}),
   },
 });

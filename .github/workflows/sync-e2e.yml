@@ -88,10 +88,3 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - run: scripts/sync-e2e.sh
-      - name: Playwright traces of failed tests
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: sync-e2e-traces
-          path: web/test-results/
-          retention-days: 7
