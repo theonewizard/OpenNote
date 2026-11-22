@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 
 import { getJson } from "@/api/client";
-import type { Attachment, AttachmentPage, DeletedNotePage, NoteMeta, NotePage, SearchPage, Vault } from "@/api/types";
+import type { Attachment, AttachmentPage, Conflict, ConflictPage, DeletedNotePage, NoteMeta, NotePage, SearchPage, Vault } from "@/api/types";
 import { Button } from "@/components/ui/button";
 import { folderOf, hasFlag, query, restoreNote, type Sort } from "@/features/actions";
 import type { NoteRef } from "@/features/NoteEditor";
@@ -14,6 +14,7 @@ export type ListView =
   | { kind: "favorites" }
   | { kind: "archive" }
   | { kind: "trash" }
+  | { kind: "conflicts" }
   | { kind: "search"; q: string };
 
 /** The search query behind a view that lists search results. */
@@ -59,11 +60,12 @@ interface Props {
   selectedId: string | undefined;
   onOpen: (note: NoteRef) => void;
   onOpenAttachment: (attachment: Attachment) => void;
+  onOpenConflict: (conflict: Conflict) => void;
   /** Wraps a REST change: syncs first, refreshes the lists after */
   change: <T>(run: () => Promise<T>) => Promise<T>;
 }
 
-export function NoteList({ vault, view, sort, engine, selectedId, onOpen, onOpenAttachment, change }: Props) {
+export function NoteList({ vault, view, sort, engine, selectedId, onOpen, onOpenAttachment, onOpenConflict, change }: Props) {
   const q = searchQuery(view);
   const folder = view.kind === "folder" ? view.folder : undefined;
   const tag = view.kind === "tag" ? view.tag : undefined;
@@ -100,6 +102,42 @@ export function NoteList({ vault, view, sort, engine, selectedId, onOpen, onOpen
     queryFn: () => getJson<DeletedNotePage>(`/api/v1/vaults/${vault.id}/deleted-notes`),
     enabled: view.kind === "trash",
   });
+
+  const conflicts = useQuery({
+    queryKey: ["conflicts", vault.id, "open"],
+    queryFn: () => getJson<ConflictPage>(`/api/v1/conflicts?${query({ vault_id: vault.id, limit: "200" })}`),
+    enabled: view.kind === "conflicts",
+  });
+  // Paths from the device cache, so the list needs no request per conflict.
+  const paths = useQuery({
+    queryKey: ["file-paths", vault.id, conflicts.dataUpdatedAt],
+    queryFn: async () => new Map((await engine!.files(vault.id)).map((f) => [f.file_id, f.path])),
+    enabled: view.kind === "conflicts" && !!engine,
+  });
+
+  if (view.kind === "conflicts") {
+    if (conflicts.isError) return <p className="p-4">Could not load conflicts.</p>;
+    if (conflicts.data?.items.length === 0) return <p className="p-4 text-muted-foreground">No conflicts</p>;
+    return (
+      <ul>
+        {conflicts.data?.items.map((c) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              aria-current={c.id === selectedId ? "true" : undefined}
+              className={cn("flex w-full flex-col items-start border-b px-4 py-2 text-left hover:bg-muted", c.id === selectedId && "bg-muted")}
+              onClick={() => onOpenConflict(c)}
+            >
+              <span className="w-full truncate font-medium">{paths.data?.get(c.file_id) ?? "Note"}</span>
+              <span className="w-full truncate text-xs text-muted-foreground">
+                Copy: {paths.data?.get(c.copy_file_id) ?? "deleted"} · {new Date(c.created_at).toLocaleString()}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   if (view.kind === "trash") {
     if (trash.isError) return <p className="p-4">Could not load deleted notes.</p>;

@@ -246,12 +246,61 @@ export class FakeRestApi {
       const note = await this.note(match[1]);
       return note ? json(note) : problem(404, "Note not found");
     }
+    if ((match = route("GET", /^\/notes\/([^/]+)\/content$/))) {
+      const note = await this.note(match[1]);
+      if (!note) return problem(404, "Note not found");
+      return new Response((await this.sync.bytes(note.id))!.slice(), { headers: { ETag: `"${note.revision}"` } });
+    }
+    if ((match = route("PUT", /^\/notes\/([^/]+)\/content$/))) {
+      const note = await this.note(match[1]);
+      if (!note) return problem(404, "Note not found");
+      if (this.stale(request, note.revision)) return problem(412, "Precondition failed");
+      await this.sync.edit(note.id, new Uint8Array(await request.arrayBuffer()));
+      return new Response(null, { status: 204, headers: { ETag: `"${note.revision + 1}"` } });
+    }
+    if ((match = route("GET", /^\/notes\/([^/]+)\/revisions$/))) {
+      const items = this.sync.log
+        .filter((e) => e.file_id === match![1])
+        .reverse()
+        .map((e) => ({ revision: e.revision, seq: e.seq, path: e.path, content_hash: e.content_hash, size: e.size, deleted: e.deleted, op: e.op, device_id: e.device_id, committed_at: NOW }));
+      return items.length ? json({ items, next_cursor: null }) : problem(404, "Note not found");
+    }
+    if ((match = route("GET", /^\/notes\/([^/]+)\/revisions\/(\d+)\/content$/))) {
+      const bytes = this.sync.blobs.get(this.sync.revisions.get(`${match[1]}:${match[2]}`) ?? "");
+      return bytes ? new Response(bytes.slice()) : problem(404, "Revision not found");
+    }
+    if (route("GET", /^\/conflicts$/)) {
+      const status = params.get("status") ?? "open";
+      return json({ items: this.sync.conflicts.filter((c) => c.status === status), next_cursor: null });
+    }
+    if ((match = route("GET", /^\/conflicts\/([^/]+)$/))) {
+      const conflict = this.sync.conflicts.find((c) => c.id === match![1]);
+      return conflict ? json(conflict) : problem(404, "Conflict not found");
+    }
+    if ((match = route("PATCH", /^\/conflicts\/([^/]+)$/))) {
+      const conflict = this.sync.conflicts.find((c) => c.id === match![1]);
+      if (!conflict) return problem(404, "Conflict not found");
+      if (this.stale(request, conflict.revision)) return problem(412, "Precondition failed");
+      const { status } = (await request.json()) as { status: "open" | "resolved" };
+      Object.assign(conflict, { status, revision: conflict.revision + 1, resolved_at: status === "resolved" ? NOW : null });
+      return json(conflict);
+    }
     if ((match = /^\/notes\/([^/]+)(?:\/(rename|restore|links))?$/.exec(path))) {
       const id = match[1];
       const action = match[2];
       if (method === "POST" && action === "restore") {
         const gone = this.deleted.get(id);
-        if (!gone) return problem(404, "Note not found");
+        if (!gone) {
+          // A live note: bring back an older revision's bytes as a new revision.
+          const note = await this.note(id);
+          if (!note) return problem(404, "Note not found");
+          if (this.stale(request, note.revision)) return problem(412, "Precondition failed");
+          const { from_revision } = (await request.json()) as { from_revision: number };
+          const bytes = this.sync.blobs.get(this.sync.revisions.get(`${id}:${from_revision}`) ?? "");
+          if (!bytes) return problem(404, "Revision not found");
+          await this.sync.edit(id, bytes);
+          return json(await this.note(id));
+        }
         if (this.stale(request, gone.revision)) return problem(412, "Precondition failed");
         await this.sync.edit(id, gone.bytes);
         this.deleted.delete(id);
