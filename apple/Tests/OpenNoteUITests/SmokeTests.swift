@@ -23,23 +23,24 @@ import XCTest
 
     func testCreateEditFindAndReopenANote() {
         XCTAssertTrue(newNote.waitForExistence(timeout: 15))
-        newNote.tap()
+        press(newNote)
         let editor = app.textViews.firstMatch
-        XCTAssertTrue(editor.waitForExistence(timeout: 10))
-        editor.tap()
+        // CI keeps no artefacts: on failure the log carries what was on screen instead.
+        XCTAssertTrue(editor.waitForExistence(timeout: 10), app.debugDescription)
+        press(editor)
         editor.typeText("# Groceries\nmilk and eggs")
         // Saved 1.5 s after the last key; leaving the note saves at once.
         showNoteList()
         let search = app.searchFields.firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 10))
-        search.tap()
+        press(search)
         search.typeText("eggs")
         XCTAssertTrue(app.staticTexts["Untitled"].waitForExistence(timeout: 10))
 
         app.terminate()
         app.launch()
         XCTAssertTrue(app.staticTexts["Untitled"].waitForExistence(timeout: 15))
-        app.staticTexts["Untitled"].firstMatch.tap()
+        press(app.staticTexts["Untitled"].firstMatch)
         let reopened = app.textViews.firstMatch
         XCTAssertTrue(reopened.waitForExistence(timeout: 10))
         XCTAssertEqual(reopened.value as? String, "# Groceries\nmilk and eggs")
@@ -65,6 +66,15 @@ import XCTest
     #endif
 
     private var newNote: XCUIElement { app.buttons["New Note"].firstMatch }
+
+    /// A pointer click on the Mac, where `tap()` is a touch event that buttons ignore.
+    private func press(_ element: XCUIElement) {
+        #if os(macOS)
+        element.click()
+        #else
+        element.tap()
+        #endif
+    }
 
     /// On iPhone the panes are a stack that starts on the note list: leave the note.
     private func showNoteList() {
