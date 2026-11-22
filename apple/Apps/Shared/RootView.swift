@@ -82,6 +82,7 @@ struct FolderList: View {
 
 struct NoteList: View {
     @Bindable var window: NoteWindow
+    private let app = AppModel.shared
 
     var body: some View {
         List(window.notes, id: \.path, selection: $window.selection) { note in
@@ -99,7 +100,8 @@ struct NoteList: View {
         }
         .navigationTitle(title)
         .searchable(text: $window.search, isPresented: $window.searching, prompt: "Search notes")
-        .task(id: window.search) { await window.runSearch() }
+        // Again when the folder changes: a note saved a moment ago must be found too.
+        .task(id: [window.search, String(app.revision)]) { await window.runSearch() }
         .toolbar {
             Button("New Note", systemImage: "square.and.pencil") { window.newNote() }
         }
