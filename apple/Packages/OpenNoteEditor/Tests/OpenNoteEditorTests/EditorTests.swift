@@ -111,5 +111,50 @@ func note(_ name: String) throws -> Data {
         #expect(try controller.document.data() == expected)
     }
 
+    @Test func droppedFilesGoToTheHandlerAndTheTextStaysAsItWas() {
+        let controller = MarkdownEditorController(document: EditorDocument(data: Data("text\n".utf8)))
+        let file = URL(fileURLWithPath: "/tmp/photo 1.png")
+        let drag = Drag(file)
+        defer { drag.draggingPasteboard.releaseGlobally() }
+        // Without a handler the view is not a destination for files at all.
+        #expect(!controller.textView.acceptableDragTypes.contains(.fileURL))
+        var dropped: [URL] = []
+        controller.onDropFiles = { dropped += $0 }
+        #expect(controller.textView.acceptableDragTypes.contains(.fileURL))
+        #expect(controller.textView.draggingEntered(drag) == .copy)
+        #expect(controller.textView.prepareForDragOperation(drag))
+        #expect(controller.textView.performDragOperation(drag))
+        #expect(dropped == [file])
+        #expect(controller.textView.string == "text\n")
+    }
+}
+
+/// A drag carrying one file URL, as Finder starts it.
+@MainActor final class Drag: NSObject, NSDraggingInfo {
+    let draggingPasteboard = NSPasteboard(name: NSPasteboard.Name("opennote-test-\(UUID().uuidString)"))
+
+    init(_ file: URL) {
+        super.init()
+        draggingPasteboard.clearContents()
+        draggingPasteboard.writeObjects([file as NSURL])
+    }
+
+    var draggingDestinationWindow: NSWindow? { nil }
+    var draggingSourceOperationMask: NSDragOperation { .copy }
+    var draggingLocation: NSPoint { .zero }
+    var draggedImageLocation: NSPoint { .zero }
+    nonisolated var draggedImage: NSImage? { nil }
+    var draggingSource: Any? { nil }
+    var draggingSequenceNumber: Int { 1 }
+    var draggingFormation: NSDraggingFormation = .default
+    var animatesToDestination = false
+    var numberOfValidItemsForDrop = 1
+    var springLoadingHighlight: NSSpringLoadingHighlight { .none }
+    func slideDraggedImage(to screenPoint: NSPoint) {}
+    func enumerateDraggingItems(options enumOpts: NSDraggingItemEnumerationOptions = [], for view: NSView?,
+                                classes classArray: [AnyClass],
+                                searchOptions: [NSPasteboard.ReadingOptionKey: Any] = [:],
+                                using block: @escaping (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void) {}
+    func resetSpringLoading() {}
 }
 #endif

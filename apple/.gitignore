@@ -1,3 +1,6 @@
-# Written by `xcodegen generate` from the info properties in project.yml.
+# Written by `xcodegen generate` from the info and entitlements properties in project.yml.
 /Apps/macOS/Info.plist
 /Apps/iOS/Info.plist
+/Apps/iOS/OpenNote.entitlements
+/Apps/ShareExtension/Info.plist
+/Apps/ShareExtension/OpenNoteShare.entitlements

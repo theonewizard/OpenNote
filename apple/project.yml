@@ -11,8 +11,10 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    # Unsigned builds (CI); no development team.
-    CODE_SIGNING_ALLOWED: NO
+    # Signed ad hoc ("Sign to Run Locally"): no development team, enough for the Mac and
+    # the simulators, and the iOS App Group entitlement only takes effect in a signed build.
+    # A build for a device needs a team (P8-08).
+    CODE_SIGN_IDENTITY: "-"
 
 packages:
   OpenNoteCore:
@@ -42,6 +44,11 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        # opennote://capture?text=… (quick capture). The login callback uses the same
+        # scheme but is caught by the web authentication session, not delivered here.
+        CFBundleURLTypes:
+          - CFBundleURLName: dev.opennote.OpenNote
+            CFBundleURLSchemes: [opennote]
     settings:
       base:
         PRODUCT_NAME: OpenNote
@@ -52,7 +59,8 @@ targets:
       - package: OpenNoteAPI
       - package: OpenNoteSync
       - package: OpenNoteEditor
-    scheme: {}
+    scheme:
+      testTargets: [OpenNoteUITests-macOS]
 
   OpenNote-iOS:
     type: application
@@ -68,6 +76,13 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
+        CFBundleURLTypes:
+          - CFBundleURLName: dev.opennote.OpenNote
+            CFBundleURLSchemes: [opennote]
+        # The vault lives in Documents and shows in Files under "On My iPhone" (P4-06).
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        NSCameraUsageDescription: Photos you take are attached to the open note.
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         UILaunchScreen: {}
@@ -84,10 +99,69 @@ targets:
       base:
         PRODUCT_NAME: OpenNote
         PRODUCT_BUNDLE_IDENTIFIER: dev.opennote.OpenNote.iOS
+    entitlements:
+      path: Apps/iOS/OpenNote.entitlements
+      properties: &app-group
+        com.apple.security.application-groups: [group.dev.opennote.OpenNote]
     dependencies:
       - package: OpenNoteCore
       - package: OpenNoteStorage
       - package: OpenNoteAPI
       - package: OpenNoteSync
       - package: OpenNoteEditor
-    scheme: {}
+      - target: OpenNoteShare
+    scheme:
+      testTargets: [OpenNoteUITests-iOS]
+
+  # Share sheet: writes what was shared into the App Group inbox; the app imports it (P4-08).
+  OpenNoteShare:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - Apps/ShareExtension
+      - Apps/Shared/SharedInbox.swift
+    info:
+      path: Apps/ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: OpenNote
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+    entitlements:
+      path: Apps/ShareExtension/OpenNoteShare.entitlements
+      properties: *app-group
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.opennote.OpenNote.iOS.Share
+
+  # The same XCUITest sources for both platforms (R-P4-011).
+  OpenNoteUITests-macOS:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources: [Tests/OpenNoteUITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.opennote.OpenNote.UITests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: OpenNote-macOS
+
+  OpenNoteUITests-iOS:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources: [Tests/OpenNoteUITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.opennote.OpenNote.iOS.UITests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: OpenNote-iOS
