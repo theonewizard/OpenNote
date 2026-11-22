@@ -59,15 +59,19 @@ jobs:
           xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-macOS
           -destination 'platform=macOS' -skipPackagePluginValidation test
       # The first available iPhone and iPad of the image's simulator runtime, whatever
-      # their names are.
+      # their names are. Each is booted and settled before its tests and shut down after:
+      # a test runner started on a simulator that is still booting can stall before the
+      # first test ("never finished bootstrapping", run 44972129934).
       - name: Build and UI-test OpenNote-iOS (iPhone, iPad)
         run: |
           for kind in iPhone iPad; do
             id=$(xcrun simctl list devices available --json |
               jq -r --arg kind "$kind" '[.devices[][] | select(.name | startswith($kind))][0].udid')
             echo "::group::xcodebuild test on $kind ($id)"
+            xcrun simctl bootstatus "$id" -b
             xcodebuild -project apple/OpenNote.xcodeproj -scheme OpenNote-iOS \
               -destination "platform=iOS Simulator,id=$id" -skipPackagePluginValidation test
+            xcrun simctl shutdown "$id"
             echo "::endgroup::"
           done
       - name: Package.resolved matches the committed files
