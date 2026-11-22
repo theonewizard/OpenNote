@@ -111,3 +111,11 @@ it("browses a note's history, shows what a revision changed and restores it", as
   // Back in the note after the restore.
   expect(await within(main()).findByRole("heading", { name: "Welcome" })).toBeInTheDocument();
 });
+
+it("lists a note another device added once sync pulls it", async () => {
+  const { sync } = setup();
+  await within(list()).findByRole("button", { name: /^Welcome\s*Welcome\.md$/ });
+  sync.seed("018f5a40-2d14-7b9c-8e3a-0000000000d1", "From the Mac.md", enc("# From the Mac\n"));
+  dispatchEvent(new Event("online")); // the engine syncs at once instead of within 60 s
+  expect(await within(list()).findByRole("button", { name: /^From the Mac/ })).toBeInTheDocument();
+});

@@ -75,6 +75,9 @@ function viewTitle(view: ListView): string {
   }
 }
 
+/** Queries listing the vault's files, read again after sync changed files. */
+const LISTS = new Set(["notes", "search", "folders", "tags", "attachments", "deleted", "conflicts"]);
+
 const sameView = (a: ListView, b: ListView) => JSON.stringify(a) === JSON.stringify(b);
 
 /** `user` is undefined when the app started offline with a remembered user's cache. */
@@ -115,14 +118,20 @@ export function Layout({ user }: { user?: User }) {
     enabled: !!vault,
   });
 
-  // Open conflicts, counted in the navigation; read again whenever sync changed files.
+  // Open conflicts, counted in the navigation.
   const conflicts = useQuery({
     queryKey: ["conflicts", vault?.id, "open"],
     queryFn: () => getJson<ConflictPage>(`/api/v1/conflicts?${query({ vault_id: vault!.id, limit: "200" })}`),
     enabled: !!vault,
   });
+  // Sync changed files (another device's notes pulled, or a push answered, perhaps with a
+  // conflict copy): read the lists again so they show them.
   useEffect(
-    () => engine.data?.subscribe((v) => v === vault?.id && void client.invalidateQueries({ queryKey: ["conflicts", v] })),
+    () =>
+      engine.data?.subscribe((v, ids) => {
+        if (v !== vault?.id || !ids.length) return;
+        void client.invalidateQueries({ predicate: (q) => LISTS.has(String(q.queryKey[0])) });
+      }),
     [engine.data, vault?.id, client],
   );
 

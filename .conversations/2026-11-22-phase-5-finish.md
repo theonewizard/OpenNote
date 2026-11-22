@@ -19,6 +19,8 @@ Review Phase 5 on `main` (1baa1ea) against ROADMAP.md and IMPLEMENTATION_STATUS.
 - R-P5F-003: the conflict list shows paths from the device's sync cache instead of one note request per conflict.
 - R-P5F-004: History compares a revision with the revision before it ("changes in this revision") or with the current note (+ marks what restoring brings back). Restore uses `POST /notes/{id}/restore` with the note's current revision as `If-Match`.
 
+- R-P5F-005: the note list, folders, tags, search, attachments, Trash and Conflicts are read again whenever the sync engine reports changed files. Before, a note another device added appeared only after a page reload or a REST change of one's own; found while writing the cross-client suite. Status-only notifications (no file ids) do not refetch.
+
 ## Output
 
 - Phase 5 web UI pull request: `web/src/features/ConflictView.tsx`, `HistoryView.tsx`, `DiffView.tsx`, `web/src/lib/diff.ts`, navigation and note toolbar wiring, mock conflict/revision/content routes, tests (`diff.test.ts`, `sync-ui.test.tsx`, e2e `sync-ui.spec.ts`). Verified: vitest 8 files / 91 tests, Playwright 19 tests, lint, typecheck, build; one scripted run against a local API where an offline browser edit and a direct `PUT` from "another device" on the same line produced a real conflict copy, which was resolved with Use copy in note, then revision 1 restored from History.
