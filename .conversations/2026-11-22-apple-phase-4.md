@@ -6,7 +6,8 @@ Project: OpenNote. Recorded per the last line of `CLAUDE.md` ("Document every pr
 
 - Flemming, 2026-11-22: "Build what is need to complete Phase 4." Read as every Phase 4 row not COMPLETED (P4-03, P4-05 to P4-08), as "finish up phase 3" was read (R-P4-001). The design choices in the plan are Claude's, made without asking under `CLAUDE.md` §2, and are Flemming's to overrule.
 - Flemming, 2026-11-22, to "say yes and I will push `feature/apple-phase-4` to `origin` and open a draft pull request": "yes". Pushed; pull request #99 (draft). The two fix commits that CI's first run called for were pushed to the same branch under that answer.
-- Flemming, 2026-11-22: "create github pr and run tests". The pull request existed already (#99), so this was read as: bring it up to date and run the tests again. Locally: the five package suites, the Mac test build and the UI tests on an iPhone and an iPad simulator, all green. In CI: the run started by the push of this record.
+- Flemming, 2026-11-22: "create github pr and run tests". The pull request existed already (#99), so this was read as: bring it up to date and run the tests again. Locally: the five package suites, the Mac test build and the UI tests on an iPhone and an iPad simulator, all green. In CI: the run started by the push of this record, green on all five workflows (`1744dc0`).
+- Flemming, 2026-11-22, to the offer to mark the pull request ready and squash-merge it: "No create a PH merge request and let me merge ti". Read as: do not merge; make #99 an ordinary pull request (no longer a draft) and leave the merge to him. Done; nothing was merged by Claude.
 
 ## Rulings made while building (beyond the plan)
 
