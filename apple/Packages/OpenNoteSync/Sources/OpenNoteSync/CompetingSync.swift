@@ -26,15 +26,14 @@ public enum CompetingSync: Equatable, Sendable {
                 found.append(.cloudStorage(parts[i + 2]))
             }
         }
-        var folder = root.resolvingSymlinksInPath().standardizedFileURL
-        while true {
-            if FileManager.default.fileExists(atPath: folder.appendingPathComponent(".dropbox").path) {
+        // The vault folder, then each folder above it up to "/" (by path components: a file
+        // URL's deletingLastPathComponent() at "/" gives "/..", so it would never stop).
+        for depth in stride(from: parts.count, through: 1, by: -1) {
+            let folder = NSString.path(withComponents: Array(parts[..<depth]))
+            if FileManager.default.fileExists(atPath: (folder as NSString).appendingPathComponent(".dropbox")) {
                 found.append(.dropbox)
                 break
             }
-            let parent = folder.deletingLastPathComponent()
-            if parent.path == folder.path { break }
-            folder = parent
         }
         if obsidianSyncEnabled(root: root) { found.append(.obsidianSync) }
         return found
