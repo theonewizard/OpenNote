@@ -45,6 +45,7 @@ interface EditorProps extends Props {
   onOpenAttachment: (attachment: Attachment) => void;
   /** The note was renamed (new metadata) or deleted (null) here */
   onMoved: (note: NoteMeta | null) => void;
+  onHistory: () => void;
 }
 
 const MAX_ATTACHMENT_PAGES = 10;
@@ -324,6 +325,7 @@ function NoteActions({
   change,
   insert,
   onMoved,
+  onHistory,
   onMessage,
 }: EditorProps & {
   meta: NoteMeta | undefined;
@@ -398,6 +400,9 @@ function NoteActions({
       </Button>
       <Button size="sm" variant="ghost" disabled={!editable} onClick={() => setDialog("delete")}>
         Delete
+      </Button>
+      <Button size="sm" variant="ghost" disabled={!meta} onClick={onHistory}>
+        History
       </Button>
       {meta && meta.tags.length > 0 && (
         <ul aria-label="Tags" className="flex flex-wrap gap-1 px-2 text-xs">

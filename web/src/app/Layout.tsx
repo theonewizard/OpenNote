@@ -2,12 +2,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, getJson } from "@/api/client";
-import type { Attachment, FolderList, TagPage, User, VaultPage } from "@/api/types";
+import type { Attachment, Conflict, ConflictPage, FolderList, TagPage, User, VaultPage } from "@/api/types";
 import { SESSION_KEY } from "@/app/session";
 import { Button } from "@/components/ui/button";
 import { FormDialog, TextField } from "@/components/ui/form-dialog";
 import { SORTS, createFolder, createNote, deleteFolder, folderOf, join, moveFolder, query, type Sort } from "@/features/actions";
 import { AttachmentView } from "@/features/AttachmentView";
+import { ConflictView } from "@/features/ConflictView";
+import { HistoryView } from "@/features/HistoryView";
 import { NoteEditor, type NoteRef } from "@/features/NoteEditor";
 import { NoteList, type ListView } from "@/features/NoteList";
 import { saveStateText, type SaveState } from "@/features/saveState";
@@ -20,7 +22,12 @@ import { signOut, useSyncEngine, useSyncStatus } from "@/sync/useSync";
 // Below the md breakpoint one pane shows at a time; selecting moves to the next pane and
 // the header's Back button returns (roadmap P3-10: usable at 375 px).
 type Pane = "nav" | "list" | "note";
-type Main = { kind: "note"; note: NoteRef } | { kind: "attachment"; attachment: Attachment } | { kind: "settings" };
+type Main =
+  | { kind: "note"; note: NoteRef }
+  | { kind: "history"; note: NoteRef }
+  | { kind: "conflict"; conflict: Conflict }
+  | { kind: "attachment"; attachment: Attachment }
+  | { kind: "settings" };
 type Dialog = "new-note" | "new-folder" | "rename-folder" | "delete-folder";
 
 function paneClass(pane: Pane, shown: Pane) {
@@ -61,6 +68,8 @@ function viewTitle(view: ListView): string {
       return "Archive";
     case "trash":
       return "Trash";
+    case "conflicts":
+      return "Conflicts";
     case "search":
       return `Search: ${view.q}`;
   }
@@ -105,6 +114,17 @@ export function Layout({ user }: { user?: User }) {
     queryFn: () => getJson<TagPage>(`/api/v1/tags?${query({ vault_id: vault!.id, limit: "200" })}`),
     enabled: !!vault,
   });
+
+  // Open conflicts, counted in the navigation; read again whenever sync changed files.
+  const conflicts = useQuery({
+    queryKey: ["conflicts", vault?.id, "open"],
+    queryFn: () => getJson<ConflictPage>(`/api/v1/conflicts?${query({ vault_id: vault!.id, limit: "200" })}`),
+    enabled: !!vault,
+  });
+  useEffect(
+    () => engine.data?.subscribe((v) => v === vault?.id && void client.invalidateQueries({ queryKey: ["conflicts", v] })),
+    [engine.data, vault?.id, client],
+  );
 
   // REST changes (plan R-P3-001): edits not synced yet go first, so the change applies to
   // the newest text; afterwards the lists are read again and the device cache pulls.
@@ -243,6 +263,17 @@ export function Layout({ user }: { user?: User }) {
               <li>{navItem("Favorites", { kind: "favorites" })}</li>
               <li>{navItem("Archive", { kind: "archive" })}</li>
               <li>{navItem("Trash", { kind: "trash" })}</li>
+              {!!conflicts.data?.items.length && (
+                <li>
+                  <FolderButton
+                    label="Conflicts"
+                    count={conflicts.data.items.length}
+                    depth={0}
+                    active={sameView(view, { kind: "conflicts" })}
+                    onClick={() => show({ kind: "conflicts" })}
+                  />
+                </li>
+              )}
             </ul>
           )}
           {!!folders.data?.items.length && (
@@ -320,9 +351,13 @@ export function Layout({ user }: { user?: User }) {
               view={view}
               sort={sort}
               engine={engine.data}
-              selectedId={note?.id}
+              selectedId={main?.kind === "conflict" ? main.conflict.id : note?.id}
               onOpen={openNote}
               onOpenAttachment={openAttachment}
+              onOpenConflict={(conflict) => {
+                setMain({ kind: "conflict", conflict });
+                setPane("note");
+              }}
               change={change}
             />
           )}
@@ -333,6 +368,24 @@ export function Layout({ user }: { user?: User }) {
           )}
           {main?.kind === "settings" ? (
             <Settings user={user} vault={vault} onVaultCreated={(v) => setVaultId(v.id)} />
+          ) : main?.kind === "conflict" && vault ? (
+            <ConflictView
+              key={main.conflict.id}
+              conflict={main.conflict}
+              canEdit={canEdit}
+              change={change}
+              onOpenNote={openNote}
+              onResolved={() => setMain(undefined)}
+            />
+          ) : main?.kind === "history" && vault ? (
+            <HistoryView
+              key={main.note.id}
+              note={main.note}
+              canEdit={canEdit}
+              change={change}
+              onRestored={openNote}
+              onClose={() => openNote(main.note)}
+            />
           ) : main?.kind === "attachment" && vault ? (
             <AttachmentView
               key={main.attachment.id}
@@ -353,6 +406,7 @@ export function Layout({ user }: { user?: User }) {
               onOpenNote={openNote}
               onOpenAttachment={openAttachment}
               onMoved={(moved) => setMain(moved ? { kind: "note", note: moved } : undefined)}
+              onHistory={() => setMain({ kind: "history", note })}
             />
           ) : (
             <p className="p-4">No note selected</p>

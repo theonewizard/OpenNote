@@ -2,7 +2,7 @@
 // tests (MSW), `npm run dev:mock` and the Playwright tests (page.route). It speaks the
 // Fetch API, so each of them only adapts Request and Response. It does not merge: an
 // update on an old base is a conflict copy unless the test supplies `merge`.
-import type { PushOperation, PushResult, SyncEntry } from "@/api/types";
+import type { Conflict, PushOperation, PushResult, SyncEntry } from "@/api/types";
 import { sha256 } from "@/sync/hash";
 
 export interface FakeFile {
@@ -28,6 +28,7 @@ export class FakeSyncServer {
   readonly results = new Map<string, PushResult>();
   readonly uploads = new Map<string, Uint8Array<ArrayBuffer>>();
   readonly revisions = new Map<string, string | null>(); // `${file}:${revision}` -> hash
+  readonly conflicts: Conflict[] = [];
   /** Cursors before this seq are expired (410) */
   horizon = 0;
   merge?: Merge;
@@ -179,9 +180,21 @@ export class FakeSyncServer {
     return candidate;
   }
 
-  private copy(original: string, path: string, kind: string, hash: string): PushResult {
+  private copy(original: string, path: string, kind: string, hash: string, baseRevision: number): PushResult {
     const id = crypto.randomUUID();
     const entry = this.commit(id, { path: this.copyPath(path), kind, revision: 1, hash, size: this.blobs.get(hash)!.length, deleted: false }, "create");
+    this.conflicts.push({
+      id: crypto.randomUUID(),
+      vault_id: "",
+      file_id: original,
+      copy_file_id: id,
+      base_revision: baseRevision,
+      their_revision: this.files.get(original)!.revision,
+      status: "open",
+      revision: 1,
+      created_at: "2026-11-21T10:00:00.000Z",
+      resolved_at: null,
+    });
     return { ...this.ok(id, entry), status: "conflict", problem: { type: "about:blank", title: "Edit kept as a conflict copy", status: 409, original_file_id: original } };
   }
 
@@ -203,11 +216,11 @@ export class FakeSyncServer {
         let hash = op.content_hash;
         let status: "applied" | "merged" = "applied";
         if (f.deleted) {
-          if (this.taken(f.path)) return this.copy(op.file_id, f.path, f.kind, hash);
+          if (this.taken(f.path)) return this.copy(op.file_id, f.path, f.kind, hash, op.base_revision);
         } else if (op.base_revision < f.revision && hash !== f.hash) {
           const base = this.blobs.get(this.revisions.get(`${op.file_id}:${op.base_revision}`) ?? "");
           const merged = base && this.merge?.(base, this.blobs.get(f.hash!)!, this.blobs.get(hash)!);
-          if (!merged) return this.copy(op.file_id, f.path, f.kind, hash);
+          if (!merged) return this.copy(op.file_id, f.path, f.kind, hash, op.base_revision);
           hash = await sha256(merged as Uint8Array<ArrayBuffer>);
           this.blobs.set(hash, merged as Uint8Array<ArrayBuffer>);
           status = "merged";

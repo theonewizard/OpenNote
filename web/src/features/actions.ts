@@ -1,7 +1,7 @@
 // REST changes the web UI makes besides editing note text (plan R-P3-001). They need the
 // server; the sync engine pulls their result into the device cache afterwards.
 import { request, sendJson } from "@/api/client";
-import type { Attachment, NoteMeta, RenameResult } from "@/api/types";
+import type { Attachment, Conflict, NoteMeta, RenameResult } from "@/api/types";
 
 export const SORTS = {
   path: "Path",
@@ -103,4 +103,13 @@ export function moveFolder(vaultId: string, path: string, newPath: string) {
 export function deleteFolder(vaultId: string, path: string) {
   const query = new URLSearchParams({ vault_id: vaultId, path });
   return sendJson(`/api/v1/folders?${query}`, "DELETE");
+}
+
+/** The bytes of a note as text; bytes that are not UTF-8 show as U+FFFD (read-only views). */
+export async function noteText(path: string): Promise<string> {
+  return new TextDecoder().decode(await (await request(path)).arrayBuffer());
+}
+
+export function setConflictStatus(conflict: Pick<Conflict, "id" | "revision">, status: Conflict["status"]) {
+  return sendJson<Conflict>(`/api/v1/conflicts/${conflict.id}`, "PATCH", { status }, ifMatch(conflict.revision));
 }

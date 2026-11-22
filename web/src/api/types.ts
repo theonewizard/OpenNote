@@ -28,3 +28,7 @@ export type LoginResult = Schemas["LoginResult"];
 export type VaultMemberPage = Schemas["VaultMemberPage"];
 export type DevicePage = Schemas["DevicePage"];
 export type UserPage = Schemas["UserPage"];
+export type Conflict = Schemas["Conflict"];
+export type ConflictPage = Schemas["ConflictPage"];
+export type NoteRevision = Schemas["NoteRevision"];
+export type NoteRevisionPage = Schemas["NoteRevisionPage"];
