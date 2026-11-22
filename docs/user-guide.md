@@ -1,6 +1,6 @@
 # User guide
 
-What OpenNote does for you today, and what it does not do yet (P8-07). OpenNote is pre-release: the server and the web app work, and the Apple apps are still being built ([ROADMAP.md](ROADMAP.md)).
+What OpenNote does for you today, and what it does not do yet (P8-07). OpenNote is pre-release: the server and the web app work; the Mac, iPhone and iPad apps work when built from source and are not yet distributed ([ROADMAP.md](ROADMAP.md)).
 
 ## Your notes are plain files
 
@@ -31,10 +31,27 @@ The web app has three panes: folders, tags and the views All notes, Favorites, A
 - **Not connected.** The status line shows this when the web app cannot reach the server.
 - **Offline.** Notes you have opened stay readable and editable without a connection, and sync when it is back. Creating, renaming, deleting, tagging and uploading need the server.
 
+## The Mac, iPhone and iPad apps
+
+The apps keep the vault as real files on the device, so they work without a connection and without an account; signing in adds sync.
+
+- **Starting.** Enter your server's address (`https://…`) and choose **Sign In**: the server's own sign-in page opens in the system's sign-in sheet, and the app never sees your password. Then pick one of your vaults. On the Mac you choose the folder the vault lives in, and Obsidian can open the same folder. On iPhone and iPad the vault is a folder under OpenNote in the Files app. Or skip the account: **Open a Folder Without an Account** (Mac) or **Use on This Device Only**.
+- **Three panes.** Folders, the notes of the folder (newest first) and the note. An iPhone shows one at a time; an iPad in landscape shows all three.
+- **Notes.** **New Note** makes `Untitled` in the open folder. **Rename** takes a name or `Folder/Name`, which moves the note and creates the folder; links to the note in other notes are not updated. **Delete** moves the note out of the vault into the app's recovery area.
+- **Saving.** Edits are saved 1.5 seconds after you stop typing, when you leave the note, and with ⌘S. If the note changed elsewhere while you were editing (another device, Obsidian), nothing is overwritten: a bar says so and **Reload** takes the other version. If you leave the note instead, your edits are kept beside it as `… (unsaved edits)`.
+- **Search.** The search field finds notes by name and by text.
+- **Attachments.** **Attach** copies a file next to the note and adds `![[file name]]` at the end of it. On the Mac you can also drop files on the note; on iPhone and iPad **Take Photo** attaches a picture from the camera.
+- **Sync.** The line under the folders says `On this device only`, `Syncing…`, `Synced` with the time, `Signed out`, or what went wrong. Changes from other devices arrive within seconds while the app is open. Sign out, close the vault or sync at once under Settings (Mac) or the account button (iPhone, iPad). Signed-in apps are listed, and can be revoked, under Devices in the web app.
+- **Capture.** On iPhone and iPad, **OpenNote** in the share sheet saves the shared text or web address as a note in the `Inbox` folder the next time the app opens. The shortcut **Capture Note** (Shortcuts, Spotlight, Siri) and links of the form `opennote://capture?text=…` do the same on every device.
+- **Notifications.** If the server refuses one of your changes, the app tells you with a notification, once per file.
+- **Mac menus.** New Note ⌘N, New Window ⌥⌘N, Save ⌘S, Attach File ⇧⌘A, Show in Finder ⇧⌘R, Search Notes ⌥⌘F, Sync Now ⌃⌘S; Rename and Delete are in the Note menu. An iPad with a keyboard has the same shortcuts.
+
+Not in the apps yet: tags, favorites, the Trash, version history, the list of sync conflicts, tasks and reminders. Use the web app for those.
+
 ## Search
 
 The search grammar combines words with filters such as `tag:project`, `notebook:Work`, `has:task` and `after:2026-09-01`. The full grammar is in the [API contract](api/api-contract.md) §5.
 
 ## Not there yet
 
-Sync to the Apple apps, sharing, reminders and the AI features are on the [roadmap](ROADMAP.md) and not part of what you can use today.
+Sharing a vault from the apps, reminders and the AI features are on the [roadmap](ROADMAP.md) and not part of what you can use today.

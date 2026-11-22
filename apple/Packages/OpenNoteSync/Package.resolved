@@ -1,5 +1,5 @@
 {
-  "originHash" : "20ef8ecc5a2dca383dadc7d4dce30402a58abcdda8f5169a6c25fed05b046a8c",
+  "originHash" : "b4864b57c5594511298075d18dd5a86c2e70cd97965eef2ff9fc73075011d884",
   "pins" : [
     {
       "identity" : "openapikit",
@@ -47,6 +47,15 @@
       }
     },
     {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections",
+      "state" : {
+        "revision" : "88754449ab766a739610b660e117762115fabc9c",
+        "version" : "1.7.6"
+      }
+    },
+    {
       "identity" : "swift-crypto",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-crypto.git",
@@ -89,6 +98,15 @@
       "state" : {
         "revision" : "ad7a252e215870ea2de9cf8605ff9336b004183a",
         "version" : "1.13.1"
+      }
+    },
+    {
+      "identity" : "swift-openapi-urlsession",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-openapi-urlsession",
+      "state" : {
+        "revision" : "c97e0f0187d95542b4a254f5bb4dc67f43bf73c9",
+        "version" : "1.4.0"
       }
     },
     {
