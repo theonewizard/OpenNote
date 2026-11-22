@@ -23,7 +23,9 @@ Status: Proposed (2026-10-17). STRIDE-style baseline for Phase 0; updated whenev
 
 | STRIDE | Threat | Control | Verified by |
 |---|---|---|---|
-| S | Stolen access/refresh token | Short-lived access tokens; rotating, device-bound, hashed refresh tokens; revocation per device; Keychain on Apple, httpOnly cookies on web | Integration tests for rotation/revocation |
+| S | Stolen access/refresh token | Short-lived access tokens; rotating, device-bound, hashed refresh tokens; revocation per device; Keychain on Apple (one item per server, this device only, never in `UserDefaults`, logs or the App Group container), httpOnly cookies on web | Integration tests for rotation/revocation; `KeychainTests`, `SessionTests` (`OpenNoteAPI`) |
+| S | Another app or page takes the native login's authorization code, or sends the user to a fake server | Code flow with PKCE (S256) and a random `state` checked on return; the code is useless without the verifier, which never leaves the app; the server address must be `https` (plain `http` for loopback only) | `LoginTests` (`OpenNoteAPI`) |
+| T | Any app or web page opens `opennote://capture?text=…` to plant text in the vault | The link only creates a new note in `Inbox/`, named by the path rules, at most 100 000 characters; it never overwrites, reads or sends anything, and iOS and macOS ask before a browser may open it. The share extension works the same way, through an inbox file | `SmokeTests` (quick capture), `NewFileNameTests` (`OpenNoteCore`) |
 | S | Credential stuffing on local login | Argon2id, rate limits per IP/user, lockout backoff, optional OIDC-only mode | Rate-limit tests |
 | T | Path traversal / symlink escape via note paths, uploads, folder moves | Storage contract §3 validation, `dir_fd` + `O_NOFOLLOW`, realpath containment check | Fuzz tests with traversal corpus |
 | T | Stale write overwrites newer content | Revision preconditions, server-side merge, conflict copies | Sync simulation |

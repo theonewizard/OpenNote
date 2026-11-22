@@ -42,3 +42,37 @@ import Testing
         #expect(LinkResolver.resolve(link("Missing"), from: "Welcome.md", in: paths) == nil)
     }
 }
+
+@Suite struct NewFileNameTests {
+    @Test func sanitizedNamesPassThePathRules() {
+        let names = ["My: note?.md", "..hidden", "trailing. ", "a/b\\c", "CON.md", "", "#tag [x]|y^.md", "tab\there",
+                     String(repeating: "é", count: 200) + ".md", "Cafe\u{301}.md"]
+        for name in names {
+            let clean = VaultPath.sanitizedName(name, note: name.hasSuffix(".md"))
+            #expect(VaultPath.validate(clean, note: name.hasSuffix(".md")).isEmpty, "\(name) -> \(clean)")
+        }
+    }
+
+    @Test func sanitizedNameKeepsWhatIsAllowed() {
+        #expect(VaultPath.sanitizedName("Plan 2026.md", note: true) == "Plan 2026.md")
+        #expect(VaultPath.sanitizedName("My: note?.md", note: true) == "My- note-.md")
+        #expect(VaultPath.sanitizedName("photo #1.png") == "photo #1.png")
+        #expect(VaultPath.sanitizedName("", note: true) == "Untitled")
+        #expect(VaultPath.sanitizedName("Cafe\u{301}.md", note: true) == "Café.md")
+        #expect(VaultPath.sanitizedName(String(repeating: "é", count: 200) + ".md", note: true).hasSuffix(".md"))
+    }
+
+    @Test func capturedTextIsNamedAfterItsFirstLine() {
+        #expect(VaultPath.noteName(forText: "\n## Shopping list\nmilk", fallback: "Note") == "Shopping list.md")
+        #expect(VaultPath.noteName(forText: "https://example.com/a?b=1", fallback: "Note") == "https---example.com-a-b=1.md")
+        #expect(VaultPath.noteName(forText: " \n", fallback: "Note 2026-11-22") == "Note 2026-11-22.md")
+        #expect(VaultPath.noteName(forText: String(repeating: "x", count: 200), fallback: "Note").count == 63)
+    }
+
+    @Test func freePathNumbersBeforeTheExtensionAndIgnoresCase() {
+        #expect(VaultPath.freePath("Notes/Untitled.md", taken: []) == "Notes/Untitled.md")
+        #expect(VaultPath.freePath("Notes/Untitled.md", taken: ["notes/UNTITLED.md"]) == "Notes/Untitled 1.md")
+        #expect(VaultPath.freePath("Untitled.md", taken: ["Untitled.md", "Untitled 1.md"]) == "Untitled 2.md")
+        #expect(VaultPath.freePath("a.b/README", taken: ["a.b/README"]) == "a.b/README 1")
+    }
+}

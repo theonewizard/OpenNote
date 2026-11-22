@@ -3,8 +3,9 @@ import SwiftUI
 @main
 struct OpenNoteApp: App {
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             RootView()
         }
+        .commands { AppCommands() }
     }
 }

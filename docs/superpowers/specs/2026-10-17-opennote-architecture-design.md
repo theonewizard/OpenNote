@@ -171,11 +171,11 @@ Swift packages (one repository, local SPM packages):
 |---|---|---|
 | `OpenNoteCore` | Domain types, Markdown/frontmatter scanning (byte-preserving), link/tag extraction, path rules | Foundation; SHA-256 from CryptoKit on Apple platforms and from swift-crypto on Linux (Linux-buildable) |
 | `OpenNoteStorage` | Local vault file I/O (atomic writes, coordinated access), SQLite state DB, base-content cache | Foundation, SQLite (Linux-buildable) |
-| `OpenNoteAPI` | Generated client from OpenAPI (swift-openapi-generator), auth/session | Foundation, OpenAPIRuntime: the generated client types only, no URLSession transport yet (OpenAPIURLSession is added when Phase 1 first calls the API) |
+| `OpenNoteAPI` | Generated client from OpenAPI (swift-openapi-generator), login (code flow with PKCE), Keychain credentials, the refreshing session and its bearer middleware | Foundation, OpenAPIRuntime, OpenAPIURLSession (the transport, since P4-03), CryptoKit, Security |
 | `OpenNoteSync` | Outbox, pull/push loop, watcher integration (FSEvents/`NSFilePresenter`), conflict surfacing | Core, Storage, API |
 | `OpenNoteEditor` | TextKit 2 Markdown editor with live styling, no re-serialization | SwiftUI/AppKit/UIKit |
 
-The apps (`Apps/macOS`, `Apps/iOS`) are thin SwiftUI shells over these packages. macOS keeps the local vault in a user-chosen folder (so Obsidian can open it); iOS keeps it in the app container (R7).
+The apps (`Apps/macOS`, `Apps/iOS`) are thin SwiftUI shells over these packages. macOS keeps the local vault in a user-chosen folder (so Obsidian can open it); iOS keeps it in the app container (R7). How the apps are put together: [Apple apps, Phase 4 design](2026-11-22-apple-apps-phase-4-design.md).
 
 ### 5.5 Web client architecture
 

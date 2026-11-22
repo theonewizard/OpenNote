@@ -62,12 +62,19 @@ public final class MarkdownEditorController: NSObject {
     public var theme: MarkdownTheme { didSet { restyle() } }
     /// Called after every edit with the updated document.
     public var onChange: ((EditorDocument) -> Void)?
+    #if canImport(AppKit)
+    /// Files dropped on the text go here (to become attachments); nil leaves drops to AppKit.
+    public var onDropFiles: (([URL]) -> Void)? {
+        get { (textView as? NoteTextView)?.onDropFiles }
+        set { (textView as? NoteTextView)?.onDropFiles = newValue }
+    }
+    #endif
 
     public init(document: EditorDocument, theme: MarkdownTheme = MarkdownTheme()) {
         self.document = document
         self.theme = theme
         #if canImport(AppKit)
-        textView = NSTextView(usingTextLayoutManager: true)
+        textView = NoteTextView(usingTextLayoutManager: true)
         #else
         textView = UITextView(usingTextLayoutManager: true)
         #endif
@@ -161,6 +168,41 @@ public final class MarkdownEditorController: NSObject {
 }
 
 #if canImport(AppKit)
+/// A text view that hands dropped files to `onDropFiles`. On its own a plain-text NSTextView
+/// inserts the file's path as text.
+final class NoteTextView: NSTextView {
+    var onDropFiles: (([URL]) -> Void)? { didSet { updateDragTypeRegistration() } }
+
+    override var acceptableDragTypes: [NSPasteboard.PasteboardType] {
+        super.acceptableDragTypes + (onDropFiles == nil ? [] : [.fileURL])
+    }
+
+    private func files(_ sender: any NSDraggingInfo) -> [URL]? {
+        guard onDropFiles != nil else { return nil }
+        let urls = sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
+        return urls.isEmpty ? nil : urls
+    }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        files(sender) == nil ? super.draggingEntered(sender) : .copy
+    }
+
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        files(sender) == nil ? super.draggingUpdated(sender) : .copy
+    }
+
+    override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        files(sender) == nil ? super.prepareForDragOperation(sender) : true
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        guard let urls = files(sender) else { return super.performDragOperation(sender) }
+        onDropFiles?(urls)
+        return true
+    }
+}
+
 extension MarkdownEditorController: NSTextViewDelegate {
     public func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange,
                          replacementString: String?) -> Bool {
@@ -181,10 +223,13 @@ extension MarkdownEditorController: NSTextViewDelegate {
 public struct MarkdownEditor: NSViewRepresentable {
     @Binding public var document: EditorDocument
     public var theme: MarkdownTheme
+    public var onDropFiles: (([URL]) -> Void)?
 
-    public init(document: Binding<EditorDocument>, theme: MarkdownTheme = MarkdownTheme()) {
+    public init(document: Binding<EditorDocument>, theme: MarkdownTheme = MarkdownTheme(),
+                onDropFiles: (([URL]) -> Void)? = nil) {
         _document = document
         self.theme = theme
+        self.onDropFiles = onDropFiles
     }
 
     public func makeCoordinator() -> MarkdownEditorController {
@@ -202,6 +247,7 @@ public struct MarkdownEditor: NSViewRepresentable {
 
     public func updateNSView(_ view: NSScrollView, context: Context) {
         let controller = context.coordinator
+        controller.onDropFiles = onDropFiles
         if controller.document != document { controller.load(document) }
     }
 }
