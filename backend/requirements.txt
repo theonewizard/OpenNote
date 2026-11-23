@@ -1,21 +1,21 @@
 # Runtime dependencies, pinned exactly (ADR-0014). Versions: docs/development/versions.md.
 alembic==1.20.1
-anthropic==2.8.0
+anthropic==2.12.0
 argon2-cffi==25.1.0
 dramatiq[redis]==2.2.1
-fastapi==0.162.6
+fastapi==0.165.0
 filetype==1.2.0
 markdown-it-py==4.3.0
 merge3==1.0.0
 psycopg[binary]==3.3.9
-pydantic==2.14.3
+pydantic==2.14.4
 pydantic-settings==2.16.3
 pyjwt[crypto]==2.15.1
 pypdfium2==5.15.2
-python-multipart==0.0.33
+python-multipart==0.0.34
 redis==8.1.0
 ruamel.yaml==0.19.1
-sqlalchemy[asyncio]==2.1.8
+sqlalchemy[asyncio]==2.1.9
 starlette==1.10.0
 uvicorn[standard]==0.54.0
 watchdog==7.1.0
