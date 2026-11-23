@@ -1,11 +1,11 @@
 # Development and test tools, pinned exactly (ADR-0014). Versions: docs/development/versions.md.
 -r requirements.txt
 bandit==1.9.4
-httpx2==2.16.0
-hypothesis==6.170.15
+httpx2==2.16.2
+hypothesis==6.170.17
 mypy==2.4.1
 pip-audit==2.10.1
 pre-commit==4.7.0
 pytest==9.2.0
-ruff==0.17.5
+ruff==0.17.6
 schemathesis==4.33.4
