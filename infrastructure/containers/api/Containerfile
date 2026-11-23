@@ -10,7 +10,7 @@
 # as UID 1001 group 0 or any other UID in group 0, on a read-only root filesystem with a
 # writable /tmp.
 
-FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741 AS tesseract
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:d63890a635f8f19177bce1775f74f587a47f4456844f1392456c4e3673a48753 AS tesseract
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -64,7 +64,7 @@ RUN mkdir -p /src/leptonica /src/tesseract \
     && rm -rf /opt/tesseract/include /opt/tesseract/lib64/cmake /opt/tesseract/lib64/pkgconfig \
     && /opt/tesseract/bin/tesseract --version
 
-FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:fb2f7f857cc60d88e3fad19da505083a682ca4569d7b55a61f64aaa43641f741
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.3@sha256:d63890a635f8f19177bce1775f74f587a47f4456844f1392456c4e3673a48753
 
 LABEL org.opencontainers.image.title="opennote-api" \
       org.opencontainers.image.description="OpenNote API server and background worker" \
