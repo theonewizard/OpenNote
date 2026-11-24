@@ -28,6 +28,7 @@ Review Phase 5 on `main` (1baa1ea) against ROADMAP.md and IMPLEMENTATION_STATUS.
 - R-P5F-011: after #99 (Apple apps) merged, `OpenNoteAPI` no longer built on Linux (CryptoKit for PKCE, Security for the Keychain), which broke the cross-client suite. Fixed by leaving `PKCE` and `KeychainStore` out where those modules do not exist (`#if canImport`) and importing FoundationNetworking for the URLSession transport; no new dependency (swift-crypto for PKCE on Linux was rejected: Linux never starts a login).
 
 - R-P5F-010: competing sync tools are an Apple-side concern: only the Apple apps keep the vault in a folder of the user's choosing; the web app keeps an IndexedDB cache and the server's vault folder is the operator's. Detection is a pure function of the vault's path and files (`CompetingSync.detect(root:)`), so the apps call it when they open a vault and show the warning; OpenNote keeps syncing, as only the user can say which tool should go. Covered: iCloud Drive, File Provider cloud folders (Dropbox, OneDrive, Google Drive), the older Dropbox app, Obsidian Sync. Syncthing, Git and other tools are left out until someone asks.
+- R-P5F-012 (2026-11-24): the first scheduled `sync-e2e` run on `main` fired late (2026-11-23 11:14 UTC instead of 02:41) and passed ([run](https://github.com/theonewizard/OpenNote/actions/runs/45163353863)); P5-09 set to COMPLETED in a docs-only pull request.
 
 ## Output
 
